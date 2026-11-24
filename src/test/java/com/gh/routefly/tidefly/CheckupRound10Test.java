@@ -212,7 +212,7 @@ public class CheckupRound10Test {
                     && read("src/main/webapp/" + f.replace(".js", ".html")).contains("#sheet .studio a { color:#38d9ea;"));
         }
         String st = read("src/main/webapp/js/studio.js");
-        assertTrue(st.contains("var parts = RF.parseJoinId(id)") && st.contains("RF.joinedCourse(id, parts, r)") && st.contains("RF.courseTrack(c,") && st.contains("    restoreWork().then(openFromGuide)"));
+        assertTrue(st.contains("var parts = RF.parseJoinId(id)") && st.contains("RF.courseFetch(id, json).then(function (c) {") && st.contains("RF.courseTrack(c,") && st.contains("    restoreWork().then(openFromGuide)"));
         assertTrue("kit-studio 에 courseTrack", read("src/main/webapp/js/kit-studio.js").contains("function courseTrack("));
         // 🗺 안내도에서 고르기(관리자만) - 이름 찾기는 따라가기와 같은 RF.routeGuides · guideMaps(국립공원이 아닌 산은 from 이 있어야 안내도가 열림)
         assertTrue(read("src/main/webapp/studio.html").contains("<button class=\"b\" id=\"guideBtn\" type=\"button\" hidden>🗺 안내도에서 고르기</button>"));

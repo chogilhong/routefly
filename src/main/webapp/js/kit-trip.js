@@ -1352,6 +1352,28 @@
     }
 
     /**
+     * 코스 하나를 받아 fromApi 꼴로(이은 코스 · 자른 구간이면 조각마다 받아 joinedCourse) - GPX 편집 · 코스 보기 · 코스 GPX 저장이 같이 씀
+     * (점검 14차 A5, 2026-11-24: 코스 보기 · GPX 저장이 이은 ID 를 api/course 에 한 번에 물어 400 으로 실패했음). json(url) → Promise(JSON, 실패면 reject).
+     */
+    function courseFetch(id, json) {
+        var parts = parseJoinId(id);
+        if (!parts) return json("api/course?id=" + encodeURIComponent(id)).then(function (r) { return fromApi(id, r); });
+        var bases = partBases(parts);
+        return Promise.all(bases.map(function (b) { return json("api/course?id=" + encodeURIComponent(b)); }))
+            .then(function (rs) { return joinedCourse(id, parts, partAnswers(parts, bases, rs)); });
+    }
+    function partBases(parts) {
+        var out = [];
+        (parts || []).forEach(function (p) { if (out.indexOf(p.base) < 0) out.push(p.base); });
+        return out;
+    }
+
+    /** 순수 함수 - partBases 차례로 받은 답들 → 조각 차례 답(조각마다 따로 고치므로 복사). */
+    function partAnswers(parts, bases, answers) {
+        return parts.map(function (p) { return JSON.parse(JSON.stringify(answers[bases.indexOf(p.base)])); });
+    }
+
+    /**
      * 순수 함수 - 코스 여러 개(이미 걷는 방향으로 돌린 것)를 하나로 잇습니다. 끝과 다음 처음이 떨어져 있으면 그 거리만큼 더함.
      * 이름은 "무리 N구간 · 처음 → 끝", 이름표 · 갈림길 · 위치표지 · 위험지역은 거리를 밀어 모두. id 는 이은 코스 ID, parts 는 [{id, rev}].
      */
@@ -1971,7 +1993,6 @@
     global.RF = {
         num: num,
         km: km,
-        fromApi: fromApi,
         recordCourse: recordCourse,
         flyStart: flyStart,
         gpxRecord: gpxRecord,
@@ -1979,6 +2000,7 @@
         at: at,
         snap: snap,
         trackGpx: trackGpx,
+        courseFetch: courseFetch,
         courseGpxFree: courseGpxFree,
         speedProfile: speedProfile,
         famousMarks: famousMarks,

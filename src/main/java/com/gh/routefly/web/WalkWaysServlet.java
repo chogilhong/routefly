@@ -67,7 +67,7 @@ public class WalkWaysServlet extends HttpServlet {
             Json.fail(resp, HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
             return;
         }
-        if (b == null || b[2] - b[0] > MAX_SPAN || b[3] - b[1] > MAX_SPAN) {
+        if (b == null || b[2] - b[0] > MAX_SPAN || b[3] - b[1] > MAX_SPAN || !inKorea(b)) {
             Json.fail(resp, HttpServletResponse.SC_BAD_REQUEST, "bbox 는 꼭 주고, 가로 · 세로 " + MAX_SPAN + "° 안이어야 합니다.");
             return;
         }
@@ -95,6 +95,11 @@ public class WalkWaysServlet extends HttpServlet {
         }
     }
 
+    /** 순수 함수 - 범위가 우리나라 안(위도 33 ~ 39 · 경도 124 ~ 132, StaysServlet 과 같음)인가. 바다 · 외국 칸을 물어 캐시를 채우지 못하게(점검 14차 A1). */
+    static boolean inKorea(double[] b) {
+        return b[1] >= 33 && b[3] <= 39 && b[0] >= 124 && b[2] <= 132;
+    }
+
     /** walk.dir/current.txt 가 가리키는 칸 폴더(이름이 tiles-… 꼴일 때만 - 다른 경로로 새지 않게). 없으면 null. */
     static File current(File dir) {
         try {
@@ -119,14 +124,13 @@ public class WalkWaysServlet extends HttpServlet {
             Tile t = CACHE.get(f);
             if (t != null) return t.rows();
         }
+        // 파일이 없는 칸(바다 · 길 없는 칸)은 담아 두지 않음 - 0바이트로 담으면 크기 합이 늘지 않아 영영 지워지지 않고 쌓였음(점검 14차 A1)
+        if (!f.isFile()) return List.of();
         List<Row> out = new ArrayList<>();
-        long bytes = 0;
-        if (f.isFile()) {
-            bytes = f.length();
-            for (String line : Files.readAllLines(f.toPath(), StandardCharsets.UTF_8)) {
-                Row r = row(line);
-                if (r != null) out.add(r);
-            }
+        long bytes = f.length();
+        for (String line : Files.readAllLines(f.toPath(), StandardCharsets.UTF_8)) {
+            Row r = row(line);
+            if (r != null) out.add(r);
         }
         synchronized (CACHE) {
             Tile prev = CACHE.put(f, new Tile(out, bytes));

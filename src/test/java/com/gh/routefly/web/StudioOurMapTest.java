@@ -24,8 +24,8 @@ public class StudioOurMapTest {
                 && js.contains("return (owner || !!x.pub) && (!x.ours || !!ourStyle);"));
         assertTrue("설정 map.basemap.url 로 모양을 먼저 읽음", js.contains("RFMap.open(j.basemapUrl, dem)") && js.contains("ourStyle = s;"));
         assertTrue("층 · 소스 이름에 rfm- (편집 층과 안 겹침) · 고른 때만 보임", js.contains("sources[OUR + k] = ourStyle.sources[k];") && js.contains("c.id = OUR + l.id;")
-                && js.contains("c.layout.visibility = pref.base === \"rf\""));
-        assertTrue("고르면 한꺼번에 보이기 · 숨기기", js.contains("map.setLayoutProperty(OUR + l.id, \"visibility\", p.base === \"rf\""));
+                && js.contains("c.layout.visibility = ourVis(l, pref.base);"));
+        assertTrue("고르면 한꺼번에 보이기 · 숨기기", js.contains("map.setLayoutProperty(OUR + l.id, \"visibility\", ourVis(l, p.base));"));
         assertTrue("출처 두 번 막기 - 처음 · 바탕을 바꿀 때 출처 칸을 새로", js.contains("attrib(mapPref().base === \"rf\");") && js.contains("if (inp.type === \"radio\") attrib(p.base === \"rf\");")
                 && js.contains("if (attribCtl) map.removeControl(attribCtl);"));
         assertTrue("글꼴 · 아이콘", js.contains("st.glyphs = ourStyle.glyphs;") && js.contains("RFMap.iconImage(map, e.id);"));

@@ -926,6 +926,17 @@
         return rev ? out.reverse() : out;
     }
 
+    /**
+     * 코스 하나를 받아 fromApi 꼴로(이은 코스 · 자른 구간이면 조각마다 받아 joinedCourse) - GPX 편집 · 코스 보기 · 코스 GPX 저장이 같이 씀
+     * (점검 14차 A5, 2026-11-24: 코스 보기 · GPX 저장이 이은 ID 를 api/course 에 한 번에 물어 400 으로 실패했음). json(url) → Promise(JSON, 실패면 reject).
+     */
+    function courseFetch(id, json) {
+        var parts = parseJoinId(id);
+        if (!parts) return json("api/course?id=" + encodeURIComponent(id)).then(function (r) { return fromApi(id, r); });
+        var bases = partBases(parts);
+        return Promise.all(bases.map(function (b) { return json("api/course?id=" + encodeURIComponent(b)); }))
+            .then(function (rs) { return joinedCourse(id, parts, partAnswers(parts, bases, rs)); });
+    }
     function partBases(parts) {
         var out = [];
         (parts || []).forEach(function (p) { if (out.indexOf(p.base) < 0) out.push(p.base); });
@@ -1665,7 +1676,6 @@
     global.RF = {
         num: num,
         km: km,
-        fromApi: fromApi,
         nameParts: nameParts,
         PARKS: PARKS,
         guideMaps: guideMaps,
@@ -1679,6 +1689,7 @@
         joinTracks: joinTracks,
         joinPlan: joinPlan,
         trackGpx: trackGpx,
+        courseFetch: courseFetch,
         submitSheet: submitSheet,
         courseName: courseName,
         sourceText: sourceText,
@@ -1697,9 +1708,6 @@
         JOIN_GAP_M: JOIN_GAP_M,
         distM: distM,
         mapLocale: mapLocale,
-        joinedCourse: joinedCourse,
-        partBases: partBases,
-        courseTrack: courseTrack,
-        partAnswers: partAnswers
+        courseTrack: courseTrack
     };
 })(window);

@@ -144,16 +144,12 @@ public class VideoKitTest {
 
     @Test
     public void 공개_기록_남길_것만() {
-        JsonObject in = JsonParser.parseString("{\"name\":\"덕기봉 <b>\\n산행\",\"kind\":\"hike\",\"date\":\"2026-11-22\",\"dist_m\":5123.4,\"time_ms\":7200000,\"up_m\":612,"
-                + "\"extra\":\"버림\",\"track\":[[37.1234567,127.1,120.6],[37.124,127.101,null,1700000000000]]}").getAsJsonObject();
-        JsonObject o = RecordShareServlet.clean(in);
-        assertEquals("덕기봉 b 산행", o.get("name").getAsString());
-        assertFalse("모르는 칸은 버림", o.has("extra"));
-        assertEquals("[[37.123457,127.1,121],[37.124,127.101,null]]", o.get("track").toString());   // 시각(넷째 값)은 버림
-        assertEquals(5123, o.get("dist_m").getAsLong());
-        assertNull("점 하나", RecordShareServlet.clean(JsonParser.parseString("{\"name\":\"a\",\"kind\":\"hike\",\"date\":\"2026-11-22\",\"dist_m\":1,\"time_ms\":1,\"track\":[[37,127]]}").getAsJsonObject()));
-        assertNull("종류", RecordShareServlet.clean(JsonParser.parseString("{\"name\":\"a\",\"kind\":\"car\",\"date\":\"2026-11-22\",\"dist_m\":1,\"time_ms\":1,\"track\":[[37,127],[37,127.1]]}").getAsJsonObject()));
-        assertNull("위도", RecordShareServlet.clean(JsonParser.parseString("{\"name\":\"a\",\"kind\":\"hike\",\"date\":\"2026-11-22\",\"dist_m\":1,\"time_ms\":1,\"track\":[[97,127],[37,127.1]]}").getAsJsonObject()));
+        // 점검 14차(2026-11-24): 만들기 입구(POST)는 지움 - 부르는 화면이 없는데 누구나 글 · 선을 올릴 수 있었음. 남은 것은 1년 판정
+        JsonObject o = JsonParser.parseString("{\"created\":1000}").getAsJsonObject();
+        assertFalse("1년 안", RecordShareServlet.expired(o, 1000 + RecordShareServlet.KEEP_MS));
+        assertTrue("1년 지남", RecordShareServlet.expired(o, 1000 + RecordShareServlet.KEEP_MS + 1));
+        assertFalse("만든 때가 없으면 지우지 않음", RecordShareServlet.expired(new JsonObject(), Long.MAX_VALUE));
+        assertFalse("깨진 값", RecordShareServlet.expired(JsonParser.parseString("{\"created\":\"x\"}").getAsJsonObject(), Long.MAX_VALUE));
     }
 
     @Test
@@ -166,20 +162,16 @@ public class VideoKitTest {
         Object before = props.setProperty("record.shareDir", dir.toString());
         try {
             RecordShareServlet s = new RecordShareServlet();
-            Map<String, Object> made = call(s, "POST", "", null, "{\"name\":\"덕기봉\",\"kind\":\"hike\",\"date\":\"2026-11-22\",\"dist_m\":5000,\"time_ms\":7200000,\"track\":[[37.1,127.1,100],[37.11,127.11,300]]}", "203.0.113.91");
-            assertEquals(200, made.get("status"));
-            JsonObject m = JsonParser.parseString((String) made.get("body")).getAsJsonObject();
-            String id = m.get("id").getAsString(), key = m.get("key").getAsString();
-            assertTrue(id.matches("[0-9A-Za-z]{10}") && key.matches("[0-9a-f]{32}"));
-            String file = Files.readString(dir.resolve(id + ".json"), StandardCharsets.UTF_8);
-            assertFalse("열쇠 자체는 서버에 없음", file.contains(key));
-            Map<String, Object> got = call(s, "GET", "", id, null, "203.0.113.92");
+            long now = System.currentTimeMillis();
+            Files.writeString(dir.resolve("BBBBBBBBBB.json"), "{\"created\":" + now + ",\"keyHash\":\"abc\",\"name\":\"덕기봉\"}", StandardCharsets.UTF_8);
+            Map<String, Object> got = call(s, "GET", "", "BBBBBBBBBB", null, "203.0.113.92");
             assertEquals(200, got.get("status"));
             assertFalse("열쇠 지문은 내보내지 않음", ((String) got.get("body")).contains("keyHash"));
-            assertEquals(403, call(s, "POST", "/delete", null, "{\"id\":\"" + id + "\",\"key\":\"" + "0".repeat(32) + "\"}", "203.0.113.93").get("status"));
-            assertEquals(200, call(s, "POST", "/delete", null, "{\"id\":\"" + id + "\",\"key\":\"" + key + "\"}", "203.0.113.91").get("status"));
-            assertEquals("끄면 바로 지움", 404, call(s, "GET", "", id, null, "203.0.113.92").get("status"));
-            // 1년 지난 것은 지움
+            assertEquals("만들기 입구는 없음(점검 14차)", 405, call(s, "POST", "", null, "{\"name\":\"x\"}", "203.0.113.91").get("status"));
+            // 1년 지난 것은 보기 때 그 자리에서 지우고 404(예전에는 만들 때만 지웠음 - 점검 14차 A2)
+            Files.writeString(dir.resolve("CCCCCCCCCC.json"), "{\"created\":1}", StandardCharsets.UTF_8);
+            assertEquals(404, call(s, "GET", "", "CCCCCCCCCC", null, "203.0.113.92").get("status"));
+            assertFalse(Files.exists(dir.resolve("CCCCCCCCCC.json")));
             Files.writeString(dir.resolve("AAAAAAAAAA.json"), "{\"created\":1}", StandardCharsets.UTF_8);
             assertEquals(1, RecordShareServlet.sweep(dir.toFile(), 1 + RecordShareServlet.KEEP_MS + 1));
         } finally {
@@ -215,6 +207,7 @@ public class VideoKitTest {
                     case "getRemoteAddr" -> ip;
                     case "getReader" -> new BufferedReader(new StringReader(body == null ? "" : body));
                     case "getMethod" -> method;
+                    case "getProtocol" -> "HTTP/1.1";
                     default -> null;
                 });
         Map<String, Object> out = new HashMap<>();
@@ -226,7 +219,7 @@ public class VideoKitTest {
                     if ("getWriter".equals(m.getName())) return new PrintWriter(sw, true);
                     return null;
                 });
-        if ("GET".equals(method)) s.doGet(req, resp); else s.doPost(req, resp);
+        if ("GET".equals(method)) s.doGet(req, resp); else ((jakarta.servlet.Servlet) s).service(req, resp);   // POST 입구는 점검 14차에 지움 - 톰캣처럼 service 로(없으면 405)
         out.put("body", sw.toString());
         return out;
     }

@@ -681,8 +681,10 @@
         $("rec-edit").onclick = function () { location.href = "studio.html" + cQ; };
         var ownP = fetch("api/course-upload", { headers: { Accept: "application/json" }, cache: "no-store" }).then(function (r) { return r.ok ? r.json() : {}; })
             .then(function (j) { return !!(j && j.owner); }).catch(function () { return false; });
-        Promise.all([getJson("api/course?id=" + encodeURIComponent(courseParam)), ownP]).then(function (a) {
-            var c = RF.fromApi(courseParam, a[0]), src = (c.course && c.course.source) || null, t = RF.courseTrack(c, false);
+        // 이은 코스(대표 코스 - 쉼표 · @ 든 ID)도 조각마다 받아 이음(RF.courseFetch, 점검 14차 A5)
+        var cJson = function (u) { return fetch(u, { headers: { Accept: "application/json" } }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); }); };
+        Promise.all([RF.courseFetch(courseParam, cJson), ownP]).then(function (a) {
+            var c = a[0], src = (c.course && c.course.source) || null, t = RF.courseTrack(c, false);
             var name = cTitle || (c.course && c.course.name) || courseParam, got = t.length > 1 ? RF.gpxRecord(RF.trackGpx(name, c.course && c.course.kind, t), true, name) : null;
             if (!got) { $("side").innerHTML = "<p class=\"empty\">" + T("코스 선을 받지 못했습니다.", "Could not load the course line.") + "</p>"; return; }
             $("rec-save").hidden = !(a[1] || RF.courseGpxFree(courseParam, src));

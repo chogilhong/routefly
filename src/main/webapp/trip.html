@@ -112,6 +112,8 @@ body { display:flex; flex-direction:column; height:100dvh; }
 }
 </style>
 <script src="js/rf-theme.js"></script><link rel="stylesheet" href="css/rf-light.css">
+<!-- 기록 보기는 위 띠 · 지도 위 칸이 어두운 바탕이라(옆 칸은 원래 밝음) 밝은 모드에서도 어두운 글자 색을 쓰지 않게 - 밝은 모드에서 위 띠 · 요약 · 그래프 글자가 안 보였음(점검 14차 A6) -->
+<style>:root[data-theme="light"] { --bg:#11161d; --panel:#1a212b; --tx:#eef2f7; --dim:#9aa6b4; --ln:rgba(255,255,255,0.12); --sky:#38d9ea; --onsky:#062b30; color-scheme:dark; }</style>
 </head>
 <body>
 <div id="top">

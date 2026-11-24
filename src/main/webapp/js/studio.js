@@ -148,8 +148,8 @@
     /** 이 기기에서 고를 수 있는 바탕 · 겹침인가 - 운영자는 모두, 손님은 pub 만(위 까닭). 우리 지도는 그 파일을 읽었을 때만. */
     function usable(x) { return (owner || !!x.pub) && (!x.ours || !!ourStyle); }
     var ourStyle = null, OUR = "rfm-";   // 우리 지도 모양(RFMap.open) - 층 · 소스 이름에 rfm- 를 붙여 편집 층(bg · hillshade 등)과 겹치지 않게
-    /** 우리 지도 층인가(고를 때 한꺼번에 보이기 · 숨기기). */
-    function isOurs(id) { return id.indexOf(OUR) === 0; }
+    /** 우리 지도 층 l 을 보일지 - 바탕이 우리 지도이고 그 층이 원래 숨김이 아닐 때. 처음 그림(style) · 바탕 바꾸기(mapMenu)가 같이 씀(점검 14차 - 같은 식 두 벌). */
+    function ourVis(l, base) { return base === "rf" && (!l.layout || l.layout.visibility !== "none") ? "visible" : "none"; }
     /** 기억해 둔 고름 - 키가 없어 V-World 를 못 쓰거나 손님이 못 쓰는 바탕이면 운영자는 OpenTopoMap, 손님은 지형 음영만. */
     function mapPref() {
         var p = null;
@@ -184,7 +184,7 @@
                 c.id = OUR + l.id;
                 if (l.source) c.source = OUR + l.source;
                 c.layout = c.layout || {};
-                c.layout.visibility = pref.base === "rf" && (!l.layout || l.layout.visibility !== "none") ? "visible" : "none";
+                c.layout.visibility = ourVis(l, pref.base);
                 layers.push(c);
             });
         }
@@ -218,7 +218,7 @@
                 try { localStorage.setItem(MAPKEY, JSON.stringify(p)); } catch (e) { /* 이번만 */ }
                 BASES.forEach(function (b) { if (map.getLayer(b.id)) map.setLayoutProperty(b.id, "visibility", p.base === b.id ? "visible" : "none"); });
                 if (inp.type === "radio") attrib(p.base === "rf");
-                if (ourStyle) ourStyle.layers.forEach(function (l) { if (map.getLayer(OUR + l.id)) map.setLayoutProperty(OUR + l.id, "visibility", p.base === "rf" && (!l.layout || l.layout.visibility !== "none") ? "visible" : "none"); });
+                if (ourStyle) ourStyle.layers.forEach(function (l) { if (map.getLayer(OUR + l.id)) map.setLayoutProperty(OUR + l.id, "visibility", ourVis(l, p.base)); });
                 OVERS.forEach(function (o) { if (map.getLayer(o.id)) map.setLayoutProperty(o.id, "visibility", p.over[o.id] ? "visible" : "none"); });
             };
         });
@@ -1330,12 +1330,8 @@
         if (!id) return;
         if (!owner) { try { history.replaceState(null, "", location.pathname + location.search); } catch (e) { /* 주소는 그대로 */ } return; }
         var parts = RF.parseJoinId(id), json = function (u) { return fetch(u, { headers: { Accept: "application/json" } }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); }); };
-        var bases = parts ? RF.partBases(parts) : null;
-        var got = parts ? Promise.all(bases.map(function (b) { return json("api/course?id=" + encodeURIComponent(b)); })).then(function (rs) { return RF.partAnswers(parts, bases, rs); })
-            : json("api/course?id=" + encodeURIComponent(id));
         msg("안내도에서 고른 길을 받는 중…", 8000);
-        got.then(function (r) {
-            var c = parts ? RF.joinedCourse(id, parts, r) : RF.fromApi(id, r);
+        RF.courseFetch(id, json).then(function (c) {
             // 자른 구간 하나(@ 가 든 ID)도 &rev=1 이면 거꾸로 - park.js link() 가 보냄(점검 11차 A12, 2026-11-16: 따라가기는 맞고 GPX 편집만 반대 방향이었음)
             var t = RF.courseTrack(c, (!parts || parts.length === 1) && get("rev") === "1");
             if (t.length < 2) throw new Error("선이 없습니다");

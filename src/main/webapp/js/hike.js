@@ -2176,8 +2176,8 @@
      */
     function courseGpx(id, title) {
         try { history.replaceState(null, "", location.pathname + location.search); } catch (e) { /* 주소만 못 지움 */ }
-        Promise.all([getJson("api/course?id=" + encodeURIComponent(id)), ownerDevice()]).then(function (a) {
-            var c = RF.fromApi(id, a[0]), src = (c.course && c.course.source) || null;
+        Promise.all([RF.courseFetch(id, getJson), ownerDevice()]).then(function (a) {   // 이은 코스도(점검 14차 A5)
+            var c = a[0], src = (c.course && c.course.source) || null;
             if (!a[1] && !RF.courseGpxFree(id, src)) { toast(T("이 코스는 자료 이용 조건 때문에 GPX 로 받을 수 없습니다.", "This course cannot be downloaded as GPX because of its data terms."), 6000); return; }
             var t = RF.courseTrack(c, false), name = title || (c.course && c.course.name) || id;
             if (t.length < 2) throw new Error(T("선이 없습니다", "no track"));

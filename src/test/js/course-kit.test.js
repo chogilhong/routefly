@@ -1226,6 +1226,17 @@ tick().then(function () {
         eq("같은 사진은 같은 열쇠 · 시각 없는 코스 GPX 는 기록이 아님", [RF.gpxRecord(gx).rec.notes[0].photo === back.rec.notes[0].photo, RF.gpxRecord('<gpx><trk><trkseg><trkpt lat="37" lon="127"></trkpt><trkpt lat="37.1" lon="127"></trkpt></trkseg></trk></gpx>')], [true, null]);
         eq("짧으면 남는 것 없음 · 0m 면 그대로", [RF.trimEnds(line, 600).length, RF.trimEnds(line, 0).length], [0, 11]);
     })();
+    // 이은 코스(대표 코스)는 조각마다 받아 이음 - 코스 보기 · 코스 GPX 저장이 이은 ID 를 api/course 에 한 번에 물어 400 이었음(점검 14차 A5, RF.courseFetch)
+    var CDIR = path.join(__dirname, "../resources/course/"), asked = [];
+    var fakeJson = function (u) { asked.push(u); var id = decodeURIComponent(u.replace(/^api\/course\?id=/, "")); return Promise.resolve(JSON.parse(fs.readFileSync(CDIR + id + ".json", "utf8"))); };
+    var one = RF.fromApi("frst-462300101-744138", JSON.parse(fs.readFileSync(CDIR + "frst-462300101-744138.json", "utf8")));
+    var two = RF.fromApi("frst-462300101-b7d6aa", JSON.parse(fs.readFileSync(CDIR + "frst-462300101-b7d6aa.json", "utf8")));
+    return Promise.all([RF.courseFetch("frst-462300101-744138", fakeJson), RF.courseFetch("frst-462300101-744138,frst-462300101-b7d6aa", fakeJson)]).then(function (cs) {
+        eq("courseFetch 하나는 fromApi 그대로", cs[0].lat.length, one.lat.length);
+        eq("courseFetch 이은 코스는 조각마다 물음(이은 ID 를 통째로 묻지 않음)", asked.filter(function (u) { return u.indexOf(",") >= 0 || u.indexOf("%2C") >= 0; }).length, 0);
+        eq("courseFetch 이은 코스는 두 조각 길이를 거의 더한 만큼", cs[1].lat.length >= one.lat.length + two.lat.length - 2, true);
+    });
+}).then(function () {
     console.log((fails ? "FAILED " : "OK ") + (runs - fails) + "/" + runs);
     process.exit(fails ? 1 : 0);
 });
