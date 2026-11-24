@@ -1210,6 +1210,24 @@ public class MountainServlet extends HttpServlet {
         return staySearchBox(stayPrefill(str(peak, "id") != null ? str(peak, "id") : str(peak, "name")), en);
     }
 
+    /** 공식 소식 계정(2026-11-24 홍TV님 - 페이스북 페이지 "루트플라이 - routefly", 사용자 이름 routefly.kr. routefly 는 다른 계정이 쓰고 있었음). */
+    static final String FACEBOOK = "https://www.facebook.com/routefly.kr";
+
+    /** 순수 함수 - 코스 모음(/m/ · /en/m/) 첫 화면의 schema.org Organization(JSON-LD) - 이름 · 주소 · 로고 · 공식 계정(sameAs). */
+    static String orgLd(String base) {
+        JsonObject o = new JsonObject();
+        o.addProperty("@context", "https://schema.org");
+        o.addProperty("@type", "Organization");
+        o.addProperty("name", "routefly");
+        o.addProperty("alternateName", "루트플라이");
+        o.addProperty("url", base + "/m/");
+        o.addProperty("logo", base + "/img/icon-512.png");
+        JsonArray same = new JsonArray();
+        same.add(FACEBOOK);
+        o.add("sameAs", same);
+        return "<script type=\"application/ld+json\">" + new Gson().toJson(o) + "</script>";
+    }
+
     /** 순수 함수 - 검색 엔진용 구조 정보(schema.org Mountain, JSON-LD). Gson 이 &lt; · &gt; 를 \u003c 로 바꿔 &lt;/script&gt; 로 끊기지 않음. */
     static String jsonLd(JsonObject peak, String name, String url) {
         JsonObject o = new JsonObject(), geo = new JsonObject();
@@ -1536,6 +1554,7 @@ public class MountainServlet extends HttpServlet {
     static String indexPage(JsonArray peaks, JsonArray groups, String base, boolean openPeaks, String steep, String seasonHtml) {
         StringBuilder b = new StringBuilder(head("루트플라이 100대 명산 · 둘레길 · 자전거길 코스", "routefly(루트플라이) - 산림청 100대 명산 " + peaks.size()
                 + "곳의 등산코스 · 날씨 · 일출 일몰과 백두대간 · 국가숲길 · 코리아둘레길 · 국토종주 자전거길 노선. 3D 지형 위로 미리 날아 보고 핸드폰으로 따라 걷기.", base + "/m/", base, base + "/en/m/"));
+        b.append(orgLd(base));   // 공식 계정(페이스북) - 검색 엔진용(2026-11-24)
         // 맨 위 로고(img/logo-dark.svg - 2026-10-14 홍TV님), 누르면 따라가기
         // 오른쪽에 따라가기 › - 따라가기 화면 위의 "코스 모음 ›" 과 짝(2026-10-17 홍TV님)
         b.append("<main><div class=\"logoRow\"><a class=\"logo\" href=\"").append(REL).append("/hike.html?lang=ko\"><img src=\"").append(REL)

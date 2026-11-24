@@ -268,6 +268,7 @@ final class MountainEn {
         String desc = "Hiking trails, weather and sunrise for all " + peaks.size() + " of Korea's 100 Famous Mountains (Korea Forest Service) - "
                 + "Seoraksan, Jirisan, Hallasan, Bukhansan and more. Preview trails in 3D and follow them on your phone.";
         StringBuilder b = new StringBuilder(head("Korea's 100 Famous Mountains - Hiking Trails", desc, base + "/en/m/", base + "/m/", base));
+        b.append(MountainServlet.orgLd(base));   // 공식 계정(페이스북) - 한국어 코스 모음과 같게(2026-11-24)
         // 로고 옆 "Follow a trail ›" - 한국어 코스 모음의 "🥾 따라가기 ›" 와 같게(2026-10-17 홍TV님)
         b.append("<main><div class=\"logoRow\"><a class=\"logo\" href=\"").append(REL).append("/hike.html?lang=en\"><img src=\"").append(REL)
                 .append("/img/logo-dark.svg\" alt=\"routefly\" width=\"256\" height=\"80\"></a>")
