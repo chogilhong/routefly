@@ -14,7 +14,7 @@
 :root { --bg:#11161d; --panel:#1a212b; --tx:#e9eef4; --dim:#9aa6b4; --ln:rgba(255,255,255,0.12); --sky:#38d9ea; --yel:#ffd43b; }
 * { box-sizing:border-box; }
 html, body { margin:0; background:var(--bg); color:var(--tx); font-family:Arial,"Malgun Gothic",sans-serif; line-height:1.65; }
-main { max-width:720px; margin:0 auto; padding:calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 40px); }
+main { max-width:760px; margin:0 auto; padding:calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 40px); }   /* 코스 모음(/m/)과 같은 넓이(2026-11-24 홍TV님 "넓이를 통일") */
 h1 { font-size:21px; margin:0 0 4px; }
 .lead { color:var(--dim); font-size:14px; margin:0 0 14px; }
 nav { display:flex; flex-wrap:wrap; gap:6px; margin:0 0 14px; }
@@ -200,5 +200,7 @@ td, th { border-top:1px solid var(--ln); padding:6px 4px; vertical-align:top; te
     <p><a href="party.html?lang=en" class="back-link">‹ Back to the hiking club room</a> · <a href="feedback.html?from=/party-guide-en.html&amp;lang=en">📮 Send feedback</a></p>
 </main>
 <script src="js/seen.js"></script>
+<div class="adSpot adRail left" data-where="side"></div><div class="adSpot adRail right" data-where="side"></div><!-- PC 넓은 화면 양옆 광고(2026-11-24 홍TV님 "산악회 화면도 /m/ 처럼 넓이를 통일하고 광고", 승인 전 쿠팡 · 뒤 애드센스 - js/ads.js, 폰 · 앱은 없음) -->
+<script src="js/ads.js" defer></script>
 </body>
 </html>

@@ -59,14 +59,21 @@ public class PickWideAdsTest {
     @Test
     public void 정적_화면_양옆_광고() throws Exception {
         String pair = "<div class=\"adSpot adRail left\" data-where=\"side\"></div><div class=\"adSpot adRail right\" data-where=\"side\"></div>";
-        for (String f : new String[] {"series.html", "tools.html", "tidefly.html", "dronefly.html"}) {
+        // 산악회 화면도(2026-11-24 홍TV님 "'/routefly/party-office.html' '/routefly/party.html' 등도 /m/ 처럼 넓이를 통일 시키고 광고 넣어줘") - 넓이 760px
+        for (String f : new String[] {"series.html", "tools.html", "tidefly.html", "dronefly.html", "party.html", "party-office.html", "party-guide.html", "party-guide-en.html", "games.html"}) {   // 게임도(2026-11-24 홍TV님)
             String h = read("src/main/webapp/" + f);
             assertEquals(f + " 한 쌍", 1, h.split(java.util.regex.Pattern.quote(pair), -1).length - 1);
             assertTrue(f + " ads.js", h.contains("<script src=\"js/ads.js\" defer></script>"));
         }
-        for (String f : new String[] {"index.html", "park.html", "route.html", "trip.html", "studio.html", "party.html", "party-office.html", "anbu.html", "games.html", "terms.html", "privacy.html", "record.html"})
+        for (String f : new String[] {"index.html", "park.html", "route.html", "trip.html", "studio.html", "anbu.html", "terms.html", "privacy.html", "record.html"})
             assertFalse(f + " 광고 없음", read("src/main/webapp/" + f).contains("adRail"));
         assertEquals("출조 · 드론도 애드센스 곳을 엶(승인 뒤)", SecurityFilter.CSP_ADS, SecurityFilter.cspFor("/tidefly.html"));
         assertEquals(SecurityFilter.CSP_ADS, SecurityFilter.cspFor("/dronefly.html"));
+        for (String f : new String[] {"party.html", "party-office.html", "party-guide.html", "party-guide-en.html"}) {
+            assertEquals(f, f.startsWith("party-guide") ? SecurityFilter.CSP_ADS : SecurityFilter.CSP_ADS_HIKE, SecurityFilter.cspFor("/" + f));   // 방 · 사무실은 좁은 곳만
+            assertEquals(SecurityFilter.CSP_ADS, SecurityFilter.cspFor("/games.html"));
+            assertTrue(f + " 넓이 760px(/m/ 과 같게)", read("src/main/webapp/" + f).contains("main { max-width:760px; margin:0 auto;"));
+        }
+        assertTrue(read("src/main/webapp/css/mountain.css").contains("main { max-width:760px; margin:0 auto;"));
     }
 }

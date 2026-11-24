@@ -75,7 +75,8 @@ public class FullReviewStage4Test {
         assertTrue("산 페이지 광고는 코스 목록 다음 · 자주 묻는 질문 바로 앞", a > ko.indexOf("id=\\\"socar\\\" hidden"));
         assertEquals("한 페이지(산 페이지 + 코스 모음) 두 곳 그대로 - 칸을 늘리지 않음", 2, ko.split("Ads.box\\(\"m\"\\)", -1).length - 1);
         assertTrue(en.contains("        b.append(Ads.box(\"m\", true));   // 광고 - 영어 산 페이지에도(설정이 있을 때만, 2026-10-29), 한국어처럼 FAQ 앞(2026-11-07)\n        List<String[]> qa = faq("));
-        assertFalse("게임에는 광고 없음", read("src/main/webapp/games.html").contains("ads.js"));
+        // 게임은 가운데 광고 칸 없이 PC 양옆만(2026-11-24 홍TV님 "게임 옆에도 광고 넣어줘" - 예전 "게임에는 광고 없음" 을 바꿈)
+        assertTrue(read("src/main/webapp/games.html").contains("<div class=\"adSpot adRail left\" data-where=\"side\">") && !read("src/main/webapp/games.html").contains("adBox"));
     }
 
     @Test

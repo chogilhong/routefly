@@ -30,7 +30,7 @@ html, body { margin:0; background:var(--bg); color:var(--tx); font-family:Arial,
 #back { flex:0 0 auto; display:inline-flex; align-items:center; height:40px; padding:0 12px; border-radius:20px; text-decoration:none;
         background:rgba(56,217,234,0.16); border:1px solid var(--sky); color:var(--sky); font-size:14px; font-weight:bold; }
 #title { flex:1; min-width:0; font-size:15px; font-weight:bold; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-main { max-width:720px; margin:0 auto; padding:12px 12px calc(env(safe-area-inset-bottom) + 24px); }
+main { max-width:760px; margin:0 auto; padding:12px 12px calc(env(safe-area-inset-bottom) + 24px); }   /* 코스 모음(/m/)과 같은 넓이(2026-11-24 홍TV님 "넓이를 통일") */
 section { background:var(--panel); border:1px solid var(--ln); border-radius:12px; padding:14px; margin-bottom:12px; }
 h2 { font-size:19px; margin:0 0 10px; }   /* 칸 제목 크게(2026-10-28 홍TV님 - 사무실 화면과 같게) */
 label { display:block; font-size:13.5px; color:var(--dim); margin:10px 0 4px; }
@@ -347,5 +347,7 @@ a.tel { color:var(--sky); }
 <script src="js/app-perm.js"></script>   <!-- 앱 접근권한 사전 안내(앱 안에서만 처음 한 번, 2026-11-10 원스토어 검증 의견) -->
 <script src="js/seen.js"></script>
 <script src="js/sw-reg.js"></script>   <!-- 링크로만 들어온 회원 · 인솔자도 산에서 신호 없을 때 방 화면이 열리게(2026-10-28 점검) -->
+<div class="adSpot adRail left" data-where="side"></div><div class="adSpot adRail right" data-where="side"></div><!-- PC 넓은 화면 양옆 광고(2026-11-24 홍TV님 "산악회 화면도 /m/ 처럼 넓이를 통일하고 광고", 승인 전 쿠팡 · 뒤 애드센스 - js/ads.js, 폰 · 앱은 없음) -->
+<script src="js/ads.js" defer></script>
 </body>
 </html>

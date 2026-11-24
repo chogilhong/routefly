@@ -71,8 +71,12 @@ public class SecurityFilter extends HttpFilter {
         if ("/tools.html".equals(path)) return CSP_TOOLS;
         // 따라가기(hike.html)는 코스 목록 양옆 광고 때문에(2026-11-24 홍TV님 "목록에서만, 세 번째(따라가기 지도) 화면에서는 광고는 달지 않아") - 광고 칸은 목록(#pick) 안에만, PC 1200px 넘을 때 · 앱 제외(js/ads.js)
         if ("/hike.html".equals(path)) return CSP_ADS_HIKE;
+        // 산악회 방 · 회사 사무실(산악회 토큰 · 회원 위치를 다룸)은 PC 양옆 광고에 따라가기와 같은 좁은 곳만(2026-11-24 홍TV님 "넓이를 통일 시키고 광고 넣어줘")
+        if ("/party.html".equals(path) || "/party-office.html".equals(path)) return CSP_ADS_HIKE;
         return path != null && (path.startsWith("/m/") || path.startsWith("/en/m/") || path.startsWith("/c/") || "/m".equals(path) || "/series.html".equals(path)
-                || "/tidefly.html".equals(path) || "/dronefly.html".equals(path)) ? CSP_ADS : CSP;   // 출조 · 드론도 PC 양옆 광고(2026-11-24 홍TV님 "넣을 만한 곳에는 전부")
+                || "/tidefly.html".equals(path) || "/dronefly.html".equals(path)
+                || "/party-guide.html".equals(path) || "/party-guide-en.html".equals(path)
+                || "/games.html".equals(path)) ? CSP_ADS : CSP;   // 산악회 안내 · 게임도(2026-11-24 홍TV님 "넓이를 통일 시키고 광고" · "게임 옆에도 광고")   // 산악회 화면도(2026-11-24 홍TV님 "넓이를 통일 시키고 광고")   // 출조 · 드론도 PC 양옆 광고(2026-11-24 홍TV님 "넣을 만한 곳에는 전부")
     }
 
     @Override

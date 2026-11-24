@@ -25,7 +25,7 @@ public class AdSpotTest {
         assertTrue(SecurityFilter.cspFor("/series.html").contains("pagead2.googlesyndication.com"));
         String tools = SecurityFilter.cspFor("/tools.html");
         assertTrue(tools.contains("kakaocdn.net") && tools.contains("pagead2.googlesyndication.com"));
-        assertFalse("산악회 방에는 광고 곳 없음", SecurityFilter.cspFor("/party.html").contains("googlesyndication"));   // 따라가기는 2026-11-24 코스 목록 양옆 때문에 엶(AdsTest)
+        assertEquals("산악회 방은 PC 양옆 광고에 좁은 곳만(2026-11-24 홍TV님)", SecurityFilter.CSP_ADS_HIKE, SecurityFilter.cspFor("/party.html"));   // 따라가기와 같게(AdsTest)
     }
 
     @Test
