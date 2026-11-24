@@ -18,7 +18,7 @@ public class TripFileEditTest {
     @Test
     public void 연_파일을_GPX_편집으로() throws Exception {
         String tjs = read("src/main/webapp/js/trip.js"), sjs = read("src/main/webapp/js/studio.js");
-        assertTrue("파일 모드에 📐 보임 · 저장 · 삭제는 숨김", tjs.contains("$(\"recBtns\").hidden = false; $(\"rec-save\").hidden = true; $(\"rec-edit\").hidden = false; $(\"rec-del\").hidden = true;"));
+        assertTrue("파일 모드에 📐 보임 · 저장 · 삭제는 숨김", tjs.contains("$(\"recBtns\").hidden = false; $(\"rec-save\").hidden = true; $(\"rec-edit\").hidden = EN; $(\"rec-del\").hidden = true;"));
         assertTrue("선 · 이름만 sessionStorage 로, 편집기는 #file", tjs.contains("sessionStorage.setItem(\"rf-studio-in\", JSON.stringify({ name: got.rec.name || f.name, track: got.rec.track }));")
                 && tjs.contains("location.href = \"studio.html#file\";"));
         assertTrue("편집기는 받아 넣고 바로 지움", sjs.contains("if (location.hash === \"#file\") return openFromFile();")

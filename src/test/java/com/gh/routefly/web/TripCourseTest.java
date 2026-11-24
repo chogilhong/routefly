@@ -21,7 +21,7 @@ public class TripCourseTest {
         assertTrue("?c= 로 코스를 받아 기록처럼 그림", tjs.contains("var courseParam = recParam ? null : new URLSearchParams(location.search).get(\"c\");")
                 && tjs.contains("RF.gpxRecord(RF.trackGpx(name, c.course && c.course.kind, t), true, name)"));
         assertTrue("삭제 없음 · 저장은 받아도 되는 코스 또는 운영자 · 편집은 운영자", tjs.contains("$(\"rec-del\").hidden = $(\"rec-save\").hidden = $(\"rec-edit\").hidden = true;")
-                && tjs.contains("$(\"rec-save\").hidden = !(a[1] || RF.courseGpxFree(courseParam, src));") && tjs.contains("$(\"rec-edit\").hidden = !a[1];"));
+                && tjs.contains("$(\"rec-save\").hidden = !(a[1] || RF.courseGpxFree(courseParam, src));") && tjs.contains("$(\"rec-edit\").hidden = !a[1] || EN;"));
         assertTrue("저장은 따라가기가(앱 공유 창 · 내려받기)", tjs.contains("\"#coursegpx=\" + encodeURIComponent(courseParam)") && hjs.contains("var cg = /^#coursegpx=([^&]+)(?:&title=(.*))?$/.exec(location.hash);"));
         assertTrue("따라가기도 다시 막음 · 출처 한 줄", hjs.contains("if (!a[1] && !RF.courseGpxFree(id, src)) {") && hjs.contains("credit: RF.courseGpxCredit(id, src, EN)"));
     }

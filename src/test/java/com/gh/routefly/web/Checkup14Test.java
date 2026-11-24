@@ -75,4 +75,23 @@ public class Checkup14Test {
         String ads = read("src/main/webapp/js/ads.js");
         assertTrue(ads.contains("new IntersectionObserver(") && !ads.contains("setInterval("));
     }
+
+    @Test
+    public void 단계3_접근_코스보기_수익() throws Exception {
+        String hk = read("src/main/webapp/js/hike.js"), tj = read("src/main/webapp/js/trip.js"), ads = read("src/main/webapp/js/ads.js");
+        // C1 목록 줄 · 사진 카드를 키보드로
+        assertEquals("코스 · 찜 · 저장 목록 줄", 3, hk.split(java.util.regex.Pattern.quote("it.tabIndex = 0; it.setAttribute(\"role\", \"link\");"), -1).length - 1);
+        assertTrue(hk.contains("$(\"pickList\").addEventListener(\"keydown\", function (e) {") && tj.contains("card.tabIndex = 0; card.setAttribute(\"role\", \"button\");"));
+        // C2 코스 보기에서 따라가기 · 공유
+        assertTrue(read("src/main/webapp/trip.html").contains("<button type=\"button\" id=\"rec-go\" data-en=\"🥾 Follow\" hidden>🥾 따라가기</button><button type=\"button\" id=\"rec-share\""));
+        assertTrue(tj.contains("$(\"rec-go\").onclick = function () { location.href = (EN ? \"hike.html?lang=en\" : \"hike.html\") + cQ; };"));
+        // C4 폰에서도 그래프 · C5 📊 · C6 제목 · 영어는 GPX 편집 숨김
+        assertTrue(tj.contains("if (courseParam) narrow = false;") && hk.contains("ed.textContent = \"📊\";") && tj.contains("T(\" - routefly 코스 보기\", \" - routefly course\")"));
+        // E1 /c/ 추천 상품 · E3 /c/ 양옆 · E2 양옆 칸은 애드센스 전 쿠팡
+        assertTrue(read("src/main/java/com/gh/routefly/web/CoursePageServlet.java").contains("<section id=\\\"featC\\\" hidden><h2>🎒 추천 상품 · 광고</h2></section>"));
+        assertTrue(read("src/main/webapp/js/course-page.js").contains("n.textContent = window.RF.COUPANG_NOTE;"));
+        assertTrue(ads.contains("if (where === \"side\") { coupangRails(byWhere[where]); return; }") && ads.contains("a.rel = \"noopener sponsored\";")
+                && ads.contains("/^https:\\/\\/(link\\.coupang\\.com|coupa\\.ng)\\//"));
+        assertTrue("쿠팡 문구는 course-kit 과 같은 글", ads.contains(read("src/main/webapp/js/course-kit.js").replaceAll("(?s).*var COUPANG_NOTE = \"([^\"]+)\".*", "$1")));
+    }
 }

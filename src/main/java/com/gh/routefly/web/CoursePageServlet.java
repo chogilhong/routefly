@@ -471,7 +471,9 @@ public class CoursePageServlet extends HttpServlet {
         // 미리 채울 곳은 산 이름만(100대 명산이면 그 산, 아니면 코스 이름 앞) - 산 페이지의 숙박 거점(월출산 → 천황사)은 그 산 대표 들머리라
         // 다른 쪽 코스(구정봉 → 홍계골 - 도갑사 쪽)에 맞지 않음(2026-11-04 홍TV님 "거긴데 왜 천황사를"). js/course-page.js 가 course-kit staySearch 로 붙임
         b.append(MountainServlet.staySearchBox(peakId != null ? peakId : name.replaceFirst(" · .*$", ""), false));
-        if (index) b.append(Ads.box("c"));   // 광고(설정이 있을 때만, 2026-10-28) - 검색에 내는 코스만(점검 11차 D10: noindex 틀 글 페이지에 광고가 붙으면 "가치 낮은 콘텐츠" 심사 위험)
+        // 🎒 추천 상품(쿠팡 파트너스 상품 하나, 설정이 있을 때만 - js/course-page.js 가 채움) · PC 양옆 광고 자리 - 검색에 내는 코스만(점검 14차 E1 · E3: 사람이 가장 많이 들어오는 곳)
+        if (index) b.append("<section id=\"featC\" hidden><h2>🎒 추천 상품 · 광고</h2></section>");
+        if (index) b.append(Ads.box("c")).append(Ads.rails());   // 광고(설정이 있을 때만, 2026-10-28) - 검색에 내는 코스만(점검 11차 D10: noindex 틀 글 페이지에 광고가 붙으면 "가치 낮은 콘텐츠" 심사 위험)
         b.append("<script src=\"").append(REL).append("/").append(AssetVersion.of("js/kit-m.js")).append("\"></script><script src=\"").append(REL).append("/")
                 .append(AssetVersion.of("js/course-page.js")).append("\"></script>");   // 숙소 찾기 칸만(날씨 · 찜 칸 없음 - mountain.js 는 붙이지 않음)
         b.append(MountainServlet.foot(null, false));

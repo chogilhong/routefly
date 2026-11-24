@@ -92,7 +92,7 @@
         rc = RF.recordCourse(rec);
         if (rc.lat.length < 2) { $("side").innerHTML = "<p class=\"empty\">" + T("점이 모자라 그릴 수 없습니다.", "Not enough points to draw.") + "</p>"; return; }
         $("title").textContent = NM(rec.name) || T("기록 보기", "View record");
-        document.title = (NM(rec.name) || "") + T(" - routefly 기록 보기", " - routefly record");
+        document.title = (NM(rec.name) || "") + (courseParam ? T(" - routefly 코스 보기", " - routefly course") : T(" - routefly 기록 보기", " - routefly record"));   // 코스 보기는 그 이름(점검 14차 C6)
         $("stat").textContent = (rec.start != null ? when(rec.start) + " · " : "") + RF.km(rc.total) + " km" + (rec.start != null && rec.end != null && rec.end > rec.start ? " · " + hm(rec.end - rec.start) : "")
             + (rec.up != null ? T(" · 오른 높이 ", " · climb ") + RF.num(rec.up) + " m" : rc.asc && rc.asc.length ? T(" · 오르막 ", " · ascent ") + RF.num(rc.asc[rc.asc.length - 1]) + " m" : "");
         prof = RF.profile($("prof"), rc, { speed: RF.speedProfile(rc), labels: false });
@@ -102,6 +102,7 @@
         $("side").appendChild(sum);
         drawSum();
         var narrow = window.matchMedia && window.matchMedia("(max-width: 760px)").matches;   // 폰 세로는 그래프가 지도를 많이 가려 접어 두고 📈 단추로
+        if (courseParam) narrow = false;   // 코스 보기는 높이 그래프가 핵심이라 폰에서도 펼쳐 둠(점검 14차 C4)
         $("graph").hidden = narrow; $("graphBtn").hidden = !narrow;
         placeKit();
         items = (rec.notes || []).map(function (n, i) { return { n: n, d: rc.pois[i] ? rc.pois[i].dist_m : null, url: null }; });
@@ -109,6 +110,8 @@
         items.forEach(function (it, i) {
             var card = document.createElement("div"), ph = document.createElement("div"), tx = document.createElement("div"), tm = document.createElement("div");
             card.className = "card";
+            card.tabIndex = 0; card.setAttribute("role", "button");   // 키보드로도 고르기(점검 14차 C1)
+            card.addEventListener("keydown", function (e) { if ((e.key === "Enter" || e.key === " ") && e.target === card) { e.preventDefault(); card.click(); } });
             tm.className = "tm";
             tm.textContent = [it.n.t != null ? when(it.n.t) : "", it.d != null ? T("출발부터 ", "from start ") + RF.km(it.d) + " km" : "", it.n.ele != null ? T("해발 ", "elev. ") + RF.num(it.n.ele) + " m" : ""]
                 .filter(Boolean).join(" · ");
@@ -653,6 +656,7 @@
         $("openBtn").hidden = true;
         $("recBtns").hidden = false;
         $("rec-edit").onclick = function () { location.href = "studio.html#rec=" + encodeURIComponent(recParam); };
+        if (EN) $("rec-edit").hidden = true;   // GPX 편집은 한국어 화면만(점검 14차 C6)
         ["fly", "save", "del"].forEach(function (k) {
             $("rec-" + k).onclick = function () { location.href = (EN ? "hike.html?lang=en" : "hike.html") + "#recdo=" + k + ":" + encodeURIComponent(recParam); };
         });
@@ -678,6 +682,14 @@
         $("rec-del").hidden = $("rec-save").hidden = $("rec-edit").hidden = true;   // 운영자 · 받아도 되는지 안 뒤에 보임
         $("recBtns").hidden = false;
         $("rec-fly").onclick = function () { location.href = "index.html" + cQ + "&from=hike" + (EN ? "&lang=en" : ""); };
+        // 🥾 따라가기 · 🔗 공유(점검 14차 C2 - 자세히 본 뒤 목록으로 돌아가 다시 찾아야 했음). 공유는 검색에 내는 코스 소개 페이지(/c/) - 이은 코스는 따라가기 주소
+        $("rec-go").hidden = $("rec-share").hidden = false;
+        $("rec-go").onclick = function () { location.href = (EN ? "hike.html?lang=en" : "hike.html") + cQ; };
+        $("rec-share").onclick = function () {
+            var url = new URL(/^[a-z0-9][a-z0-9_-]{0,63}$/.test(courseParam) ? "c/" + courseParam : "hike.html" + cQ, location.href).href, ttl = $("title").textContent;
+            if (navigator.share) { navigator.share({ title: ttl, url: url }).catch(function () { /* 닫음 */ }); return; }
+            (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(function () { alert(T("주소를 복사했습니다.", "Link copied.")); }, function () { prompt(T("이 주소를 복사하세요", "Copy this link"), url); });
+        };
         $("rec-save").onclick = function () { location.href = (EN ? "hike.html?lang=en" : "hike.html") + "#coursegpx=" + encodeURIComponent(courseParam) + (cTitle ? "&title=" + encodeURIComponent(cTitle) : ""); };
         $("rec-edit").onclick = function () { location.href = "studio.html" + cQ; };
         var ownP = fetch("api/course-upload", { headers: { Accept: "application/json" }, cache: "no-store" }).then(function (r) { return r.ok ? r.json() : {}; })
@@ -689,7 +701,7 @@
             var name = (c.course && c.course.name) || cTitle || courseParam, got = t.length > 1 ? RF.gpxRecord(RF.trackGpx(name, c.course && c.course.kind, t), true, name) : null;
             if (!got) { $("side").innerHTML = "<p class=\"empty\">" + T("코스 선을 받지 못했습니다.", "Could not load the course line.") + "</p>"; return; }
             $("rec-save").hidden = !(a[1] || RF.courseGpxFree(courseParam, src));
-            $("rec-edit").hidden = !a[1];
+            $("rec-edit").hidden = !a[1] || EN;
             show(got.rec, function () { return Promise.resolve(null); });
         }).catch(function () { $("side").innerHTML = "<p class=\"empty\">" + T("코스를 받지 못했습니다.", "Could not load the course.") + "</p>"; });
     }
@@ -752,7 +764,7 @@
                 return Promise.resolve(b ? URL.createObjectURL(b) : null);
             });
             // 연 GPX 파일도 🛩 3D 영상(2026-11-23 홍TV님) · 📐 GPX 편집(2026-11-24 홍TV님 "넣어줘") - 저장 · 삭제는 내 기록에만 있어 숨김
-            $("recBtns").hidden = false; $("rec-save").hidden = true; $("rec-edit").hidden = false; $("rec-del").hidden = true;
+            $("recBtns").hidden = false; $("rec-save").hidden = true; $("rec-edit").hidden = EN; $("rec-del").hidden = true;   // GPX 편집은 한국어 화면만
             $("rec-fly").onclick = function () { flyFile(got); };
             // 보고 있던 길을 이 탭의 sessionStorage 로 GPX 편집에 넘김(이 기기 안에서만, 서버로 안 감 - 사진은 빼고 선 · 시각 · 높이만). 너무 커서 못 담으면 알림
             $("rec-edit").onclick = function () {

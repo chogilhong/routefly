@@ -4408,7 +4408,7 @@
         if (shown.length) {   // 맨 위 한 줄 - 무엇을 누르면 어디로 가는지(2026-11-24 홍TV님)
             var hint = document.createElement("div");
             hint.className = "msg tapHint";
-            hint.textContent = T("👆 코스를 누르면 따라가기(지도 · GPS · 산행 시작) · fly(3D) 는 미리 날아 보기 · 📐 는 자세히 보기", "👆 Tap a trail to follow it (map · GPS · start) · fly(3D) previews · 📐 shows details");
+            hint.textContent = T("👆 코스를 누르면 따라가기(지도 · GPS · 산행 시작) · fly(3D) 는 미리 날아 보기 · 📊 는 자세히 보기", "👆 Tap a trail to follow it (map · GPS · start) · fly(3D) previews · 📊 shows details");
             box.appendChild(hint);
         }
         if (!shown.length) {
@@ -4421,6 +4421,7 @@
         shown.forEach(function (r) {
             var it = document.createElement("div");
             it.className = "it";
+            it.tabIndex = 0; it.setAttribute("role", "link");   // 키보드 · 화면 읽기로도 줄을 열게(점검 14차 C1 - Enter · Space 는 #pickList 에서 받음)
             var b = document.createElement("b");
             RF.showName(b, r.best ? r.name : RF.noteTrailName(listNotes, r.course_id, regional[r.course_id] || r.name));   // 대표 코스(이은 ID)는 이름 그대로 - 첫 조각 ID 로 공단 이름이 붙지 않게   // 지역 없는 무리에 지역(광양 가야산 자락 1코스)   // 이름을 바로잡은 탐방로(park-notes trails - 설악산 "백담사" → 용대리 → 백담사)
             var s = document.createElement("span");
@@ -4463,7 +4464,7 @@
                 // (2026-11-23 운영자 기기만 GPX 편집으로 가던 것을 바꿈)
                 var ed = document.createElement("a");
                 ed.className = "fly studio";
-                ed.textContent = "📐";
+                ed.textContent = "📊";   // 자세히 보기(2026-11-24 점검 14차 C5 - 기록 보기의 📐 GPX 편집과 같은 그림이라 헷갈렸음)
                 ed.title = T("코스 자세히 보기(지도 · 높이 그래프 · 구간)", "Course details (map · elevation · sections)");
                 ed.setAttribute("aria-label", ed.title);
                 ed.href = "trip.html?c=" + encodeURIComponent(r.course_id) + (r.title ? "&title=" + encodeURIComponent(r.title) : "") + (EN ? "&lang=en" : "");
@@ -4524,6 +4525,7 @@
         favs.forEach(function (f) {
             var it = document.createElement("div"), b = document.createElement("b"), sp = document.createElement("span");
             it.className = "it fav";
+            it.tabIndex = 0; it.setAttribute("role", "link");   // 키보드 · 화면 읽기로도 줄을 열게(점검 14차 C1 - Enter · Space 는 #pickList 에서 받음)
             RF.showName(b, String(f.name || ""));
             var fchip = (f.kind || "hike") === "hike" && f.dist && RF.levelChip(f.dist, f.asc, EN, f.steep);
             if (fchip) { b.appendChild(document.createTextNode(" ")); b.appendChild(fchip); }
@@ -4551,6 +4553,7 @@
                 var m = names[oid] || {}, it = document.createElement("div"), b = document.createElement("b"), sp = document.createElement("span");
                 var label = String(m.name || (isGpxId(oid) ? T("내 GPX 코스", "My GPX trail") : T("코스 ", "Trail ") + oid));
                 it.className = "it fav offIt";
+                it.tabIndex = 0; it.setAttribute("role", "link");   // 키보드 · 화면 읽기로도 줄을 열게(점검 14차 C1 - Enter · Space 는 #pickList 에서 받음)
                 RF.showName(b, label);
                 sp.textContent = m.dist ? km(m.dist) + T("km · ✅ 오프라인", " km · ✅ Offline") : T("✅ 오프라인", "✅ Offline");
                 it.appendChild(b);
@@ -4585,6 +4588,11 @@
         }).catch(function () { /* 날씨 없이 */ });
     }
     pickHome();
+    // 코스 목록 줄(div)을 키보드로 - 초점이 줄 자체에 있을 때 Enter · Space 면 누른 것처럼(점검 14차 C1, 줄 안의 fly(3D) · 📊 링크는 제 할 일)
+    $("pickList").addEventListener("keydown", function (e) {
+        var t = e.target;
+        if ((e.key === "Enter" || e.key === " ") && t && t.classList && t.classList.contains("it") && t.getAttribute("role") === "link") { e.preventDefault(); t.click(); }
+    });
     // 내 주변 코스를 보인 자리 - 검색창이 빈 채로 종류 탭을 바꾸면 그 자리에서 그 종류로 다시(2026-10-11 홍TV님: 등산 탭을 눌러도 그대로였음)
     var nearAt = null;
     // 영어 화면 - 로마자로 산 이름을 찾으면 한글 이름으로 찾음("seoraksan" · "Bukhan" → 설악산 · 북한산). 100대 명산 목록에서(2026-10-17)

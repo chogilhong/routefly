@@ -50,7 +50,7 @@
         box.style.cssText = rail ? "margin:0" : "margin:18px 0 8px";
         note.className = "adNote";
         note.textContent = en ? "Ad" : "광고";
-        note.style.cssText = "margin:0 0 4px;font-size:12px;color:#8a94a0";
+        note.style.cssText = "margin:0 0 4px;font-size:12px;color:var(--dim,#6b7684)";
         ins.className = "adsbygoogle";
         ins.style.display = "block";
         ins.setAttribute("data-ad-client", a.client);
@@ -63,6 +63,42 @@
         return box;
     }
     /** 자리가 보일 때 한 번 f - 숨은 동안 시계로 계속 확인하지 않음(점검 14차 D6: 따라가기 지도를 쓰는 내내 2초마다 돌았음). IntersectionObserver 가 없으면 보일 때만. */
+    /**
+     * 양옆 자리에 쿠팡 파트너스 추천 상품(api/partners featured - 서버가 쿠팡 주소인지 봄)을 세로 카드로(점검 14차 E2, 2026-11-24 홍TV님 "우리가 필요한 위치에 넣을거야").
+     * 자리마다 다른 상품, "광고 · 쿠팡 파트너스" 표시와 공정위 문구를 카드 안에. 상품이 없으면 자리를 지움. 애드센스 설정이 생기면 그쪽이 먼저(위).
+     */
+    function coupangRails(spots) {
+        fetch(root + "api/partners").then(function (r) { return r.ok ? r.json() : {}; }).then(function (p) {
+            var list = (Array.isArray(p && p.featured) ? p.featured : p && p.featured ? [p.featured] : []).filter(function (f) {
+                return f && f.name && /^https:\/\/(link\.coupang\.com|coupa\.ng)\//.test(f.href || "") && /^https:\/\//.test(f.img || "");
+            });
+            if (!list.length) { drop(spots); return; }
+            var start = Math.floor(Math.random() * list.length);
+            spots.forEach(function (spot, i) {
+                var f = list[(start + i) % list.length];
+                whenShown(spot, function () {
+                    var box = document.createElement("aside"), note = document.createElement("p"), a = document.createElement("a"), img = document.createElement("img"), cap = document.createElement("span"), law = document.createElement("p");
+                    box.className = "adBox";
+                    box.setAttribute("aria-label", en ? "Ad" : "광고");
+                    box.style.cssText = "margin:0";
+                    note.className = "adNote";
+                    note.textContent = en ? "Ad · Coupang Partners" : "광고 · 쿠팡 파트너스";
+                    note.style.cssText = "margin:0 0 4px;font-size:12px;color:var(--dim,#6b7684)";
+                    a.href = f.href; a.target = "_blank"; a.rel = "noopener sponsored";
+                    a.style.cssText = "display:block;text-decoration:none;color:inherit;line-height:0;border-radius:10px;overflow:hidden;background:#fff";
+                    img.src = f.img; img.alt = f.name; img.loading = "lazy";
+                    img.style.cssText = "display:block;width:160px;max-width:100%;height:auto";
+                    cap.textContent = f.name;
+                    cap.style.cssText = "display:block;padding:6px 6px 8px;line-height:1.4;font-size:12.5px;color:#1b2430;word-break:keep-all;overflow-wrap:anywhere";
+                    law.textContent = "이 안내는 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.";   // course-kit COUPANG_NOTE 와 같은 글(공정위 추천 · 보증 심사지침)
+                    law.style.cssText = "margin:4px 0 0;font-size:11px;line-height:1.4;color:var(--dim,#6b7684)";
+                    a.appendChild(img); a.appendChild(cap);
+                    box.appendChild(note); box.appendChild(a); box.appendChild(law);
+                    spot.appendChild(box);
+                });
+            });
+        }).catch(function () { drop(spots); });
+    }
     function whenShown(el, f) {
         if (el.offsetWidth > 0) { f(); return; }
         if (!window.IntersectionObserver) return;
@@ -72,7 +108,10 @@
     spots.forEach(function (s) { var w = s.getAttribute("data-where"); (byWhere[w] = byWhere[w] || []).push(s); });
     Object.keys(byWhere).forEach(function (where) {
         fetch(root + "api/ad?where=" + encodeURIComponent(where)).then(function (r) { return r.ok ? r.json() : {}; }).then(function (a) {
-            if (!a || !/^ca-pub-\d{10,20}$/.test(a.client || "") || !/^\d{6,12}$/.test(a.slot || "")) { drop(byWhere[where]); return; }
+            if (!a || !/^ca-pub-\d{10,20}$/.test(a.client || "") || !/^\d{6,12}$/.test(a.slot || "")) {
+                if (where === "side") { coupangRails(byWhere[where]); return; }   // 애드센스 승인 전 · 설정 없음 - 양옆은 쿠팡 추천 상품으로(점검 14차 E2)
+                drop(byWhere[where]); return;
+            }
             // 숨은 자리(따라가기에 코스를 연 채로 들어와 목록이 안 보일 때)는 보일 때 채움 - 애드센스는 폭이 0 인 칸을 못 채움
             byWhere[where].forEach(function (spot) { whenShown(spot, function () { load(a.client, [makeBox(spot, a)]); }); });
         }).catch(function () { /* 광고 없이 */ });

@@ -209,7 +209,7 @@ public class CheckupRound11Test {
         assertTrue("D8", read(w + "js/games.js").contains("\"Rotate · Up\"") && read(w + "games.html").contains("<h2 id=\"grpA\">") && read(w + "js/tools.js").contains("\"⌫\": [\"한 글자 지우기\", \"Backspace\"]"));
         for (String f : new String[] {"about", "about-en", "privacy", "privacy-en", "terms", "terms-en", "lbs-terms", "lbs-terms-en"})
             assertTrue("D9 " + f, read(w + f + ".html").contains("<meta name=\"description\" content=\""));
-        assertTrue("D10 광고는 검색에 내는 코스만", read("src/main/java/com/gh/routefly/web/CoursePageServlet.java").contains("if (index) b.append(Ads.box(\"c\"));"));
+        assertTrue("D10 광고는 검색에 내는 코스만", read("src/main/java/com/gh/routefly/web/CoursePageServlet.java").contains("if (index) b.append(Ads.box(\"c\")).append(Ads.rails());"));
         org.junit.Assert.assertEquals(0, CoursePageServlet.shownEle(-3.6));
         org.junit.Assert.assertEquals(44, CoursePageServlet.shownEle(43.6));
         String svg = CoursePageServlet.profileSvg(new double[] {0, 100, 200, 300}, new Double[] {10.0, 55.0, 30.0, 12.0});

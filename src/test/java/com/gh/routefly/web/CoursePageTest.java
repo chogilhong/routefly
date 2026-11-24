@@ -131,8 +131,9 @@ public class CoursePageTest {
         // 스크립트는 사람 확인 신호(2026-10-22)와 🏨 숙소 찾기 칸(kit-m · course-page, 2026-11-04 홍TV님 "코스 페이지도 똑같이"),
         // 앱 접근권한 사전 안내(app-perm - 앱 안에서만, 2026-11-10 원스토어 검증 의견) · 앱 받기 띠(app-store - 안드로이드 브라우저만, 2026-11-10)만
         // + 밝은 · 다크 모드를 그리기 전에(rf-theme.js, 2026-11-21 홍TV님)
-        assertEquals("스크립트는 사람 확인 신호 · 숙소 칸 · 앱 권한 안내 · 앱 받기 · 화면 모드만", 6, html.split("<script src=", -1).length - 1);
-        assertEquals("그 밖에는 실행하지 않는 경로 표시(JSON-LD, 2026-11-07)뿐", 7, html.split("<script", -1).length - 1);
+        // + PC 양옆 광고 자리(ads.js - 검색에 내는 코스만, 점검 14차 E3)
+        assertEquals("스크립트는 사람 확인 신호 · 숙소 칸 · 앱 권한 안내 · 앱 받기 · 화면 모드 · 양옆 광고만", 7, html.split("<script src=", -1).length - 1);
+        assertEquals("그 밖에는 실행하지 않는 경로 표시(JSON-LD, 2026-11-07)뿐", 8, html.split("<script", -1).length - 1);
         assertTrue(html.contains("/js/rf-theme.js\"></script>"));
         assertTrue(html.contains("/js/kit-m.js\"></script>") && html.contains("/js/course-page.js\"></script>"));
         assertTrue(html.contains("/js/seen.js\"></script>"));
