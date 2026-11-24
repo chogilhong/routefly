@@ -1355,6 +1355,63 @@
      * 돌려줌 {secs, url, msg} - 영상 길이(약 250m 에 1초, 20 ~ 60초) · 3D 화면 주소 · 묻는 글. 남는 점이 2개보다 적으면 {short: 안내 글}.
      */
     var FLY_TRIM_M = 300;
+    /**
+     * 3D 화면이 만든 영상(IndexedDB rf-video "last") - 있으면 ask(글, 단추 글) 뒤 이 기기에 저장하고 지움(따라가기 · 기록 보기가 같이 씀).
+     * 앱은 갤러리(RfGallery - Movies/routefly), 옛 앱은 공유 창(Filesystem + Share), 브라우저는 내려받기. note(글) - 끝 알림.
+     */
+    function videoReady(en, ask, note) {
+        if (!window.indexedDB) return;
+        var r = indexedDB.open("rf-video", 1);
+        r.onupgradeneeded = function () { r.result.createObjectStore("v"); };
+        r.onsuccess = function () {
+            var db = r.result, q;
+            try { q = db.transaction("v", "readonly").objectStore("v").get("last"); } catch (e) { db.close(); return; }
+            q.onsuccess = function () {
+                var v = q.result;
+                if (!v || !v.blob) { db.close(); return; }
+                ask(en ? "🛩 The 3D flight video is ready." : "🛩 3D 비행 영상이 준비됐습니다.", en ? "💾 Save" : "💾 저장").then(function () {
+                    videoSave(v.blob, v.name, (v.title ? v.title + " - " : "") + "routefly", en, note);
+                    try { db.transaction("v", "readwrite").objectStore("v").delete("last"); } catch (e) { /* 다음에 덮어씀 */ }
+                });
+            };
+        };
+    }
+    function videoSave(blob, name, text, en, note) {
+        var L = function (ko, e) { return en ? e : ko; }, CAP = window.Capacitor, nat = !!(CAP && CAP.isNativePlatform && CAP.isNativePlatform());
+        var plug = function (n) {   // 원격 주소로 띄운 앱은 Capacitor.Plugins 에 바로 있음(hike.js plugin 과 같은 찾기)
+            if (!nat) return null;
+            if (CAP.Plugins && CAP.Plugins[n]) return CAP.Plugins[n];
+            if (CAP.isPluginAvailable && !CAP.isPluginAvailable(n)) return null;
+            return CAP.registerPlugin ? CAP.registerPlugin(n) : null;
+        };
+        var down = function () {
+            var a = document.createElement("a");
+            a.href = URL.createObjectURL(blob); a.download = name;
+            document.body.appendChild(a); a.click(); a.remove();
+            setTimeout(function () { URL.revokeObjectURL(a.href); }, 10000);
+            note(L("💾 저장했습니다(다운로드 폴더): ", "💾 Saved (Downloads): ") + name);
+        };
+        var b64 = function () {
+            return new Promise(function (resolve, reject) {
+                var fr = new FileReader();
+                fr.onload = function () { resolve(String(fr.result).split(",")[1]); };
+                fr.onerror = reject;
+                fr.readAsDataURL(blob);
+            });
+        };
+        var share = function () {   // 옛 앱 - 공유 창으로
+            var fs = plug("Filesystem"), sh = plug("Share");
+            if (!fs || !sh) { down(); return; }
+            b64().then(function (d) { return fs.writeFile({ path: name, data: d, directory: "CACHE" }); })
+                .then(function (w) { return sh.share({ title: name, text: text || "", files: [w.uri], dialogTitle: L("보내기", "Send") }); })
+                .catch(function () { /* 닫음 */ });
+        };
+        if (!nat) { down(); return; }
+        var gal = plug("RfGallery");
+        if (!gal) { share(); return; }
+        b64().then(function (d) { return gal.saveMedia({ data: d, name: name }); })
+            .then(function () { note(L("💾 갤러리 routefly 앨범에 저장했습니다.", "💾 Saved to the gallery (routefly album).")); }, share);
+    }
     function flyStart(rec, en, keepEnds) {
         var L = function (ko, e) { return en ? e : ko; }, name = String((en && rec.name != null ? enName(rec.name) : rec.name) || "");   // RF.nameIn 과 같은 이름
         var all = cleanTrack(rec.track, rec.kind === "bike"), tr = keepEnds ? all : trimEnds(all, FLY_TRIM_M);
@@ -4278,6 +4335,7 @@
         recordCourse: recordCourse,
         recordGpx: recordGpx,
         flyStart: flyStart,
+        videoReady: videoReady,
         gpxRecord: gpxRecord,
         attrShort: attrShort,
         isGpxId: isGpxId,

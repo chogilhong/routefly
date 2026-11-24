@@ -851,6 +851,11 @@
         if (location.hash === "#open") history.replaceState(null, "", location.pathname + location.search);   // 새 파일 - 돌아올 자리 표시는 따라가기를 누를 때 다시
         f.text().then(function (text) { openText(text, f.name); }).catch(function () { alert(T("파일을 읽지 못했습니다.", "Could not read the file.")); });
     });
+    // 🛩 촬영이 끝나 이 화면으로 돌아옴(app.js 가 RF.vidBackUrl 로) - 여기서 💾 저장(2026-11-25 홍TV님 "촬영이 끝나면 그냥 이 자리에 있으면 돼")
+    if (RF.vidBackUrl()) {
+        try { sessionStorage.removeItem("rf-vid-back"); } catch (e) { /* 15분 뒤 저절로 안 씀 */ }
+        RF.videoReady(EN, function (t, ok) { return RFDialog.alert(t, { ok: ok }); }, function (m) { RFDialog.alert(m); });
+    }
     // 🥾 따라가기에서 돌아오면(#open) 보던 파일을 다시 보여 줌 - 이 탭의 sessionStorage 에만(서버로 안 감). 너무 커서 못 담았으면 첫 화면
     if (!recParam && !courseParam && location.hash === "#open") {
         try { var back = JSON.parse(sessionStorage.getItem(OPEN_KEY) || "null"); if (back && back.text) openText(back.text, back.name); } catch (e) { /* 첫 화면 */ }

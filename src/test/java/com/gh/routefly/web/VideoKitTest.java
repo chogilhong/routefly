@@ -68,8 +68,8 @@ public class VideoKitTest {
             && !ck.contains("String(nameIn(rec.name)") && js.contains("var f = RF.flyStart(rec, EN);") && read("src/main/webapp/js/trip.js").contains("try { f = RF.flyStart(got.rec, EN, keepEnds); }") && read("src/main/webapp/js/trip.js").contains("$(\"rec-fly\").onclick = function () { flyFile(got, false, keepOpen(text, f.name) ? \"#open\" : \"\"); };")
             && js.contains("if (hike.running) { toast(T(\"산행 중에는 3D 영상을 만들지 않습니다."));
         assertTrue("만든 3D 영상은 이 폰에 저장 - 앱은 갤러리(영상 Movies/routefly), 브라우저는 내려받기, 옛 앱은 공유 창",
-            js.contains("return GALLERY.saveMedia({ data: b64, name: name });") && js.contains("}).catch(function () { shareBlob(blob, name, text); }).then(done);")
-            && js.contains("if (!NATIVE) { down(); done(); return; }") && js.contains("saveMedia(v.blob, v.name,")
+            ck.contains("b64().then(function (d) { return gal.saveMedia({ data: d, name: name }); })") && ck.contains("var gal = plug(\"RfGallery\");")
+            && ck.contains("if (!nat) { down(); return; }") && ck.contains("videoSave(v.blob, v.name,") && js.contains("RF.videoReady(EN, function (t, ok) { return hAlert(t, { ok: ok }); }")
             && plug.contains("public void saveMedia(PluginCall call)") && plug.contains("(video ? Environment.DIRECTORY_MOVIES : Environment.DIRECTORY_PICTURES) + \"/routefly\""));
         assertTrue("3D 화면으로 - 위성 없이(sat 없음)", ck.contains("url: \"index.html?video=1&rec=1&secs=\" + secs") && !ck.contains("video=1&rec=1&sat=1") && !js.contains("video=1&rec=1&sat=1"));
         assertTrue("영상에서만 지형을 코스 높낮이에 맞춰 더 돋움 · 음영 진하게(2026-11-23 홍TV님 \"고저가 잘 표현이 안 되어\")",
@@ -79,7 +79,7 @@ public class VideoKitTest {
         assertTrue("3D 영상은 출처 줄을 늘 영상에", app.contains("if (VIDEO.rec) videoRecord(c, credit.textContent);") && app.contains("lines.forEach(function (l, i) { g.fillText(l, 20,"));
         assertTrue("지도 그림을 옮겨 그리려면 영상 만들 때만 preserveDrawingBuffer",
                 app.contains("canvasContextAttributes: VIDEO && VIDEO.rec ? { preserveDrawingBuffer: true } : undefined"));
-        assertTrue("만든 영상을 따라가기로 넘겨 저장", app.contains("location.href = \"hike.html#vid\";") && js.contains("if (location.hash === \"#vid\") {"));
+        assertTrue("만든 영상을 따라가기로 넘겨 저장", app.contains("location.href = RF.vidBackUrl() || \"hike.html#vid\";") && js.contains("if (location.hash === \"#vid\") {"));
         assertTrue("GPX 를 열 때 묻는 글도 지금 단추(🗺 기록 보기, 2026-11-24)에 맞춤", js.contains("📒 내 기록에 넣을까요? 넣은 뒤 내 기록 → 🗺 기록 보기로 지도 · 사진 · 고도 그래프를 봅니다.") && !js.contains("내 기록에 넣어 지도 · 사진 · 고도 그래프로 볼까요?"));
         assertTrue("닫기 단추가 보이게(2026-11-22 홍TV님) - 기기 옮기기 QR 창은 흰 바탕에 어두운 단추(GPX 보내기 창은 2026-11-23 없앰)",
             html.contains("id=\"xferClose\" style=\"min-height:48px;width:100%;padding:0 18px;border-radius:10px;border:0;background:#1b2430;color:#fff;"));

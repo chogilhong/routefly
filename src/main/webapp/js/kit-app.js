@@ -741,6 +741,16 @@
         return [n.danger ? "⚠️ 위험 " + n.danger + "곳" : "", n.view ? "🔭 조망점 " + n.view + "곳" : ""].filter(Boolean).join(" · ");
     }
 
+    /**
+     * 촬영을 시작한 기록 보기(trip.html - 📂 연 GPX · 코스 보기 · 내 기록 보기) 주소 - 3D 화면이 촬영 뒤 그리로 돌아가고 그 화면이 💾 저장(2026-11-25 홍TV님 "촬영이 끝나면 그냥 이 자리에").
+     * trip.js 가 sessionStorage "rf-vid-back" 에 {u, t} 를 둠 - 15분 안 · trip.html 주소만, 아니면 null(따라가기 hike.html#vid 로).
+     */
+    function vidBackUrl() {
+        try {
+            var b = JSON.parse(sessionStorage.getItem("rf-vid-back") || "null");
+            return b && Date.now() - b.t < 15 * 60000 && /^trip\.html(\?[^#]*)?(#open)?$/.test(String(b.u)) ? b.u : null;
+        } catch (e) { return null; }
+    }
     var SPEED_HALF_MS = 60000;
 
     /**
@@ -2518,6 +2528,7 @@
         searchPlaceholder: searchPlaceholder,
         fromApi: fromApi,
         gpxToApi: gpxToApi,
+        vidBackUrl: vidBackUrl,
         isGpxId: isGpxId,
         gpxId: gpxId,
         storeGpx: storeGpx,

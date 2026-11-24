@@ -1503,7 +1503,7 @@
         mr.onstop = function () {
             var mime = type.split(";")[0], name = "routefly-3d-" + (info.stamp || Date.now()) + (mime === "video/mp4" ? ".mp4" : ".webm");
             flyVideoPut({ blob: new Blob(chunks, { type: mime }), name: name, title: info.name || "" }).then(function () {
-                location.href = "hike.html#vid";
+                location.href = RF.vidBackUrl() || "hike.html#vid";   // 기록 보기에서 시작했으면 그 화면이 저장(2026-11-25 홍TV님 "그냥 이 자리에")
             }, function () { show(T("영상을 저장하지 못했습니다(핸드폰 저장 공간).", "Could not store the video (phone storage).")); });
         };
         mr.start(1000);

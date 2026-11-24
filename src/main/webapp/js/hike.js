@@ -1662,28 +1662,6 @@
             shareBlob(blob, name, text, url);
         }, "image/png");
     }
-    /**
-     * 🎬 영상용 그림 · 영상은 공유 창 대신 이 폰에 저장(2026-11-22 홍TV님 "경로 ~ 고도 영상까지 전부 카톡 연결이던데"):
-     * 앱은 갤러리(그림 Pictures/routefly · 영상 Movies/routefly - RfGallery.saveMedia), 브라우저는 내려받기(다운로드 폴더).
-     * 옛 앱(saveMedia 없음 · 안드로이드 9 이하)은 전처럼 공유 창.
-     */
-    function saveMedia(blob, name, text) {
-        return new Promise(function (done) {   // 끝나면 done(기록 보기로 돌아가기 - vidReady)
-        var down = function () {
-            var a = document.createElement("a");
-            a.href = URL.createObjectURL(blob); a.download = name;
-            document.body.appendChild(a); a.click(); a.remove();
-            setTimeout(function () { URL.revokeObjectURL(a.href); }, 10000);
-            toast(T("💾 저장했습니다(다운로드 폴더): ", "💾 Saved (Downloads): ") + name, 5000);
-        };
-        if (!NATIVE) { down(); done(); return; }
-        if (!GALLERY) { shareBlob(blob, name, text); done(); return; }
-        blobToBase64(blob).then(function (b64) { return GALLERY.saveMedia({ data: b64, name: name }); }).then(function () {
-            toast(T("💾 갤러리 routefly 앨범에 저장했습니다.", "💾 Saved to the gallery (routefly album)."), 5000);
-        }).catch(function () { shareBlob(blob, name, text); }).then(done);   // 옛 앱 - 공유 창으로
-        });
-    }
-
     /** 파일(그림 · 영상)을 공유 창으로 - 앱은 공유 창, 브라우저는 navigator.share, 안 되면 내려받기(카드 · 옛 앱의 영상용). */
     function shareBlob(blob, name, text, url) {
             if (FS && SHARE) {
@@ -2418,37 +2396,9 @@
             hAlert(f.msg, { ok: T("시작", "Start") }).then(function () { location.href = f.url; });
         } catch (e) { hAlert(T("영상을 준비하지 못했습니다: ", "Could not prepare the video: ") + (e && e.message || e)); }
     }
-    /**
-     * 기록 보기(trip.html - 📂 연 GPX · 코스 보기 · 내 기록 보기)에서 촬영을 시작했으면 저장 뒤 그 화면으로(2026-11-25 홍TV님 "그냥 그 자리에 있어").
-     * trip.js 가 sessionStorage "rf-vid-back" 에 {u: 돌아갈 주소, t: 시각} - 15분 안 · trip.html 주소만, 한 번 읽으면 지움. 없으면 null(따라가기에 머묾).
-     */
-    function vidBack() {
-        try {
-            var b = JSON.parse(sessionStorage.getItem("rf-vid-back") || "null");
-            sessionStorage.removeItem("rf-vid-back");
-            return b && Date.now() - b.t < 15 * 60000 && /^trip\.html(\?[^#]*)?(#open)?$/.test(String(b.u)) ? b.u : null;
-        } catch (e) { return null; }
-    }
-    /** 3D 화면이 만든 영상(rf-video "last")을 보내기 · 저장 - 한 번 보내면 지움. */
+    /** 3D 화면이 만든 영상(rf-video "last")을 저장 - 한 번 저장하면 지움(기록 보기와 같은 RF.videoReady). */
     function vidReady() {
-        if (!window.indexedDB) return;
-        var r = indexedDB.open("rf-video", 1);
-        r.onupgradeneeded = function () { r.result.createObjectStore("v"); };
-        r.onsuccess = function () {
-            var db = r.result, q;
-            try { q = db.transaction("v", "readonly").objectStore("v").get("last"); } catch (e) { db.close(); return; }
-            q.onsuccess = function () {
-                var v = q.result;
-                if (!v || !v.blob) { db.close(); return; }
-                hAlert(T("🛩 3D 비행 영상이 준비됐습니다.", "🛩 The 3D flight video is ready."), { ok: T("💾 저장", "💾 Save") }).then(function () {
-                    var back = vidBack();
-                    saveMedia(v.blob, v.name, (v.title ? v.title + " - " : "") + "routefly").then(function () {
-                        if (back) setTimeout(function () { location.href = back; }, 1500);   // 저장 알림 · 내려받기가 시작된 뒤
-                    });
-                    try { db.transaction("v", "readwrite").objectStore("v").delete("last"); } catch (e) { /* 다음에 덮어씀 */ }
-                });
-            };
-        };
+        RF.videoReady(EN, function (t, ok) { return hAlert(t, { ok: ok }); }, function (m) { toast(m, 5000); });
     }
 
     // ------------------------------------------------------------------ 사진 · 메모 (2026-10-08 홍TV님 - 램블러처럼 기록에 사진 · 메모)
