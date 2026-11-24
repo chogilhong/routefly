@@ -28,7 +28,7 @@ public class AdsTest {
         // 산악회 방 · 사무실은 2026-11-24 홍TV님 "넓이를 통일 시키고 광고" - 좁은 곳만(CSP_ADS_HIKE, *.google.com · *.gstatic.com 없음)
         for (String p : new String[] {"/party.html", "/party-office.html"})
             assertFalse(p, SecurityFilter.cspFor(p).contains("*.google.com") || SecurityFilter.cspFor(p).contains("*.gstatic.com"));
-        for (String safe : new String[] {"/index.html", "/api/party/view", "/park.html", "/trip.html"})
+        for (String safe : new String[] {"/index.html", "/api/party/view", "/park.html", "/studio.html"})
             assertFalse(safe, SecurityFilter.cspFor(safe).contains("googlesyndication"));
         assertTrue("화면 안 스크립트는 그대로 막음", SecurityFilter.cspFor("/m/x").contains("script-src 'self' https:") && !SecurityFilter.cspFor("/m/x").contains("unsafe-inline' https://pagead"));
     }

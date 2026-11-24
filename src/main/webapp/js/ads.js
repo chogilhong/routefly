@@ -43,8 +43,17 @@
     else rails.forEach(function (s) { s.style.cssText = "position:fixed;top:90px;width:160px;min-height:600px;z-index:11;" + (s.classList.contains("left") ? "left" : "right") + ":calc(50% - 570px)"; });
     spots = Array.prototype.filter.call(spots, function (s) { return s.parentNode; });
     if (boxes.length) { var ins0 = boxes[0].querySelector("ins.adsbygoogle"); load(ins0 && ins0.getAttribute("data-ad-client"), boxes); }
+    var en = document.documentElement.lang === "en";
+    /**
+     * 화면이 나중에 만든 광고 자리(기록 보기 trip.html 오른쪽 칸 - 기록 · 코스를 열 때마다 칸을 새로 그림, 2026-11-24 홍TV님 "trip 에 넣어줘")를 채움.
+     * .adWide 는 PC 넓은 화면(1200px 넘음)만 - 폰 · 앱은 지움(폰은 오른쪽 칸이 지도 밑 목록이 됨).
+     */
+    window.rfAdSpots = function (els) {
+        var list = Array.prototype.filter.call(els || [], function (s) { return s && s.getAttribute && s.getAttribute("data-where"); });
+        if (window.Capacitor || !wide) { drop(list.filter(function (s) { return window.Capacitor || s.classList.contains("adWide"); })); list = list.filter(function (s) { return s.parentNode && !s.classList.contains("adWide"); }); }
+        if (list.length && window.fetch) fill(list);
+    };
     if (!spots.length || !window.fetch) return;
-    var en = document.documentElement.lang === "en", byWhere = {};
     function makeBox(spot, a) {
         var rail = spot.classList.contains("adRail");
         var box = document.createElement("aside"), note = document.createElement("p"), ins = document.createElement("ins");
@@ -108,7 +117,11 @@
         var io = new IntersectionObserver(function (es) { if (es.some(function (e) { return e.isIntersecting || el.offsetWidth > 0; })) { io.disconnect(); f(); } });
         io.observe(el);
     }
-    spots.forEach(function (s) { var w = s.getAttribute("data-where"); (byWhere[w] = byWhere[w] || []).push(s); });
+    fill(spots);
+    /** 자리들을 data-where 마다 묶어 api/ad 로 설정을 받아 채움(애드센스 설정이 없으면 side 는 쿠팡 추천 상품, 그 밖은 지움). */
+    function fill(list) {
+    var byWhere = {};
+    list.forEach(function (s) { var w = s.getAttribute("data-where"); (byWhere[w] = byWhere[w] || []).push(s); });
     Object.keys(byWhere).forEach(function (where) {
         fetch(root + "api/ad?where=" + encodeURIComponent(where)).then(function (r) { return r.ok ? r.json() : {}; }).then(function (a) {
             if (!a || !/^ca-pub-\d{10,20}$/.test(a.client || "") || !/^\d{6,12}$/.test(a.slot || "")) {
@@ -119,4 +132,5 @@
             byWhere[where].forEach(function (spot) { whenShown(spot, function () { load(a.client, [makeBox(spot, a)]); }); });
         }).catch(function () { /* 광고 없이 */ });
     });
+    }
 })();

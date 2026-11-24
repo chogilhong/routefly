@@ -139,6 +139,14 @@
         $("side").appendChild(sum);
         drawSum();
         if (courseParam && courseInfo) infoBox(courseInfo);
+        // 광고 카드 하나 - 요약 · 코스 정보 아래, 사진 카드 앞(2026-11-24 홍TV님 "trip 에 넣어줘"). PC 넓은 화면만(js/ads.js 가 폰 · 앱은 지움), 승인 전 쿠팡 · 뒤 애드센스.
+        // 기록 · 사진은 이 기기 안에서만 읽고 광고 쪽으로 보내지 않음
+        if (window.rfAdSpots) {
+            var ad = document.createElement("div");
+            ad.className = "adSpot adWide adCard"; ad.setAttribute("data-where", "side");
+            $("side").appendChild(ad);
+            window.rfAdSpots([ad]);
+        }
         var narrow = window.matchMedia && window.matchMedia("(max-width: 760px)").matches;   // 폰 세로는 그래프가 지도를 많이 가려 접어 두고 📈 단추로
         if (courseParam) narrow = false;   // 코스 보기는 높이 그래프가 핵심이라 폰에서도 펼쳐 둠(점검 14차 C4)
         $("graph").hidden = narrow; $("graphBtn").hidden = !narrow;

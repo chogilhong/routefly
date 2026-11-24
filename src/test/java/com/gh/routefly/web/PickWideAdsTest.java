@@ -79,4 +79,16 @@ public class PickWideAdsTest {
         }
         assertTrue(read("src/main/webapp/css/mountain.css").contains("main { max-width:760px; margin:0 auto;"));
     }
+
+    /** 기록 보기 · 코스 보기(trip.html) 오른쪽 칸 광고 카드(2026-11-24 홍TV님 "trip 에 넣어줘") - PC 넓은 화면만, 칸을 그릴 때마다 window.rfAdSpots. */
+    @Test
+    public void 기록_보기_광고_카드() throws Exception {
+        String tj = read("src/main/webapp/js/trip.js"), html = read("src/main/webapp/trip.html"), ads = read("src/main/webapp/js/ads.js");
+        assertTrue(tj.contains("ad.className = \"adSpot adWide adCard\"; ad.setAttribute(\"data-where\", \"side\");") && tj.contains("window.rfAdSpots([ad]);"));
+        assertTrue("요약 · 코스 정보 다음, 사진 카드 앞", tj.indexOf("infoBox(courseInfo);\n") < tj.indexOf("window.rfAdSpots([ad]);") && tj.indexOf("window.rfAdSpots([ad]);") < tj.indexOf("items = (rec.notes || []).map("));
+        assertTrue(html.contains("<script src=\"js/ads.js\" defer></script>") && !html.contains("adRail"));
+        assertTrue("PC 넓은 화면만 · 앱 없음", ads.contains("window.rfAdSpots = function (els) {") && ads.contains("if (window.Capacitor || !wide) { drop(list.filter(function (s) { return window.Capacitor || s.classList.contains(\"adWide\"); }));"));
+        assertEquals("기록을 읽는 화면이라 좁은 곳만", SecurityFilter.CSP_ADS_HIKE, SecurityFilter.cspFor("/trip.html"));
+        assertFalse(read("src/main/webapp/studio.html").contains("ads.js"));
+    }
 }

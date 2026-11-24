@@ -73,6 +73,8 @@ public class SecurityFilter extends HttpFilter {
         if ("/hike.html".equals(path)) return CSP_ADS_HIKE;
         // 산악회 방 · 회사 사무실(산악회 토큰 · 회원 위치를 다룸)은 PC 양옆 광고에 따라가기와 같은 좁은 곳만(2026-11-24 홍TV님 "넓이를 통일 시키고 광고 넣어줘")
         if ("/party.html".equals(path) || "/party-office.html".equals(path)) return CSP_ADS_HIKE;
+        // 기록 보기(trip.html - 이 기기의 기록 · 사진을 읽음)도 오른쪽 칸 광고 카드에 좁은 곳만(2026-11-24 홍TV님 "trip 에 넣어줘")
+        if ("/trip.html".equals(path)) return CSP_ADS_HIKE;
         return path != null && (path.startsWith("/m/") || path.startsWith("/en/m/") || path.startsWith("/c/") || "/m".equals(path) || "/series.html".equals(path)
                 || "/tidefly.html".equals(path) || "/dronefly.html".equals(path)
                 || "/party-guide.html".equals(path) || "/party-guide-en.html".equals(path)
