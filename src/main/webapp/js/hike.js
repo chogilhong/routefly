@@ -4401,6 +4401,12 @@
             box.appendChild(chips);
         }
         var shown = rows.filter(function (r) { return RF.easyOk(easyKey, r.kind, r.distance_m, r.ascent_m, r.descent_m); });
+        if (shown.length) {   // 맨 위 한 줄 - 무엇을 누르면 어디로 가는지(2026-11-24 홍TV님)
+            var hint = document.createElement("div");
+            hint.className = "msg tapHint";
+            hint.textContent = T("👆 코스를 누르면 따라가기(지도 · GPS · 산행 시작) · fly(3D) 는 미리 날아 보기 · 📐 는 자세히 보기", "👆 Tap a trail to follow it (map · GPS · start) · fly(3D) previews · 📐 shows details");
+            box.appendChild(hint);
+        }
         if (!shown.length) {
             var em = document.createElement("div");
             em.className = "msg";
@@ -4430,6 +4436,12 @@
             if (chip) { b.appendChild(document.createTextNode(" ")); b.appendChild(chip); }
             it.appendChild(b);
             it.appendChild(s);
+            // 줄을 누르면 따라가기(지도 · GPS · 산행 시작)로 간다는 표시(2026-11-24 홍TV님 "사람들이 잘 몰라. 제일 중요한 것인데")
+            var go = document.createElement("em");
+            go.className = "go";
+            go.textContent = T("▶ 따라가기", "▶ Follow");
+            it.appendChild(document.createElement("br"));
+            it.appendChild(go);
             // fly(3D) - 3D 지형 위로 날아 보기(2026-10-13 홍TV님: 실제 코스만, 탐방 안내도 카드는 뺌). 그 화면 ← 는 이 목록으로
             if (!isGpxId(r.course_id)) {   // 이은 코스(대표 코스)도 - 3D 화면이 조각을 받아 이어 그림(2026-10-30 홍TV님)
                 var fly = document.createElement("a");

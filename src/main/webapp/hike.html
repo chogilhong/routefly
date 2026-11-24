@@ -198,6 +198,17 @@ html.rfwait body { visibility:hidden; }   /* 앱을 처음 열 때 서버에 닿
 #pickList .it .fly[hidden] { display:none; }
 #pickList .it .fly { position:absolute; right:10px; top:50%; transform:translateY(-50%); height:34px; line-height:34px; padding:0 10px; border-radius:8px;
                      border:1px solid var(--ln); background:rgba(255,255,255,0.06); color:var(--tx); text-decoration:none; font-size:13px; white-space:nowrap; }
+/* 코스를 누르면 따라가기로 - 사람들이 잘 몰라서(2026-11-24 홍TV님 "제일 중요한 것") 줄마다 "따라가기 ›" 와 맨 위 한 줄 */
+#pickList .it .go { display:inline-block; margin-top:5px; padding:2px 10px; border-radius:12px; background:rgba(56,217,234,0.14); color:var(--sky); font-size:12.5px; font-weight:bold; font-style:normal; }
+#pickList .tapHint { padding:8px 14px 2px; font-size:13px; }
+#pickList .it.hasfly { cursor:pointer; }
+@media (hover:hover) { #pickList .it.hasfly:hover { background:rgba(127,127,127,0.10); } #pickList .it.hasfly:hover .go { background:var(--sky); color:var(--onsky,#062b30); } }
+/* PC(넓은 화면)는 코스 모음(/m/)처럼 가운데 760px - 2026-11-24 홍TV님 "첫 화면처럼 좌우 사이즈를 줄여줘". 폰은 그대로 */
+@media (min-width:900px) {
+  #pick { align-items:center; }
+  #pick > header, #pick > #pickList, #pick > #pickFoot, #pick > [data-app-store] { width:100%; max-width:760px; box-sizing:border-box; }
+  #pick > #loadFail { width:calc(100% - 28px); max-width:732px; box-sizing:border-box; }
+}
 #pickList .it.guide { display:block; text-decoration:none; color:var(--tx); background:rgba(56,217,234,0.10); border-left:3px solid var(--sky, #38d9ea); }   /* 탐방 안내도 카드 */
 #pickList .easy { display:flex; gap:6px; padding:8px 14px 4px; }   /* 쉬운 코스 거르기(2026-10-15) */
 #pickList .easy button { padding:5px 11px; border-radius:14px; border:1px solid var(--ln); background:rgba(255,255,255,0.05); color:var(--tx); font-size:13px; }

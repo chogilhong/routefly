@@ -333,6 +333,7 @@ final class MountainEn {
                 .append("<a class=\"anbuLink toolLink\" href=\"" + REL + "/tools.html?lang=en\">🧰 Handy tools <small>Postcode · exchange rates · lunar calendar · weather · timer · ladder game · subway maps · holidays · fuel prices · tides · magnifier · medicine reminder · hiking safety and more (32)</small> ›</a>")
                 .append("<a class=\"anbuLink gameLink\" href=\"" + REL + "/games.html?lang=en\">🎮 Mini games <small>Block stack · Space shooter · Snake · 2048 · Brick breaker · Mine finder · Mountain run · Sudoku · Five in a row and more (15)</small> ›</a>")   // 2026-10-21 홍TV님   // 🔮 just for fun(js/mountain-en.js - 2026-10-17)
                 .append(Ads.box("m", true))
+                .append(Ads.rails())   // PC 넓은 화면 양옆 광고(2026-11-24)
                 .append(foot(REL + "/m/")).toString();
     }
 

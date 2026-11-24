@@ -33,12 +33,21 @@ final class Ads {
     }
 
     /**
+     * PC 넓은 화면의 양옆 광고 자리(2026-11-24 홍TV님 "pc 에서만 사이드에 광고 - 공간이 충분하잖아. 앱(폰)에서는 광고를 붙히지 않고") - 코스 모음(/m/ · /en/m/) 첫 화면.
+     * 빈 자리 둘만 두고 js/ads.js 가 화면이 1200px 넘을 때만 api/ad?where=side 로 설정을 받아 칸을 만듦(폰 · 태블릿 · 앱은 지움). 설정 adsense.slot.side(없으면 adsense.slot.m).
+     */
+    static String rails() {
+        return "<div class=\"adSpot adRail left\" data-where=\"side\"></div><div class=\"adSpot adRail right\" data-where=\"side\"></div>"
+                + "<script src=\"" + MountainServlet.REL + "/" + AssetVersion.of("js/ads.js") + "\" defer></script>";
+    }
+
+    /**
      * 정적 화면(도구 tools.html · 도장 series.html - 2026-11-01 홍TV님)의 광고 칸 설정 - js/ads.js 가 api/ad 로 받아 칸을 만듦.
      * adsense.slot.<where> 가 없으면 산 페이지 칸(adsense.slot.m)을 같이 씀. 설정이 없거나 꼴이 틀리면 빈 객체(광고 없음).
      */
     static com.google.gson.JsonObject spot(String where, java.util.function.Function<String, String> cfg) {
         com.google.gson.JsonObject o = new com.google.gson.JsonObject();
-        if (where == null || !where.matches("tools|series")) return o;
+        if (where == null || !where.matches("tools|series|side")) return o;
         String client = cfg.apply("adsense.client"), slot = cfg.apply("adsense.slot." + where);
         if (slot == null || slot.isBlank()) slot = cfg.apply("adsense.slot.m");
         if (client == null || slot == null || !CLIENT.matcher(client.trim()).matches() || !SLOT.matcher(slot.trim()).matches()) return o;
