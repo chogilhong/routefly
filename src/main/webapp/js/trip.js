@@ -670,7 +670,8 @@
     // 🛩 3D 는 코스 3D 화면(목록 fly(3D) 와 같은 주소), 💾 GPX 저장은 받아도 되는 코스(RF.courseGpxFree)만 · 운영자 기기는 모두(따라가기 #coursegpx 가 저장), 📐 GPX 편집은 운영자 기기만. 삭제는 없음
     var courseParam = recParam ? null : new URLSearchParams(location.search).get("c");
     if (courseParam) {
-        var cTitle = new URLSearchParams(location.search).get("title") || "", cQ = "#c=" + encodeURIComponent(courseParam) + (cTitle ? "&title=" + encodeURIComponent(cTitle) : "");
+        // 주소의 title 은 60자까지 · 줄바꿈 없이(아무 글이나 우리 화면 제목으로 길게 띄우지 못하게 - 점검 14차 B3). 이름은 서버 코스 이름이 먼저
+        var cTitle = String(new URLSearchParams(location.search).get("title") || "").replace(/[\u0000-\u001f]/g, " ").slice(0, 60), cQ = "#c=" + encodeURIComponent(courseParam) + (cTitle ? "&title=" + encodeURIComponent(cTitle) : "");
         $("back").href = EN ? "hike.html?lang=en" : "hike.html";
         $("back").textContent = T("‹ 코스 목록", "‹ Courses");
         $("openBtn").hidden = true;
@@ -685,7 +686,7 @@
         var cJson = function (u) { return fetch(u, { headers: { Accept: "application/json" } }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); }); };
         Promise.all([RF.courseFetch(courseParam, cJson), ownP]).then(function (a) {
             var c = a[0], src = (c.course && c.course.source) || null, t = RF.courseTrack(c, false);
-            var name = cTitle || (c.course && c.course.name) || courseParam, got = t.length > 1 ? RF.gpxRecord(RF.trackGpx(name, c.course && c.course.kind, t), true, name) : null;
+            var name = (c.course && c.course.name) || cTitle || courseParam, got = t.length > 1 ? RF.gpxRecord(RF.trackGpx(name, c.course && c.course.kind, t), true, name) : null;
             if (!got) { $("side").innerHTML = "<p class=\"empty\">" + T("코스 선을 받지 못했습니다.", "Could not load the course line.") + "</p>"; return; }
             $("rec-save").hidden = !(a[1] || RF.courseGpxFree(courseParam, src));
             $("rec-edit").hidden = !a[1];

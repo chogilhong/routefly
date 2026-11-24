@@ -71,6 +71,8 @@ public class CourseUploadServlet extends HttpServlet {
             List<double[]> pts = points(str(in, "gpx"));
             String why = check(name, kind, pts);
             if (why == null && maker.codePointCount(0, maker.length()) > CourseSubmitServlet.SENDER_MAX) why = "만든 이는 20자 안으로 적어 주세요.";
+            // "routefly" 는 비워 둘 때(운영자가 만든 코스)의 이름 - 보낸 사람 이름으로 넣으면 남의 코스가 우리 코스처럼 💾 받기가 열림(점검 14차 B4)
+            if (why == null && "routefly".equalsIgnoreCase(maker.trim())) why = "만든 이가 routefly 이면 비워 두세요(비우면 routefly 로 나옵니다).";
             if (why != null) { Json.fail(resp, 400, why); return; }
             String id = save(dir, name.trim(), kind, pts, maker, CourseMakers.STORE, System.currentTimeMillis());
             if (id == null) { Json.fail(resp, 409, "잠시 뒤 다시 올려 주세요."); return; }

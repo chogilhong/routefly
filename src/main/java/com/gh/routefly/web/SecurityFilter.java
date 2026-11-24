@@ -59,11 +59,19 @@ public class SecurityFilter extends HttpFilter {
      */
     static final String CSP_ADS = CSP.replace("script-src 'self';", "script-src 'self' " + ADS_SRC + "; ");
 
+    /**
+     * 따라가기(hike.html - GPS · SOS · 앱도 띄움)는 코스 목록 양옆 광고에 꼭 필요한 곳만(점검 14차 B1, 2026-11-24):
+     * *.google.com · *.gstatic.com 처럼 JSONP · 옛 라이브러리로 CSP 를 우회할 수 있는 넓은 곳은 뺌. 광고가 승인된 뒤 브라우저가 막힘을 알리면(CSP 위반) 정확한 곳만 더함.
+     */
+    static final String ADS_SRC_HIKE = "https://pagead2.googlesyndication.com https://tpc.googlesyndication.com https://*.doubleclick.net https://*.adtrafficquality.google";
+    static final String CSP_ADS_HIKE = CSP.replace("script-src 'self';", "script-src 'self' " + ADS_SRC_HIKE + "; ");
+
     /** 순수 함수 - 이 경로에 줄 CSP. */
     static String cspFor(String path) {
         if ("/tools.html".equals(path)) return CSP_TOOLS;
         // 따라가기(hike.html)는 코스 목록 양옆 광고 때문에(2026-11-24 홍TV님 "목록에서만, 세 번째(따라가기 지도) 화면에서는 광고는 달지 않아") - 광고 칸은 목록(#pick) 안에만, PC 1200px 넘을 때 · 앱 제외(js/ads.js)
-        return path != null && (path.startsWith("/m/") || path.startsWith("/en/m/") || path.startsWith("/c/") || "/m".equals(path) || "/series.html".equals(path) || "/hike.html".equals(path)) ? CSP_ADS : CSP;
+        if ("/hike.html".equals(path)) return CSP_ADS_HIKE;
+        return path != null && (path.startsWith("/m/") || path.startsWith("/en/m/") || path.startsWith("/c/") || "/m".equals(path) || "/series.html".equals(path)) ? CSP_ADS : CSP;
     }
 
     @Override

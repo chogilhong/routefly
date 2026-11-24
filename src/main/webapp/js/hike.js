@@ -2179,10 +2179,14 @@
         Promise.all([RF.courseFetch(id, getJson), ownerDevice()]).then(function (a) {   // 이은 코스도(점검 14차 A5)
             var c = a[0], src = (c.course && c.course.source) || null;
             if (!a[1] && !RF.courseGpxFree(id, src)) { toast(T("이 코스는 자료 이용 조건 때문에 GPX 로 받을 수 없습니다.", "This course cannot be downloaded as GPX because of its data terms."), 6000); return; }
-            var t = RF.courseTrack(c, false), name = title || (c.course && c.course.name) || id;
+            var t = RF.courseTrack(c, false), name = (c.course && c.course.name) || title || id;   // 이름은 서버 코스 이름 먼저(주소의 title 로 아무 글이나 넣지 못하게 - 점검 14차 B3)
             if (t.length < 2) throw new Error(T("선이 없습니다", "no track"));
+            // 링크만 열어도 내려받기가 시작되지 않게 한 번 물음(점검 14차 B2)
+            return hAsk(T("\"" + NM(name) + "\" 코스를 GPX 파일로 저장할까요?", "Save \"" + NM(name) + "\" as a GPX file?"), { ok: T("저장", "Save") }).then(function (ok) {
+            if (!ok) return;
             toast(T("GPX 파일을 만드는 중… 카카오톡으로는 보낼 수 없습니다. 메일 · 드라이브 · 내 파일로 보내세요", "Making the GPX file… KakaoTalk does not accept GPX files - use email, Drive or My Files."), 6000);
             saveGpxText({ start: Date.now(), name: name }, RF.trackGpx(name, c.course && c.course.kind, t, { wpt: true, en: EN, credit: RF.courseGpxCredit(id, src, EN) }));
+            });
         }).catch(function (e) { toast(T("GPX 를 만들지 못했습니다: ", "Could not make the GPX: ") + (e && e.message || e), 5000); });
     }
 
@@ -5625,7 +5629,7 @@
             fix: function (lat, lon) { onFix({ timestamp: now(), coords: { latitude: lat, longitude: lon, accuracy: 5, speed: 1, heading: null } }); },
             heading: function (h) { onOrientation({ webkitCompassHeading: h }); } };
         // 주소에 코스가 없이 열렸는데 걷던 코스가 있으면 그 코스로(카카오톡 안 브라우저에서 길찾기 뒤 화면이 닫혔을 때 등)
-        if (!/[#&]c=/.test(location.hash)) {
+        if (!/[#&]c=/.test(location.hash) && !/^#(recdo|coursegpx)=/.test(location.hash)) {   // 기록 보기 · 코스 보기에서 넘긴 일(지우기 · 저장 · 3D)은 덮지 않음(점검 14차)
             try {
                 var act = localStorage.getItem(ACTIVE_KEY);
                 var sv = act && JSON.parse(localStorage.getItem("rf-hike-" + act) || "null");

@@ -7,7 +7,7 @@
  *   - MapLibre(vendor): 바뀌지 않으므로 받아 둔 것 먼저
  *   - 판 붙은 js · css(js/x.js?v=내용 해시 - war 만들 때 tools/minify/version.js 가 붙임, 2026-11-01): 내용이 바뀌면 주소가 바뀌므로 받아 둔 것 먼저
  */
-var SHELL = "rf-shell-v408", API = "rf-api-v1", TILES = "rf-tiles-rt-v1", OFFLINE = "rf-offline-v1";
+var SHELL = "rf-shell-v409", API = "rf-api-v1", TILES = "rf-tiles-rt-v1", OFFLINE = "rf-offline-v1";
 var TILE_KEEP = 1500;   // 지나가며 본 타일은 이만큼만 남깁니다(저장 공간)
 // 2026-10-09 점검: API 캐시도 한도 - 지도를 움직일 때마다 목록 주소(bbox)가 하나씩 늘어 끝없이 커졌습니다.
 // 오프라인 저장한 코스는 OFFLINE 캐시에 따로 있어 지워지지 않습니다.
@@ -17,7 +17,8 @@ var API_KEEP = 300;
 // 2026-11-02 홍TV님 속도 점검: 첫 주소("./")는 이제 작은 넘김 화면(root.html)이라, 예전 공유 링크(…/routefly/#c=)가 신호 없을 때도 3D 화면으로 열리게 index.html 도 담음
 var SHELL_FILES = ["hike.html", "about.html", "about-en.html", "park.html", "js/kit-park.js", "js/park.js", "route.html", "js/kit-route.js", "js/route.js", "series.html", "js/kit-series.js", "js/series.js", "data/series.json", "data/mountains100.json", "data/park-notes.json", "data/knps-close.json", "data/np-stamps.json", "./", "index.html", "css/course-kit.css", "js/kit-hike.js", "js/kit-app.js", "js/seen.js", "js/hike.js", "js/party-kit.js", "party.html", "js/kit-party.js", "js/party.js", "js/no-kakao.js", "js/party-bar.js", "vendor/qrcode-generator-1.4.4/qrcode.js", "js/app.js", "js/early.js", "js/sw-reg.js", "js/about.js", "js/onboard.js", "js/app-perm.js", "js/app-store.js", "js/root-go.js", "privacy.html",
     "vendor/maplibre-gl-5.24.0/maplibre-gl.js", "vendor/maplibre-gl-5.24.0/maplibre-gl.css", "vendor/maplibre-contour-0.1.1/maplibre-contour.min.js", "vendor/rfmap-1.1.8/rfmap.js", "favicon.svg", "manifest.json",
-    "img/icon-192.png", "img/kakaomap.png", "data/peak-elev.json", "js/rf-dialog.js", "js/rf-theme.js", "css/rf-light.css"];   // 밝은 · 다크 모드(2026-11-21) - 산속에서도 고른 모드. v288 - 따라가기 알림 말 맞춤. v289 - 밝은 모드 안내 글 · 안부 칸. v290 - 대피소 예약 산 탭   // icon-512(홈 화면 설치 그림)는 빼고 - 산속에서 쓰지 않음(2026-11-03 P3)
+    "img/icon-192.png", "img/kakaomap.png", "data/peak-elev.json", "js/rf-dialog.js", "js/rf-theme.js", "css/rf-light.css",
+    "trip.html", "js/kit-trip.js", "js/trip.js", "vendor/pmtiles-4.5.0/pmtiles.js", "js/ads.js"];   // 🗺 기록 보기(🛩 3D · 💾 저장이 여기로 옮김) · 따라가기가 부르는 ads.js 도 산속에서(점검 14차 D1)   // 밝은 · 다크 모드(2026-11-21) - 산속에서도 고른 모드. v288 - 따라가기 알림 말 맞춤. v289 - 밝은 모드 안내 글 · 안부 칸. v290 - 대피소 예약 산 탭   // icon-512(홈 화면 설치 그림)는 빼고 - 산속에서 쓰지 않음(2026-11-03 P3)
 // war 를 만들 때 tools/minify/version.js 가 위 js · css 에 ?v=<내용 해시> 를 붙임(2026-11-03 홍TV님 점검 P2) - 화면이 방금 받은 같은 판 주소라 브라우저 캐시(1년)에서 바로 오고,
 // 이미 담아 둔 판은 다시 받지 않음. ?없는 주소로도 담음(산 페이지 "신호 없을 때 보기" 와 오프라인 versioned() 가 ?없는 주소를 찾음)
 
@@ -245,6 +246,7 @@ self.addEventListener("fetch", function (e) {
     if (url.indexOf(self.location.origin) !== 0) return;   // 그 밖의 다른 사이트는 손대지 않음
     if (/\.pmtiles(?:[?#]|$)/.test(url)) return;   // 바탕 지도 파일(2026-11-22) - 조각(Range) 요청이라 캐시에 담지 않고 서버로
     if (url.indexOf("/api/course-submit") >= 0) return;   // 받은 GPX(관리자 - GPX 편집)는 받아 두지 않고 서버로 - 지운 것이 옛 목록으로 보이거나 GPX 가 캐시에 남지 않게(2026-11-01)
+    if (url.indexOf("/api/course-upload") >= 0) return;   // 운영자 기기인가(쿠키마다 답이 다름) - 받아 둔 옛 답이 남지 않게 늘 서버로(점검 14차 B5)
     if (url.indexOf("/api/rain") >= 0) return;   // 걷는 중 비구름(2026-11-14) - 산속에서 받아 둔 옛 비를 지금 비처럼 보이지 않게 늘 서버로
     if (url.indexOf("/api/tidefly") >= 0) return;   // 출조 판단 ○ △ ✕ · 물때(점검 10차 A2) - 늦을 때 받아 둔 옛 판단을 지금 것처럼 보이지 않게 늘 서버로
     if (url.indexOf("/api/") >= 0) { e.respondWith(networkFirst(e, API)); return; }

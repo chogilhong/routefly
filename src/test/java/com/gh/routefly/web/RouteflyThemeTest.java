@@ -75,7 +75,7 @@ public class RouteflyThemeTest {
         assertTrue(css.contains(":root[data-theme=\"light\"] { --bg:#eef2f6; --panel:#ffffff; --tx:#18212c;") && css.contains("--onsky:#ffffff;"));
         assertTrue("하늘색 단추 글은 밝은 모드에서 흰색", read("src/main/webapp/hike.html").contains("#bar button.main { background:var(--sky); border-color:var(--sky); color:var(--onsky,#062b30);"));
         String sw = read("src/main/webapp/sw.js");
-        assertTrue("산속(오프라인)에서도", sw.contains("\"js/rf-theme.js\", \"css/rf-light.css\"]"));
+        assertTrue("산속(오프라인)에서도", sw.contains("\"js/rf-theme.js\", \"css/rf-light.css\","));
         for (String js : new String[] {"hike", "park", "route", "series", "tools", "anbu", "party"}) {
             assertTrue(js, read("src/main/webapp/js/" + js + ".js").contains("themeButton()"));
             assertTrue("kit-" + js, read("src/main/webapp/js/kit-" + js + ".js").contains("function themeButton("));

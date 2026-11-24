@@ -51,4 +51,28 @@ public class Checkup14Test {
             assertFalse(p, t.contains("\"공개 끄기\" 를 누르면 바로 지우고") || t.contains("\"Turn off\" deletes it immediately"));
         }
     }
+
+    @Test
+    public void 단계2_보안_오프라인() throws Exception {
+        // B1 따라가기 CSP 는 좁은 애드센스 곳만
+        String hikeCsp = SecurityFilter.cspFor("/hike.html");
+        assertTrue(hikeCsp.contains("pagead2.googlesyndication.com") && !hikeCsp.contains("*.google.com") && !hikeCsp.contains("*.gstatic.com"));
+        String hk = read("src/main/webapp/js/hike.js");
+        // B2 링크만으로 내려받지 않음 · B3 이름은 서버 코스 이름 먼저 · 주소 title 은 60자
+        assertTrue(hk.contains("return hAsk(T(\"\\\"\" + NM(name) + \"\\\" 코스를 GPX 파일로 저장할까요?\""));
+        assertTrue(hk.contains("name = (c.course && c.course.name) || title || id;"));
+        String tj = read("src/main/webapp/js/trip.js");
+        assertTrue(tj.contains(".slice(0, 60), cQ") && tj.contains("var name = (c.course && c.course.name) || cTitle || courseParam"));
+        // 이어 하기가 넘겨받은 일을 덮지 않음
+        assertTrue(hk.contains("!/^#(recdo|coursegpx)=/.test(location.hash)"));
+        // B4 routefly 이름은 보낸 사람 이름으로 못 씀
+        assertTrue(read("src/main/java/com/gh/routefly/web/CourseUploadServlet.java").contains("\"routefly\".equalsIgnoreCase(maker.trim())"));
+        // B5 · D1 서비스 워커
+        String sw = read("src/main/webapp/sw.js");
+        assertTrue(sw.contains("if (url.indexOf(\"/api/course-upload\") >= 0) return;"));
+        for (String f : new String[] {"trip.html", "js/kit-trip.js", "js/trip.js", "vendor/pmtiles-4.5.0/pmtiles.js", "js/ads.js"}) assertTrue(f, sw.contains("\"" + f + "\""));
+        // D6 숨은 광고 자리는 시계로 돌지 않음
+        String ads = read("src/main/webapp/js/ads.js");
+        assertTrue(ads.contains("new IntersectionObserver(") && !ads.contains("setInterval("));
+    }
 }

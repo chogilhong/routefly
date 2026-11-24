@@ -62,9 +62,12 @@
         spot.appendChild(box);
         return box;
     }
+    /** 자리가 보일 때 한 번 f - 숨은 동안 시계로 계속 확인하지 않음(점검 14차 D6: 따라가기 지도를 쓰는 내내 2초마다 돌았음). IntersectionObserver 가 없으면 보일 때만. */
     function whenShown(el, f) {
         if (el.offsetWidth > 0) { f(); return; }
-        var t = setInterval(function () { if (!el.parentNode) { clearInterval(t); return; } if (el.offsetWidth > 0) { clearInterval(t); f(); } }, 2000);
+        if (!window.IntersectionObserver) return;
+        var io = new IntersectionObserver(function (es) { if (es.some(function (e) { return e.isIntersecting || el.offsetWidth > 0; })) { io.disconnect(); f(); } });
+        io.observe(el);
     }
     spots.forEach(function (s) { var w = s.getAttribute("data-where"); (byWhere[w] = byWhere[w] || []).push(s); });
     Object.keys(byWhere).forEach(function (where) {

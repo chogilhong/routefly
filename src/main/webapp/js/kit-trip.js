@@ -1526,7 +1526,7 @@
     function courseGpxFree(id, src) {
         var parts = parseJoinId(id), ids = parts && parts.length ? parts.map(function (p) { return p.base; }) : [String(id || "")];
         return ids.every(function (b) {
-            if (b.indexOf("u-") === 0) return !parts && !!src && src.kind === "maker" && src.text === "routefly";
+            if (b.indexOf("u-") === 0) return !parts && !!src && src.kind === "maker" && src.text === "routefly" && !src.checked && !src.partner;   // 보낸 사람 이름이 routefly 여도 남의 코스(checked)는 아님(점검 14차 B4)
             return /^(knps-|frst-|kmp-|kmf-|osm)/.test(b);
         });
     }

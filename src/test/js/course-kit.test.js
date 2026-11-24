@@ -2425,6 +2425,7 @@ eq("못 받는 코스 - 두루누비 · 다른 사람이 보낸 코스 · 만든
      RF.courseGpxFree("u-20261116-003325", null), RF.courseGpxFree("gpx-abc", null), RF.courseGpxFree("zzz-1", null), RF.courseGpxFree("", null)],
     [false, false, false, false, false, false]);
 eq("routefly 가 만든 코스는 받음", RF.courseGpxFree("u-20261116-003325", { kind: "maker", text: "routefly", en: "routefly", checked: false }), true);
+eq("보낸 사람 이름이 routefly 인 남의 코스(checked) · 제휴는 못 받음(점검 14차 B4)", [RF.courseGpxFree("u-1", { kind: "maker", text: "routefly", checked: true }), RF.courseGpxFree("u-1", { kind: "maker", text: "routefly", checked: false, partner: true })], [false, false]);
 eq("이은 코스는 조각이 모두 되어야", [RF.courseGpxFree("frst-1-a,osmh-2-b", null), RF.courseGpxFree("frst-1-a,drnb-3", null)], [true, false]);
 eq("출처 한 줄", [RF.courseGpxCredit("frst-1-a", null, false), RF.courseGpxCredit("osmh-2-b", null, true), RF.courseGpxCredit("u-1", { kind: "maker", text: "routefly", en: "routefly" }, false)],
     ["출처: 산림청 (공공데이터) · 지명: © OpenStreetMap contributors (ODbL) · routefly", "Source: © OpenStreetMap contributors (ODbL) · routefly", "출처: routefly · 지명: © OpenStreetMap contributors (ODbL)"]);

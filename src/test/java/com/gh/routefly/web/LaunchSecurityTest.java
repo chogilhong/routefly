@@ -32,7 +32,8 @@ public class LaunchSecurityTest {
         assertTrue("PC http 에서도 우편번호 창", SecurityFilter.cspFor("/tools.html").contains("frame-src 'self' https: http://postcode.map.kakao.com http://postcode.map.daum.net;"));
         assertFalse(SecurityFilter.CSP.contains("frame-src"));
         assertEquals("다른 화면은 그대로", SecurityFilter.CSP, SecurityFilter.cspFor("/party.html"));
-        assertEquals("따라가기는 코스 목록 양옆 광고 때문에 애드센스 곳만 더(2026-11-24)", SecurityFilter.CSP_ADS, SecurityFilter.cspFor("/hike.html"));
+        assertEquals("따라가기는 코스 목록 양옆 광고에 꼭 필요한 애드센스 곳만(2026-11-24, 점검 14차 B1)", SecurityFilter.CSP_ADS_HIKE, SecurityFilter.cspFor("/hike.html"));
+        assertFalse("따라가기에는 우회로 알려진 넓은 곳을 열지 않음", SecurityFilter.cspFor("/hike.html").contains("*.google.com") || SecurityFilter.cspFor("/hike.html").contains("*.gstatic.com"));
         assertEquals(SecurityFilter.CSP, SecurityFilter.cspFor("/tools.html/x"));
         assertFalse(SecurityFilter.CSP_TOOLS.matches(".*script-src[^;]*'unsafe-(inline|eval)'.*"));
     }
