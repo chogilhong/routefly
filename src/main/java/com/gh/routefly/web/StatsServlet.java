@@ -212,7 +212,7 @@ public class StatsServlet extends HttpServlet {
                 .append(pageChart(days, n, pages, 20))
                 .append(top("들어온 곳(" + last.size() + "일 - 바깥에서 처음 들어온 화면 수)", refs, 20))
                 // 쿠팡 카드 누름 - 자리별(2026-11-24 홍TV님): 그 날 한 사람이 한 자리를 여러 번 눌러도 한 번, 운영자 · 로봇 빼고. 애드센스는 애드센스 관리 화면에서
-                .append(top("광고 카드 누름 - 자리별(" + last.size() + "일 - 쿠팡 카드, 한 사람 · 한 자리 하루 한 번)", adClicks, 20))
+                .append(top("광고 카드 누름 - 자리별(" + last.size() + "일 - 쿠팡 카드, 사람 확인된 방문자만 · 한 사람 · 한 자리 하루 한 번)", adClicks, 20))
                 .append(botTable(bots, engines))
                 .append(GUIDE);
         out.append("<p class=\"dim\">숫자만 셉니다 - 방문자는 그 날만 쓰는 해시로 겹침만 걸러 내고 IP 는 남기지 않습니다. 이 화면을 연 기기(브라우저)는 운영자로 보고 방문 수에서 뺍니다(2년, 사이트 데이터를 지우면 다시 셈). 앱은 안내 화면 \"안내\" 제목을 7번 누르고 열쇠를 넣으면 빠집니다.</p></main><script src=\"" + AssetVersion.of("js/stats.js") + "\"></script></body></html>");

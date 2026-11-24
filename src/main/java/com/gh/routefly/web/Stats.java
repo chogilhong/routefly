@@ -176,13 +176,16 @@ final class Stats {
         return null;
     }
 
-    /** 광고 카드 누름 한 번 - 그 날 사람으로 센 방문자만, 한 사람 · 한 자리 하루 한 번(아무나 되풀이해 부풀리지 못하게). 센 것이면 true. */
+    /**
+     * 광고 카드 누름 한 번 - 그 날 "사람 확인"(화면 js 가 돈 방문자, /api/seen)만, 한 사람 · 한 자리 하루 한 번(아무나 되풀이해 부풀리지 못하게). 센 것이면 true.
+     * 2026-11-24 홍TV님 "사람 확인만 통계에 잡히게" - 방문자(seen)에는 js 를 안 돌리는 수집 프로그램이 섞임.
+     */
     static synchronized boolean adClick(String ip, String area) {
         load();
         if (area == null || !today.equals(LocalDate.now(WeatherServlet.KST).toString())) return false;
         String h = hash(ip);
         JsonObject day = DAYS.get(today);
-        if (day == null || !seen.contains(h) || adSeen.size() >= SEEN_MAX || !adSeen.add(h + "|" + area)) return false;
+        if (day == null || !jsSeen.contains(h) || adSeen.size() >= SEEN_MAX || !adSeen.add(h + "|" + area)) return false;
         if (!day.has("adClicks")) day.add("adClicks", new JsonObject());
         add(day.getAsJsonObject("adClicks"), area);
         dirty = true;

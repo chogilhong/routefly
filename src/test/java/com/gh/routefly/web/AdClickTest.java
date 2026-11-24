@@ -9,7 +9,7 @@ import java.time.LocalDate;
 
 import org.junit.Test;
 
-/** 광고 카드 누름 수 - 자리별(2026-11-24 홍TV님 "광고 자리별 누름 수를 /stats 에"). */
+/** 광고 카드 누름 수 - 자리별(2026-11-24 홍TV님 "광고 자리별 누름 수를 /stats 에") - 사람 확인된 방문자만(같은 날 "사람 확인만 통계에 잡히게"). */
 public class AdClickTest {
 
     private static String read(String p) throws Exception {
@@ -35,6 +35,8 @@ public class AdClickTest {
         String ip = "203.0.113.77", day = LocalDate.now(WeatherServlet.KST).toString();
         assertFalse("방문으로 안 센 곳(그 날 화면을 안 연 주소)은 안 셈", Stats.adClick("203.0.113.78", "산 페이지"));
         Stats.hit("/m/지리산", null, ip, null, null, null, "PC", null);
+        assertFalse("방문자여도 사람 확인(화면 js)이 안 됐으면 안 셈(2026-11-24 홍TV님)", Stats.adClick(ip, "산 페이지"));
+        Stats.js(ip, "PC", false);   // 화면 js 가 돎(/api/seen)
         int before = count(day, "산 페이지");
         assertTrue(Stats.adClick(ip, "산 페이지"));
         assertFalse("같은 자리 또 누름", Stats.adClick(ip, "산 페이지"));
