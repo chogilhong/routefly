@@ -6333,10 +6333,11 @@
     /**
      * 코스 모음(/m/ · /en/m/)의 접는 칸(등산 · 걷기 · 자전거 · 100대 명산 …) 펼침을 이 탭에 기억했다가 다시 오면 그대로(2026-11-24 홍TV님
      * "검색해서 들어간 것이면 돌아와도 그대로. 100대 명산을 펼쳐서 링크 타고 들어갔으면 돌아와도 펼쳐져 있는 상태로" - 전에는 산 페이지 ‹ 코스 모음 이 늘 100대 명산을 펼쳤음).
+     * 산 페이지(/m/산)의 접는 칸(코스 n개 · 자주 묻는 질문 등 name="msec")도(2026-11-25 PC: 코스 29개를 펴고 코스로 갔다 ‹ 지리산 으로 오면 닫혀 있었음 - bfcache 없을 때).
      * 칸은 제목 글(.ft)로 알아봄. 주소에 ?open= 이 있으면(옛 링크 · 가파른 산 순위) 그 뜻대로 두고 되살리지 않음. 보던 자리(스크롤 rf-fold-y:)도 같이. key - 화면마다(주소 경로).
      */
     function foldMemory(doc, key) {
-        var sel = "details.fold[name=\"kind\"], details.fold[name=\"group\"]", k = "rf-fold:" + key, store = global.sessionStorage;
+        var sel = "details.fold[name=\"kind\"], details.fold[name=\"group\"], details.fold[name=\"msec\"]", k = "rf-fold:" + key, store = global.sessionStorage;
         var title = function (d) { var t = d.querySelector("summary .ft"); return t ? t.textContent.trim() : ""; };
         var saved = null;
         try { saved = JSON.parse(store.getItem(k) || "null"); } catch (e) { /* 처음 · 막힘 */ }

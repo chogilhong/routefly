@@ -14,6 +14,9 @@ public class MountainFoldTest {
                 MountainServlet.foldSec("<section class=\"faq\"><h2>계룡산 자주 묻는 질문</h2><dl><dt>a</dt></dl></section>"));
         assertTrue("코스 칸도 처음에는 접어 둠 - 🥾 코스 n개 바로 보기 ↓ 를 누르면 펴고 감(2026-11-20 홍TV님 \"접혀 두었다가 … 누르면 펴지게\")",
                 MountainServlet.foldSec("<section id=\"trails\"><h2>코스 13개</h2><ul></ul></section>").startsWith("<section id=\"trails\"><details class=\"fold sec\" name=\"msec\"><summary>"));
+        assertTrue("산 페이지 접는 칸(msec)도 펼침 · 보던 자리 기억(2026-11-25 PC - 코스 n개를 펴고 코스로 갔다 오면 닫혀 있었음)",
+            new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get("src/main/webapp/js/course-kit.js")), java.nio.charset.StandardCharsets.UTF_8)
+                .contains("var sel = \"details.fold[name=\\\"kind\\\"], details.fold[name=\\\"group\\\"], details.fold[name=\\\"msec\\\"]\", k = \"rf-fold:\" + key"));
         assertEquals("빈 칸(선정 이유가 없는 산 등)은 빈 글", "", MountainServlet.foldSec(""));
         assertEquals("꼴이 다르면 그대로", "<p>x</p>", MountainServlet.foldSec("<p>x</p>"));
         // 안전 팁 함수 자체는 그대로(코스 페이지 · 목록이 펼친 채 씀) - 산 페이지에서만 접음
