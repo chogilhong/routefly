@@ -351,6 +351,28 @@
     var GPX_SPACING_M = 10;
 
     /**
+     * 순수 함수 - 기록의 가장 높은 곳(2026-10-28 PC: 지리산 기록이 1,950m - 천왕봉 1,915m). GPS 높이는 앞뒤 5점 가운뎃값으로 튐을 누르고,
+     * 그 자리가 100대 명산 정상(peaks: mountains100 의 {id, lat, lon}) 200m 안이면 공식 높이(elev: peak-elev.json 의 elev)로.
+     */
+    function recordHighest(rc, peaks, elev) {
+        var e = rc && rc.ele || [], best = null, at = -1;
+        for (var i = 0; i < e.length; i++) {
+            var w = [];
+            for (var j = Math.max(0, i - 2); j <= Math.min(e.length - 1, i + 2); j++) if (e[j] != null) w.push(e[j]);
+            if (!w.length) continue;
+            w.sort(function (x, y) { return x - y; });
+            var m = w[Math.floor(w.length / 2)];
+            if (best == null || m > best) { best = m; at = i; }
+        }
+        if (best == null) return null;
+        var hit = null, hd = 200;
+        (peaks || []).forEach(function (p) {
+            var id = p.id || p.name, d = distM(rc.lat[at], rc.lon[at], p.lat, p.lon);
+            if (elev && elev[id] != null && d <= hd) { hd = d; hit = +elev[id]; }
+        });
+        return Math.round(hit != null ? hit : best);
+    }
+    /**
      * 불러온 GPX 를 이 기기에 둡니다(따라가기 · 코스 미리보기가 같이 씀). 코스 ID "gpx-<글자 지문>"(같은 파일은 같은 ID),
      * 최근 GPX_KEEP 개만. 서버에는 올리지 않습니다.
      */
@@ -885,7 +907,8 @@
             });
         }
         // 최고 - 서버가 정상을 지나는 코스는 공식 높이로 바꿔 보냄(course.ele_max_m, 2026-10-16 PC: 그래프만 선 고도 1,700m 였음). 선보다 낮으면 선 값
-        var top = c.course && c.course.ele_max_m != null && +c.course.ele_max_m >= max ? +c.course.ele_max_m : max;
+        // opts.top - 부르는 쪽이 정한 값(기록 보기: "가장 높은 곳" 과 같은 recordHighest, 2026-11-25 홍TV님 "일치해야지" - 화대종주 그래프 1,897 · 요약 1,915)
+        var top = opts.top != null ? opts.top : c.course && c.course.ele_max_m != null && +c.course.ele_max_m >= max ? +c.course.ele_max_m : max;
         var capMax = el("div", "rf-cap", tr("최고 ", "top ") + num(top) + "m"); capMax.style.cssText = "left:3px;top:0"; box.appendChild(capMax);
         var capTot = el("div", "rf-cap", km(c.total) + "km"); capTot.style.cssText = "right:3px;bottom:1px"; box.appendChild(capTot);
         if (smax > 0 && c.total > 0) {

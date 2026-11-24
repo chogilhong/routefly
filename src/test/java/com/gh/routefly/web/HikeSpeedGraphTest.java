@@ -19,7 +19,7 @@ public class HikeSpeedGraphTest {
     public void 기록_그래프에_속도() throws Exception {
         // 2026-11-23: 내 기록 그래프는 기록 보기 화면(trip.html)으로
         String js = read("src/main/webapp/js/trip.js"), kit = read("src/main/webapp/js/kit-trip.js");
-        assertTrue("기록 보기 그래프가 속도를 넘김", js.contains("RF.profile($(\"prof\"), rc, { speed: RF.speedProfile(rc), labels: false })"));
+        assertTrue("기록 보기 그래프가 속도를 넘김", js.contains("RF.profile($(\"prof\"), rc, { speed: RF.speedProfile(rc), labels: false, top: "));
         assertTrue(kit.contains("function speedProfile(c)") && kit.contains("c.time.push(typeof p[2] === \"number\" ? p[2] : null);"));
         assertTrue("붉은 선 · 최고 속도 글", kit.contains("pl.setAttribute(\"stroke\", \"#ff6b6b\");") && kit.contains("tr(\"빨강 속도 · 최고 \", \"red speed · max \")"));
     }

@@ -54,6 +54,11 @@
 
     /** 기록 요약 표(2026-11-23 홍TV님 "GPX 열기 화면에 두 번째 정보" - 내 기록 📈 창에 있던 것) - 100대 명산 자료가 오면 가장 높은 곳을 공식 높이로 다시 씀. */
     var curRec = null, famRaw = null;
+    /** 아래 그래프 - "최고" 는 요약 "가장 높은 곳" 과 같은 값(RF.recordHighest - 100대 명산 정상 200m 안이면 공식 높이, 2026-11-25 홍TV님 "일치해야지"). */
+    function drawProf() {
+        if (!rc) return;
+        prof = RF.profile($("prof"), rc, { speed: RF.speedProfile(rc), labels: false, top: RF.recordHighest(rc, famRaw ? famRaw.peaks : [], famRaw ? famRaw.elev : {}) });   // drawSum 의 recordSummary 와 같은 인자
+    }
     function drawSum() {
         var el = $("sumTbl");
         if (!el || !curRec) return;
@@ -150,7 +155,7 @@
         document.title = (NM(rec.name) || "") + (courseParam ? T(" - routefly 코스 보기", " - routefly course") : T(" - routefly 기록 보기", " - routefly record"));   // 코스 보기는 그 이름(점검 14차 C6)
         $("stat").textContent = (rec.start != null ? when(rec.start) + " · " : "") + RF.km(rc.total) + " km" + (rec.start != null && rec.end != null && rec.end > rec.start ? " · " + RF.hm(rec.end - rec.start) : "")
             + (rec.up != null ? T(" · 오른 높이 ", " · climb ") + RF.num(rec.up) + " m" : rc.asc && rc.asc.length ? T(" · 오르막 ", " · ascent ") + RF.num(rc.asc[rc.asc.length - 1]) + " m" : "");
-        prof = RF.profile($("prof"), rc, { speed: RF.speedProfile(rc), labels: false });
+        drawProf();
         hoverOff();
         var sum = document.createElement("div");
         sum.id = "sumTbl";
@@ -532,6 +537,7 @@
             var f0 = d[0], gj = f0.gj;
             famRaw = f0;
             drawSum();   // 가장 높은 곳 - 100대 명산 정상 근처면 공식 높이로
+            drawProf();   // 그래프 "최고" 도 같은 값으로
             hutPhotos = {};
             ((d[1] && d[1].photos) || []).forEach(function (p) { if (p && p.name && /^img\/shelter\/[\w.-]+\.(?:jpe?g|png|webp)$/.test(p.file || "")) hutPhotos[p.name] = p; });
             // 국립공원 찾기 후보 - 공단 대피소의 공원 · 국립공원 이름과 같은 100대 명산(지리산 천왕봉 등)

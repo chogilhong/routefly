@@ -79,6 +79,12 @@ public class VideoKitTest {
         assertTrue("3D 영상 오른쪽 아래 고도 그래프 - 지금 자리까지 색이 참(2026-11-25 홍TV님, 점은 course-kit.test.js videoProfile)",
             app.contains("var vp = RF.videoProfile(c.dist, c.ele, c.total, 400);") && app.contains("var done = Math.max(0, Math.min(1, anim.d / c.total)), cx = gx + done * gw;")
             && app.contains("var cs = Math.max(16, Math.round(W / 70));\n            drawProfile(cs);"));
+        assertTrue("그래프 \"최고\" 는 요약 \"가장 높은 곳\" 과 같은 RF.recordHighest - 기록 보기 · 3D 영상 모두, 영상 해발도 정상 50m 안은 공식 높이(2026-11-25 홍TV님 \"일치해야지\")",
+            read("src/main/webapp/js/trip.js").contains("top: RF.recordHighest(rc, famRaw ? famRaw.peaks : [], famRaw ? famRaw.elev : {}) });")
+            && read("src/main/webapp/js/trip.js").contains("drawProf();   // 그래프 \"최고\" 도 같은 값으로")
+            && read("src/main/webapp/js/course-kit.js").contains("var top = opts.top != null ? opts.top : c.course && c.course.ele_max_m != null")
+            && app.contains("var vpTop = vp ? RF.recordHighest(c, [], {}) : null;") && app.contains("var h = vp ? RF.recordHighest(c, f.peaks, f.elev) : null;")
+            && app.contains("g.fillText(T(\"최고 \", \"Max \") + num(vpTop) + \" m\"") && app.contains("if (RF.distM(p.lat, p.lon, pk.lat, pk.lon) <= 50) oe = pk.ele;"));
         assertTrue("3D 영상은 출처 줄을 늘 영상에", app.contains("if (VIDEO.rec) videoRecord(c, credit.textContent);") && app.contains("lines.forEach(function (l, i) { g.fillText(l, 20,"));
         assertTrue("지도 그림을 옮겨 그리려면 영상 만들 때만 preserveDrawingBuffer",
                 app.contains("canvasContextAttributes: VIDEO && VIDEO.rec ? { preserveDrawingBuffer: true } : undefined"));
@@ -137,7 +143,7 @@ public class VideoKitTest {
         assertTrue("GPX 는 이 기기 안에서 읽음 · 시각 없는 코스 GPX 도(홍TV님 \"왜 안 열리지?\")", js.contains("var got = RF.gpxRecord(text, true, f.name);") && !js.contains("fetch(\"api/record") && html.contains("<meta name=\"robots\" content=\"noindex, nofollow\">"));
         assertTrue("표시를 누르면 카드 · 카드를 누르면 지도", js.contains("select(i, false, true); });") && js.contains("card.onclick = function () { select(i, true, false); };"));
         assertTrue("🔍 사진만 크게 · ‹ › 넘김", js.contains("z.onclick = function (e) { e.stopPropagation(); big(i); };") && html.contains("id=\"bigPrev\"") && html.contains("id=\"bigNext\""));
-        assertTrue("고도 · 속도 그래프", js.contains("prof = RF.profile($(\"prof\"), rc, { speed: RF.speedProfile(rc), labels: false });"));
+        assertTrue("고도 · 속도 그래프", js.contains("prof = RF.profile($(\"prof\"), rc, { speed: RF.speedProfile(rc), labels: false, top: RF.recordHighest(rc, famRaw ? famRaw.peaks : [], famRaw ? famRaw.elev : {}) });"));
         assertTrue("지도 출처(OSM) 그대로 - V-World 바탕은 여기서, 우리 지도는 바탕 출처에 있어 한 번만(2026-11-22)", js.contains("customAttribution: (style ? \"\" : \"© OpenStreetMap contributors | \") + ")
             && read("src/main/webapp/vendor/rfmap-1.1.8/rfmap.js").contains("attribution: \"© OpenMapTiles © OpenStreetMap contributors\""));
         assertFalse("🖥 크게 보기 단추는 뺀 그대로(2026-11-22 원복) - 내 기록은 🗺 지도 단추 하나로 trip.html 에 엶(2026-11-22 홍TV님 \"trip.html 화면에서 열어\")", hike.contains("🖥"));

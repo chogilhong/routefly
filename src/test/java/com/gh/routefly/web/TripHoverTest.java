@@ -26,7 +26,7 @@ public class TripHoverTest {
                 && js.contains("hoverAt(Math.max(0, Math.min(1, x / r.width)) * rc.total);") && js.contains("$(\"prof\").addEventListener(\"mouseleave\", hoverOff);"));
         assertTrue("지도 선에서 14px 안일 때만", js.contains("if (q && q.off <= tol) { hovD = q.d; hoverAt(q.d); } else { hovD = null; hoverOff(); }") && js.contains("tol = mpp * 14;"));
         assertTrue("1시간 안은 \"35분\" (0시간 빼기) - RF.hm 한 벌(점검 14차 F2)", js.contains("\" · \" + RF.hm(el2)") && !js.contains("function hm("));
-        assertTrue("기록을 새로 그리면 점을 치움", js.contains("labels: false });\n        hoverOff();"));
+        assertTrue("기록을 새로 그리면 점을 치움", js.contains("drawProf();\n        hoverOff();"));
     }
 
     @Test

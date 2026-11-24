@@ -1465,6 +1465,15 @@
         photos.forEach(function (ph) { flyPhoto(ph.id).then(function (b) { if (!b) return; var im = new Image(); im.onload = function () { ph.img = im; }; im.src = URL.createObjectURL(b); }); });
         var lines = wrapText(g, credit, W - 40, Math.max(16, Math.round(W / 70)));
         var vp = RF.videoProfile(c.dist, c.ele, c.total, 400);   // 오른쪽 아래 고도 그래프(2026-11-25 홍TV님 - 기록 보기 그래프처럼, 지금 자리까지 색이 참)
+        // "최고" 는 기록 보기 요약 "가장 높은 곳" 과 같은 값(RF.recordHighest - 100대 명산 정상 200m 안이면 공식 높이, 2026-11-25 홍TV님 "일치해야지")
+        var vpTop = vp ? RF.recordHighest(c, [], {}) : null;   // 정상 자료를 받기 전 - 요약과 같은 식(튐을 누른 선 높이)
+        // 왼쪽 위 "해발" 도 100대 명산 정상 50m 안에서는 공식 높이(코스 지점 공식 높이가 없는 GPX · 이은 코스 - 정상에서 1,897 이 아니라 1,915)
+        var topPeaks = [];
+        RF.famousFetch().then(function (f) {
+            var h = vp ? RF.recordHighest(c, f.peaks, f.elev) : null;
+            if (h != null) vpTop = h;
+            topPeaks = f.peaks.filter(function (pk) { return f.elev[pk.id || pk.name] != null; }).map(function (pk) { return { lat: pk.lat, lon: pk.lon, ele: +f.elev[pk.id || pk.name] }; });
+        }, function () { /* 선 높이 그대로 */ });
         /** 고도 그래프 - 지나온 곳은 코스 선 색으로 채우고 지금 자리에 점, 위에 최고 높이(기록 보기 그래프와 같은 모양). */
         function drawProfile(cs) {
             if (!vp) return;
@@ -1476,7 +1485,7 @@
             g.fillStyle = "rgba(15,23,42,0.78)";
             g.beginPath(); if (g.roundRect) g.roundRect(bx, by, bw, bh, Math.round(bh * 0.08)); else g.rect(bx, by, bw, bh); g.fill();
             g.fillStyle = "#fff"; g.textBaseline = "top"; g.font = "bold " + Math.round(top * 0.5) + "px sans-serif";
-            g.fillText(T("최고 ", "Max ") + num(vp.max) + " m", gx, by + Math.round(top * 0.22));
+            g.fillText(T("최고 ", "Max ") + num(vpTop) + " m", gx, by + Math.round(top * 0.22));
             var shape = function () {
                 g.beginPath(); g.moveTo(X(vp.pts[0]), gy + gh);
                 vp.pts.forEach(function (t) { g.lineTo(X(t), Y(t)); });
@@ -1507,6 +1516,7 @@
             g.font = "bold " + fs + "px sans-serif";
             g.fillText(km(anim.d) + " km", Math.round(fs * 0.7), Math.round(fs * 0.7));
             g.font = "bold " + Math.round(fs * 0.75) + "px sans-serif";
+            if (oe == null && p) topPeaks.forEach(function (pk) { if (RF.distM(p.lat, p.lon, pk.lat, pk.lon) <= 50) oe = pk.ele; });
             var ele = oe != null ? oe : p && p.ele;
             if (ele != null) g.fillText(T("해발 ", "elev. ") + num(ele) + " m", Math.round(fs * 0.7), Math.round(fs * 1.9));
             g.textAlign = "right";

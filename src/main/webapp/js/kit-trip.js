@@ -2071,7 +2071,8 @@
             });
         }
         // 최고 - 서버가 정상을 지나는 코스는 공식 높이로 바꿔 보냄(course.ele_max_m, 2026-10-16 PC: 그래프만 선 고도 1,700m 였음). 선보다 낮으면 선 값
-        var top = c.course && c.course.ele_max_m != null && +c.course.ele_max_m >= max ? +c.course.ele_max_m : max;
+        // opts.top - 부르는 쪽이 정한 값(기록 보기: "가장 높은 곳" 과 같은 recordHighest, 2026-11-25 홍TV님 "일치해야지" - 화대종주 그래프 1,897 · 요약 1,915)
+        var top = opts.top != null ? opts.top : c.course && c.course.ele_max_m != null && +c.course.ele_max_m >= max ? +c.course.ele_max_m : max;
         var capMax = el("div", "rf-cap", tr("최고 ", "top ") + num(top) + "m"); capMax.style.cssText = "left:3px;top:0"; box.appendChild(capMax);
         var capTot = el("div", "rf-cap", km(c.total) + "km"); capTot.style.cssText = "right:3px;bottom:1px"; box.appendChild(capTot);
         if (smax > 0 && c.total > 0) {
@@ -2355,6 +2356,7 @@
         pageLang: pageLang,
         applyEn: applyEn,
         recordSummary: recordSummary,
+        recordHighest: recordHighest,
         levelChip: levelChip,
         mapLocale: mapLocale,
         steepest: steepest,
