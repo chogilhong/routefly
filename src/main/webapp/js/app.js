@@ -1464,6 +1464,40 @@
         });
         photos.forEach(function (ph) { flyPhoto(ph.id).then(function (b) { if (!b) return; var im = new Image(); im.onload = function () { ph.img = im; }; im.src = URL.createObjectURL(b); }); });
         var lines = wrapText(g, credit, W - 40, Math.max(16, Math.round(W / 70)));
+        var vp = RF.videoProfile(c.dist, c.ele, c.total, 400);   // 오른쪽 아래 고도 그래프(2026-11-25 홍TV님 - 기록 보기 그래프처럼, 지금 자리까지 색이 참)
+        /** 고도 그래프 - 지나온 곳은 코스 선 색으로 채우고 지금 자리에 점, 위에 최고 높이(기록 보기 그래프와 같은 모양). */
+        function drawProfile(cs) {
+            if (!vp) return;
+            var bw = Math.round(Math.min(W * 0.5, Math.max(W, H) * 0.3)), bh = Math.round(bw * 0.42), m = Math.round(Math.min(W, H) * 0.03);   // 세로 영상은 왼쪽 아래 사진(폭 0.42)과 안 겹치게 절반까지
+            var bx = W - bw - m, by = H - lines.length * (cs + 4) - 12 - bh - m, pad = Math.round(bh * 0.1), top = Math.round(bh * 0.24);
+            var gx = bx + pad, gw = bw - pad * 2, gy = by + top, gh = bh - top - pad;
+            var X = function (t) { return gx + t[0] * gw; }, Y = function (t) { return gy + (1 - t[1]) * gh; };
+            g.save();
+            g.fillStyle = "rgba(15,23,42,0.78)";
+            g.beginPath(); if (g.roundRect) g.roundRect(bx, by, bw, bh, Math.round(bh * 0.08)); else g.rect(bx, by, bw, bh); g.fill();
+            g.fillStyle = "#fff"; g.textBaseline = "top"; g.font = "bold " + Math.round(top * 0.5) + "px sans-serif";
+            g.fillText(T("최고 ", "Max ") + num(vp.max) + " m", gx, by + Math.round(top * 0.22));
+            var shape = function () {
+                g.beginPath(); g.moveTo(X(vp.pts[0]), gy + gh);
+                vp.pts.forEach(function (t) { g.lineTo(X(t), Y(t)); });
+                g.lineTo(X(vp.pts[vp.pts.length - 1]), gy + gh); g.closePath();
+            };
+            shape(); g.fillStyle = "rgba(255,255,255,0.12)"; g.fill();
+            var done = Math.max(0, Math.min(1, anim.d / c.total)), cx = gx + done * gw;
+            g.save(); g.beginPath(); g.rect(gx, gy - 2, cx - gx, gh + 4); g.clip();
+            shape(); g.fillStyle = "rgba(56,217,234,0.55)"; g.fill();
+            g.restore();
+            g.beginPath(); vp.pts.forEach(function (t, i) { if (i) g.lineTo(X(t), Y(t)); else g.moveTo(X(t), Y(t)); });
+            g.strokeStyle = "rgba(255,255,255,0.7)"; g.lineWidth = Math.max(2, bh / 90); g.stroke();
+            // 지금 자리 - 그 거리의 그래프 높이에 점, 세로 선
+            var k = 1; while (k < vp.pts.length - 1 && vp.pts[k][0] < done) k++;
+            var a = vp.pts[k - 1], b = vp.pts[k], f = b[0] > a[0] ? (done - a[0]) / (b[0] - a[0]) : 0, cy = Y([0, a[1] + (b[1] - a[1]) * Math.max(0, Math.min(1, f))]);
+            g.strokeStyle = "rgba(255,255,255,0.6)"; g.lineWidth = Math.max(1, bh / 160);
+            g.beginPath(); g.moveTo(cx, gy); g.lineTo(cx, gy + gh); g.stroke();
+            g.fillStyle = "#38d9ea"; g.strokeStyle = "#fff"; g.lineWidth = Math.max(2, bh / 70);
+            g.beginPath(); g.arc(cx, cy, Math.max(5, bh / 22), 0, Math.PI * 2); g.fill(); g.stroke();
+            g.restore();
+        }
         function draw() {
             g.drawImage(src, 0, 0, W, H);
             var fs = Math.max(26, Math.round(W / 26)), p = at(c, anim.d), oe = RF.officialEleAt(c, anim.d);
@@ -1491,6 +1525,7 @@
             }
             // 출처 줄(늘 - OSM ODbL · 지형 · 등산로 자료)
             var cs = Math.max(16, Math.round(W / 70));
+            drawProfile(cs);
             g.save();
             g.font = cs + "px sans-serif"; g.textBaseline = "bottom";
             g.fillStyle = "rgba(0,0,0,0.55)"; g.fillRect(0, H - lines.length * (cs + 4) - 12, W, lines.length * (cs + 4) + 12);

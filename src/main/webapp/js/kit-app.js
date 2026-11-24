@@ -751,6 +751,23 @@
             return b && Date.now() - b.t < 15 * 60000 && /^trip\.html(\?[^#]*)?(#open)?$/.test(String(b.u)) ? b.u : null;
         } catch (e) { return null; }
     }
+    /**
+     * 순수 함수 - 3D 영상 오른쪽 아래 고도 그래프 점(2026-11-25 홍TV님 "고도도 같이 보이게, 위치 흘러가는 모습 그대로").
+     * x = 거리 / 전체(0 ~ 1), y = (높이 - 최저) / (최고 - 최저)(0 아래 ~ 1 위). 높이 없는 점은 빼고, 많으면 n 점 안으로 고르게 골라 끝점은 늘 넣음.
+     * 높이가 2점보다 적으면 null(그래프 안 그림).
+     */
+    function videoProfile(dist, ele, total, n) {
+        var idx = [];
+        for (var i = 0; i < dist.length; i++) if (ele[i] != null) idx.push(i);
+        if (idx.length < 2 || !(total > 0)) return null;
+        var step = Math.max(1, Math.ceil(idx.length / (n || 400))), pick = [];
+        for (var j = 0; j < idx.length; j += step) pick.push(idx[j]);
+        if (pick[pick.length - 1] !== idx[idx.length - 1]) pick.push(idx[idx.length - 1]);
+        var min = Infinity, max = -Infinity;
+        idx.forEach(function (k) { if (ele[k] < min) min = ele[k]; if (ele[k] > max) max = ele[k]; });
+        var span = max - min || 1;
+        return { min: min, max: max, pts: pick.map(function (k) { return [Math.round(dist[k] / total * 1000) / 1000, Math.round((ele[k] - min) / span * 1000) / 1000]; }) };
+    }
     var SPEED_HALF_MS = 60000;
 
     /**
@@ -2529,6 +2546,7 @@
         fromApi: fromApi,
         gpxToApi: gpxToApi,
         vidBackUrl: vidBackUrl,
+        videoProfile: videoProfile,
         isGpxId: isGpxId,
         gpxId: gpxId,
         storeGpx: storeGpx,

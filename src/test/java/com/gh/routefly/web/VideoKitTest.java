@@ -76,6 +76,9 @@ public class VideoKitTest {
             app.contains("if (map.getTerrain && map.getTerrain()) map.setTerrain({ source: \"terrain\", exaggeration: RF.videoRelief(c.ele) });")
             && app.contains("if (map.getLayer(\"hillshade\")) map.setPaintProperty(\"hillshade\", \"hillshade-exaggeration\", 0.75);")
             && read("src/main/webapp/js/kit-app.js").contains("function videoRelief(ele)"));
+        assertTrue("3D 영상 오른쪽 아래 고도 그래프 - 지금 자리까지 색이 참(2026-11-25 홍TV님, 점은 course-kit.test.js videoProfile)",
+            app.contains("var vp = RF.videoProfile(c.dist, c.ele, c.total, 400);") && app.contains("var done = Math.max(0, Math.min(1, anim.d / c.total)), cx = gx + done * gw;")
+            && app.contains("var cs = Math.max(16, Math.round(W / 70));\n            drawProfile(cs);"));
         assertTrue("3D 영상은 출처 줄을 늘 영상에", app.contains("if (VIDEO.rec) videoRecord(c, credit.textContent);") && app.contains("lines.forEach(function (l, i) { g.fillText(l, 20,"));
         assertTrue("지도 그림을 옮겨 그리려면 영상 만들 때만 preserveDrawingBuffer",
                 app.contains("canvasContextAttributes: VIDEO && VIDEO.rec ? { preserveDrawingBuffer: true } : undefined"));
