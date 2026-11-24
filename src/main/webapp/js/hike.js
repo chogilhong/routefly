@@ -5652,7 +5652,8 @@
             fix: function (lat, lon) { onFix({ timestamp: now(), coords: { latitude: lat, longitude: lon, accuracy: 5, speed: 1, heading: null } }); },
             heading: function (h) { onOrientation({ webkitCompassHeading: h }); } };
         // 주소에 코스가 없이 열렸는데 걷던 코스가 있으면 그 코스로(카카오톡 안 브라우저에서 길찾기 뒤 화면이 닫혔을 때 등)
-        if (!/[#&]c=/.test(location.hash) && !/^#(recdo|coursegpx)=/.test(location.hash)) {   // 기록 보기 · 코스 보기에서 넘긴 일(지우기 · 저장 · 3D)은 덮지 않음(점검 14차)
+        // #vid(3D 화면이 만든 영상)도 덮지 않음(2026-11-25 PC - 코스 보기 🛩 촬영은 산행 중 막음이 없어, 걷던 산행이 있으면 #vid 가 #c= 로 바뀌어 💾 저장 창이 안 떴음)
+        if (!/[#&]c=/.test(location.hash) && !/^#(recdo|coursegpx)=/.test(location.hash) && location.hash !== "#vid") {   // 기록 보기 · 코스 보기에서 넘긴 일(지우기 · 저장 · 3D)은 덮지 않음(점검 14차)
             try {
                 var act = localStorage.getItem(ACTIVE_KEY);
                 var sv = act && JSON.parse(localStorage.getItem("rf-hike-" + act) || "null");

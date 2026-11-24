@@ -33,5 +33,7 @@ public class TripOpenFollowTest {
             tj.contains("sessionStorage.setItem(OPEN_KEY, JSON.stringify({ name: f.name, text: text })); history.replaceState(null, \"\", \"#open\");")
             && tj.contains("if (!recParam && !courseParam && location.hash === \"#open\") {")
             && tj.contains("if (back && back.text) openText(back.text, back.name);"));
+        assertTrue("만든 영상(#vid)은 걷던 산행 이어 열기로 덮지 않음 - 💾 저장 창이 뜸(2026-11-25 PC)",
+            read("src/main/webapp/js/hike.js").contains("&& !/^#(recdo|coursegpx)=/.test(location.hash) && location.hash !== \"#vid\") {"));
     }
 }
