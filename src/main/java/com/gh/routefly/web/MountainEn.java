@@ -198,7 +198,7 @@ final class MountainEn {
         String trails = b.substring(trails0);
         b.setLength(trails0);
         b.append(MountainServlet.foldSec(trails));
-        b.append(Ads.rails());   // PC 넓은 화면 양옆 광고 - 한국어 산 페이지와 같이(2026-11-24)
+        b.append(Ads.rails(REL));   // PC 넓은 화면 양옆 광고 - 한국어 산 페이지와 같이(2026-11-24), 주소는 /en/m/ 깊이(../..)
         b.append(Ads.box("m", true));   // 광고 - 영어 산 페이지에도(설정이 있을 때만, 2026-10-29), 한국어처럼 FAQ 앞(2026-11-07)
         List<String[]> qa = faq(peak, name, courses, parking);
         StringBuilder f = new StringBuilder("<section class=\"faq\"><h2>").append(esc(name)).append(" FAQ</h2><dl>");
@@ -334,7 +334,7 @@ final class MountainEn {
                 .append("<a class=\"anbuLink toolLink\" href=\"" + REL + "/tools.html?lang=en\">🧰 Handy tools <small>Postcode · exchange rates · lunar calendar · weather · timer · ladder game · subway maps · holidays · fuel prices · tides · magnifier · medicine reminder · hiking safety and more (32)</small> ›</a>")
                 .append("<a class=\"anbuLink gameLink\" href=\"" + REL + "/games.html?lang=en\">🎮 Mini games <small>Block stack · Space shooter · Snake · 2048 · Brick breaker · Mine finder · Mountain run · Sudoku · Five in a row and more (15)</small> ›</a>")   // 2026-10-21 홍TV님   // 🔮 just for fun(js/mountain-en.js - 2026-10-17)
                 .append(Ads.box("m", true))
-                .append(Ads.rails())   // PC 넓은 화면 양옆 광고(2026-11-24)
+                .append(Ads.rails(REL))   // PC 넓은 화면 양옆 광고(2026-11-24), 주소는 /en/m/ 깊이(../..)
                 .append(foot(REL + "/m/")).toString();
     }
 

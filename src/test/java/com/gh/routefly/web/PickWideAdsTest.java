@@ -39,7 +39,7 @@ public class PickWideAdsTest {
         assertTrue("1200px 아래 · 앱은 지움", ads.contains("window.matchMedia(\"(min-width: 1200px)\").matches") && ads.contains("if (!wide) drop(rails);") && ads.contains("if (window.Capacitor) { drop(boxes); drop(spots); return; }"));
         assertTrue("한 번만 돎 · api 는 파일 자리 기준", ads.contains("if (window.__rfAds) return;") && ads.contains("fetch(root + \"api/ad?where=\""));
         assertTrue("모양은 ads.js 한 벌 - 1200px 넘을 때만 붙이고 CSS 에는 없음", ads.contains("else rails.forEach(function (s) {") && !css.contains(".adRail {"));
-        assertTrue("코스 모음 한 · 영", read("src/main/java/com/gh/routefly/web/MountainServlet.java").contains(".append(Ads.rails())") && read("src/main/java/com/gh/routefly/web/MountainEn.java").contains(".append(Ads.rails())"));
+        assertTrue("코스 모음 한 · 영", read("src/main/java/com/gh/routefly/web/MountainServlet.java").contains(".append(Ads.rails())") && read("src/main/java/com/gh/routefly/web/MountainEn.java").contains(".append(Ads.rails(REL))"));
     }
 
     /** 산 페이지(/m/산 · /en/m/산)도 PC 양옆 광고(2026-11-24 홍TV님 "넣어줘. 승인나면 구글 그 전에는 쿠팡으로") - 한 페이지에 한 쌍. 승인 전 쿠팡 · 뒤 애드센스는 ads.js(위 시험). */
@@ -53,6 +53,9 @@ public class PickWideAdsTest {
             assertEquals("한 쌍", 1, h.split(java.util.regex.Pattern.quote(pair), -1).length - 1);
             assertTrue("ads.js", h.contains("js/ads.js"));
         }
+        // 주소 깊이 - 한국어 /m/산 은 ../js, 영어 /en/m/산 은 ../../js(2026-11-24 PC: 영어가 ../js/ads.js 로 /en/js 404)
+        assertTrue(ko.contains("<script src=\"../js/ads.js\" defer>") && en.contains("<script src=\"../../js/ads.js\" defer>") && !en.contains("<script src=\"../js/ads.js\""));
+        assertTrue("영어 가운데 광고 칸도 같은 깊이", Ads.box("ca-pub-1234567890123456", "1234567890", MountainEn.REL).contains("<script src=\"../../js/ads.js\" defer>"));
     }
 
     /** 넣을 만한 정적 화면 전부(2026-11-24 홍TV님 "넣을 만한 곳에는 전부 넣어줘. 지금은 승인 전이라 쿠팡으로") - 도장 · 별거별거 · 출조 · 드론. 지도 · 산악회 · 게임 · 약관은 없음. */
