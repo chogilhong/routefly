@@ -1034,15 +1034,24 @@
     /**
      * 코스 모음(/m/ · /en/m/)의 접는 칸(등산 · 걷기 · 자전거 · 100대 명산 …) 펼침을 이 탭에 기억했다가 다시 오면 그대로(2026-11-24 홍TV님
      * "검색해서 들어간 것이면 돌아와도 그대로. 100대 명산을 펼쳐서 링크 타고 들어갔으면 돌아와도 펼쳐져 있는 상태로" - 전에는 산 페이지 ‹ 코스 모음 이 늘 100대 명산을 펼쳤음).
-     * 칸은 제목 글(.ft)로 알아봄. 주소에 ?open= 이 있으면(옛 링크 · 가파른 산 순위) 그 뜻대로 두고 되살리지 않음. key - 화면마다(주소 경로).
+     * 칸은 제목 글(.ft)로 알아봄. 주소에 ?open= 이 있으면(옛 링크 · 가파른 산 순위) 그 뜻대로 두고 되살리지 않음. 보던 자리(스크롤 rf-fold-y:)도 같이. key - 화면마다(주소 경로).
      */
     function foldMemory(doc, key) {
         var sel = "details.fold[name=\"kind\"], details.fold[name=\"group\"]", k = "rf-fold:" + key, store = global.sessionStorage;
         var title = function (d) { var t = d.querySelector("summary .ft"); return t ? t.textContent.trim() : ""; };
         var saved = null;
         try { saved = JSON.parse(store.getItem(k) || "null"); } catch (e) { /* 처음 · 막힘 */ }
-        if (Array.isArray(saved) && !/[?&]open=/.test((doc.location && doc.location.search) || ""))
+        var fresh = !/[?&]open=/.test((doc.location && doc.location.search) || "");
+        if (Array.isArray(saved) && fresh)
             Array.prototype.forEach.call(doc.querySelectorAll(sel), function (d) { var on = saved.indexOf(title(d)) >= 0; if (d.open !== on) d.open = on; });
+        // 보던 자리(세로 스크롤)도(2026-11-24 홍TV님 "보던 자리까지 되돌리기 해줘") - 떠날 때 적고, 칸을 되살린 뒤 그 자리로. 뒤에 붙는 칸(최근 본 산 · 주말 날씨)으로 밀리지 않게 다 읽은 뒤 한 번 더
+        var yk = "rf-fold-y:" + key, y = null;
+        try { y = parseInt(store.getItem(yk), 10); } catch (e) { /* 처음 · 막힘 */ }
+        if (fresh && y > 0 && global.scrollTo) {
+            global.scrollTo(0, y);
+            if (global.addEventListener) global.addEventListener("load", function () { if (global.scrollY < 4) global.scrollTo(0, y); });
+        }
+        if (global.addEventListener) global.addEventListener("pagehide", function () { try { store.setItem(yk, String(Math.round(global.scrollY || 0))); } catch (e) { /* 이번만 */ } });
         doc.addEventListener("toggle", function (e) {
             if (!e.target || !e.target.matches || !e.target.matches(sel)) return;
             var open = [];

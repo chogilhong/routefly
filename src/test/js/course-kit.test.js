@@ -1269,6 +1269,22 @@ tick().then(function () {
     var f2 = [mk("등산", true), mk("⛰️ 100대 명산", true)];
     RF.foldMemory(fakeDoc(f2), "/m/");
     eq("다 접고 나갔으면(검색해서 들어감) 접힌 채", f2.map(function (x) { return x.open; }), [false, false]);
+    // 보던 자리(스크롤)도 - 떠날 때(pagehide) 적고 다시 오면 그 자리로
+    var W = sandbox.window, ev = {}, went = [];
+    W.addEventListener = function (n, f) { ev[n] = f; }; W.scrollTo = function (x, y) { went.push(y); W.scrollY = y; }; W.scrollY = 0;
+    ss = {};
+    RF.foldMemory(fakeDoc([mk("등산", true)]), "/m/");
+    eq("처음은 자리를 옮기지 않음", went, []);
+    W.scrollY = 1234; ev.pagehide();
+    W.scrollY = 0; went = [];
+    RF.foldMemory(fakeDoc([mk("등산")]), "/m/");
+    eq("돌아오면 보던 자리로", went, [1234]);
+    W.scrollY = 0; ev.load();
+    eq("다 읽은 뒤 맨 위로 밀렸으면 한 번 더", went, [1234, 1234]);
+    went = [];
+    RF.foldMemory(fakeDoc([mk("등산")], "?open=peaks"), "/m/");
+    eq("?open= 주소는 자리도 그대로", went, []);
+    delete W.addEventListener; delete W.scrollTo;
     eq("기억 열쇠는 개인정보처리방침에(한 · 영)", ["privacy.html", "privacy-en.html"].map(function (f) { return fs.readFileSync(path.join(__dirname, "../../main/webapp/" + f), "utf8").indexOf("(rf-fold:") >= 0; }), [true, true]);
 }).then(function () {
     console.log((fails ? "FAILED " : "OK ") + (runs - fails) + "/" + runs);
