@@ -736,7 +736,7 @@
         if (EN) $("rec-edit").hidden = true;   // GPX 편집은 한국어 화면만(점검 14차 C6)
         ["fly", "save", "del"].forEach(function (k) {
             // 지우기는 이 화면을 뒤로 가기 기록에서 바꿈 - 지운 기록 화면으로 되돌아오지 않게(점검 14차 C9)
-            $("rec-" + k).onclick = function () { var u = (EN ? "hike.html?lang=en" : "hike.html") + "#recdo=" + k + ":" + encodeURIComponent(recParam); if (k === "del") location.replace(u); else location.href = u; };
+            $("rec-" + k).onclick = function () { var u = (EN ? "hike.html?lang=en" : "hike.html") + "#recdo=" + k + ":" + encodeURIComponent(recParam); if (k === "fly") vidBack(); if (k === "del") location.replace(u); else location.href = u; };
         });
         RF.myRecords().then(function (list) {   // IndexedDB · localStorage(따라가기가 IndexedDB 를 못 쓸 때 남기는 곳) - GPX 편집과 같은 읽기(점검 14차 F2)
             var rec = list.filter(function (r) { return r && RF.recKey(r) === recParam; })[0];
@@ -805,7 +805,11 @@
      * 연 GPX 파일로 🛩 3D 비행 영상(2026-11-23 홍TV님) - 내 기록과 같은 준비(RF.flyStart: 처음 · 끝 300m 자름). 파일 속 사진은 3D 화면이 읽는 이 기기 사진 저장소(rf-photos)에
      * 넣어 둠(내 기록에 없는 사진은 따라가기가 나중에 저절로 지움 - hike.js gcPhotos). 영상은 따라가기 화면(hike.html#vid)에서 저장 · 보내기.
      */
-    function flyFile(got, keepEnds) {
+    /** 촬영 · 저장 뒤 따라가기가 이 화면으로 돌아오게(hike.js vidBack) - 15분 안에만 씀. */
+    function vidBack(hash) {
+        try { sessionStorage.setItem("rf-vid-back", JSON.stringify({ u: "trip.html" + location.search + (hash || ""), t: Date.now() })); } catch (e) { /* 따라가기에 머묾 */ }
+    }
+    function flyFile(got, keepEnds, hash) {
         var f;
         try { f = RF.flyStart(got.rec, EN, keepEnds); } catch (e) { alert(T("영상을 준비하지 못했습니다: ", "Could not prepare the video: ") + (e && e.message || e)); return; }
         if (f.short) { alert(f.short); return; }
@@ -824,7 +828,7 @@
                     tx.oncomplete = tx.onerror = tx.onabort = function () { db.close(); resolve(); };
                 } catch (e) { db.close(); resolve(); }
             };
-        }).then(function () { location.href = f.url; });
+        }).then(function () { vidBack(hash); location.href = f.url; });
     }
 
     // 그래프 위에서 움직이면(마우스 · 손가락) 그 자리를 지도에(GPX 편집 profHover 와 같은 일)
@@ -851,6 +855,10 @@
     if (!recParam && !courseParam && location.hash === "#open") {
         try { var back = JSON.parse(sessionStorage.getItem(OPEN_KEY) || "null"); if (back && back.text) openText(back.text, back.name); } catch (e) { /* 첫 화면 */ }
     }
+    /** 이 파일을 이 탭에 담아 둠(따라가기 · 3D 촬영에서 돌아올 때 #open 으로 다시 그림) - 너무 크면 false(돌아올 때 첫 화면). */
+    function keepOpen(text, name) {
+        try { sessionStorage.setItem(OPEN_KEY, JSON.stringify({ name: name, text: text })); history.replaceState(null, "", "#open"); return true; } catch (e) { return false; }
+    }
     function openText(text, fname) {
         var f = { name: fname };
         var got = RF.gpxRecord(text, true, f.name);   // 시각 없는 코스 GPX 도(선 · 지점 · 고도만, 속도 · 시간 없이)
@@ -861,7 +869,7 @@
         });
         // 연 GPX 파일도 🛩 3D 영상(2026-11-23 홍TV님) · 📐 GPX 편집(2026-11-24 홍TV님 "넣어줘") - 저장 · 삭제는 내 기록에만 있어 숨김
         $("recBtns").hidden = false; $("rec-save").hidden = true; $("rec-edit").hidden = EN; $("rec-del").hidden = true;   // GPX 편집은 한국어 화면만
-        $("rec-fly").onclick = function () { flyFile(got); };
+        $("rec-fly").onclick = function () { flyFile(got, false, keepOpen(text, f.name) ? "#open" : ""); };
         // 🥾 따라가기(2026-11-25 홍TV님 "📂 GPX 열기로 들어오면 따라가기 버튼") - 따라가기 GPX 열기와 같은 이 기기 GPX(storeGpx, gpx- ID)로 엶.
         // 뒤로 오면 이 화면에 같은 파일(#open + sessionStorage)
         $("rec-go").hidden = false;
@@ -869,7 +877,7 @@
             var id = RF.gpxId(text);
             try { RF.storeGpx(id, RF.gpxToApi(text, f.name)); }
             catch (e) { alert(T("GPX 를 담지 못했습니다(이 기기 저장 공간): ", "Could not keep the GPX (device storage): ") + (e && e.message || e)); return; }
-            try { sessionStorage.setItem(OPEN_KEY, JSON.stringify({ name: f.name, text: text })); history.replaceState(null, "", "#open"); } catch (e) { /* 너무 크면 돌아올 때 첫 화면 */ }
+            keepOpen(text, f.name);
             location.href = (EN ? "hike.html?lang=en" : "hike.html") + "#c=" + encodeURIComponent(id) + "&from=trip";
         };
         // 보고 있던 길을 이 탭의 sessionStorage 로 GPX 편집에 넘김(이 기기 안에서만, 서버로 안 감 - 사진은 빼고 선 · 시각 · 높이만). 너무 커서 못 담으면 알림
