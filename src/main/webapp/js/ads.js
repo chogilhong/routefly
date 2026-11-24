@@ -38,6 +38,9 @@
     var wide = !!(window.matchMedia && window.matchMedia("(min-width: 1200px)").matches);
     var rails = Array.prototype.filter.call(spots, function (s) { return s.classList.contains("adRail"); });
     if (!wide) drop(rails);
+    // 양옆 자리 모양은 여기서 한 벌(2026-11-24 홍TV님 "넣을 만한 곳에는 전부" - 도장 · 별거별거 · tidefly · dronefly 처럼 course-kit.css 를 안 받는 화면도 같은 모양):
+    // 가운데 글(760px 까지) 밖 빈 자리에 160 × 600 세로로 고정. 1200px 아래 · 앱은 위에서 지움
+    else rails.forEach(function (s) { s.style.cssText = "position:fixed;top:90px;width:160px;min-height:600px;z-index:11;" + (s.classList.contains("left") ? "left" : "right") + ":calc(50% - 570px)"; });
     spots = Array.prototype.filter.call(spots, function (s) { return s.parentNode; });
     if (boxes.length) { var ins0 = boxes[0].querySelector("ins.adsbygoogle"); load(ins0 && ins0.getAttribute("data-ad-client"), boxes); }
     if (!spots.length || !window.fetch) return;
@@ -47,7 +50,7 @@
         var box = document.createElement("aside"), note = document.createElement("p"), ins = document.createElement("ins");
         box.className = "adBox";
         box.setAttribute("aria-label", en ? "Ad" : "광고");
-        box.style.cssText = rail ? "margin:0" : "margin:18px 0 8px";
+        box.style.cssText = rail ? "margin:0;border:0;padding:0" : "margin:18px 0 8px";
         note.className = "adNote";
         note.textContent = en ? "Ad" : "광고";
         note.style.cssText = "margin:0 0 4px;font-size:12px;color:var(--dim,#6b7684)";
@@ -80,7 +83,7 @@
                     var box = document.createElement("aside"), note = document.createElement("p"), a = document.createElement("a"), img = document.createElement("img"), cap = document.createElement("span"), law = document.createElement("p");
                     box.className = "adBox";
                     box.setAttribute("aria-label", en ? "Ad" : "광고");
-                    box.style.cssText = "margin:0";
+                    box.style.cssText = "margin:0;border:0;padding:0";
                     note.className = "adNote";
                     note.textContent = en ? "Ad · Coupang Partners" : "광고 · 쿠팡 파트너스";
                     note.style.cssText = "margin:0 0 4px;font-size:12px;color:var(--dim,#6b7684)";

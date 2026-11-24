@@ -26,7 +26,7 @@ public class PickWideAdsTest {
         int pick = html.indexOf("<div id=\"pick\">"), rails = html.indexOf("<div class=\"adSpot adRail left\" data-where=\"side\"></div><div class=\"adSpot adRail right\" data-where=\"side\"></div>"), foot = html.indexOf("<div id=\"pickFoot\"");
         assertTrue("양옆 자리는 목록 안(코스를 열면 함께 숨음)", pick > 0 && rails > pick && rails < foot && html.indexOf("adRail", foot + 1) < 0);
         assertTrue("ads.js · 1200px 아래 숨김", html.contains("<script src=\"js/ads.js\" defer></script>") && html.contains("<link rel=\"stylesheet\" href=\"css/course-kit.css\">")
-                && read("src/main/webapp/css/course-kit.css").contains(".adRail { display:none; }\n@media (min-width:1200px) {\n  .adRail { display:block;"));   // 모양은 코스 모음과 한 벌(점검 14차 F2)
+                && read("src/main/webapp/js/ads.js").contains("s.style.cssText = \"position:fixed;top:90px;width:160px;min-height:600px;z-index:11;\""));   // 모양은 ads.js 한 벌(2026-11-24)
         assertTrue("숨은 자리는 보일 때 채움", read("src/main/webapp/js/ads.js").contains("whenShown(spot, function () { load(a.client, [makeBox(spot, a)]); });"));
     }
 
@@ -38,7 +38,7 @@ public class PickWideAdsTest {
         assertEquals("양옆 칸이 따로 없으면 산 페이지 칸", "1111111111", Ads.spot("side", cfg::get).get("slot").getAsString());
         assertTrue("1200px 아래 · 앱은 지움", ads.contains("window.matchMedia(\"(min-width: 1200px)\").matches") && ads.contains("if (!wide) drop(rails);") && ads.contains("if (window.Capacitor) { drop(boxes); drop(spots); return; }"));
         assertTrue("한 번만 돎 · api 는 파일 자리 기준", ads.contains("if (window.__rfAds) return;") && ads.contains("fetch(root + \"api/ad?where=\""));
-        assertTrue("CSS 도 1200px 아래는 숨김", css.contains(".adRail { display:none; }\n@media (min-width:1200px) {"));
+        assertTrue("모양은 ads.js 한 벌 - 1200px 넘을 때만 붙이고 CSS 에는 없음", ads.contains("else rails.forEach(function (s) {") && !css.contains(".adRail {"));
         assertTrue("코스 모음 한 · 영", read("src/main/java/com/gh/routefly/web/MountainServlet.java").contains(".append(Ads.rails())") && read("src/main/java/com/gh/routefly/web/MountainEn.java").contains(".append(Ads.rails())"));
     }
 
@@ -53,5 +53,20 @@ public class PickWideAdsTest {
             assertEquals("한 쌍", 1, h.split(java.util.regex.Pattern.quote(pair), -1).length - 1);
             assertTrue("ads.js", h.contains("js/ads.js"));
         }
+    }
+
+    /** 넣을 만한 정적 화면 전부(2026-11-24 홍TV님 "넣을 만한 곳에는 전부 넣어줘. 지금은 승인 전이라 쿠팡으로") - 도장 · 별거별거 · 출조 · 드론. 지도 · 산악회 · 게임 · 약관은 없음. */
+    @Test
+    public void 정적_화면_양옆_광고() throws Exception {
+        String pair = "<div class=\"adSpot adRail left\" data-where=\"side\"></div><div class=\"adSpot adRail right\" data-where=\"side\"></div>";
+        for (String f : new String[] {"series.html", "tools.html", "tidefly.html", "dronefly.html"}) {
+            String h = read("src/main/webapp/" + f);
+            assertEquals(f + " 한 쌍", 1, h.split(java.util.regex.Pattern.quote(pair), -1).length - 1);
+            assertTrue(f + " ads.js", h.contains("<script src=\"js/ads.js\" defer></script>"));
+        }
+        for (String f : new String[] {"index.html", "park.html", "route.html", "trip.html", "studio.html", "party.html", "party-office.html", "anbu.html", "games.html", "terms.html", "privacy.html", "record.html"})
+            assertFalse(f + " 광고 없음", read("src/main/webapp/" + f).contains("adRail"));
+        assertEquals("출조 · 드론도 애드센스 곳을 엶(승인 뒤)", SecurityFilter.CSP_ADS, SecurityFilter.cspFor("/tidefly.html"));
+        assertEquals(SecurityFilter.CSP_ADS, SecurityFilter.cspFor("/dronefly.html"));
     }
 }
