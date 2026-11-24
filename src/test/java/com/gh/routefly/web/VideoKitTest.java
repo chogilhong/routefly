@@ -64,8 +64,8 @@ public class VideoKitTest {
             && !html.contains("vidSheet") && !html.contains("recViewVideo") && !js.contains("vidRouteImage") && !js.contains("recordCanvas") && !js.contains("pubSend"));
         assertFalse("공개 링크 끄기 단추도 뺌(2026-11-22 홍TV님)", html.contains("recViewPubOff") || js.contains("api/record-share"));
         String ck = read("src/main/webapp/js/course-kit.js");
-        assertTrue("3D 영상은 처음 · 끝 300m 늘 빼고(내 기록 · 연 GPX 파일 둘 다 RF.flyStart, 2026-11-23), 산행 중에는 안 넘어감", ck.contains("var all = cleanTrack(rec.track, rec.kind === \"bike\"), tr = trimEnds(all, FLY_TRIM_M);") && ck.contains("var FLY_TRIM_M = 300;")
-            && !ck.contains("String(nameIn(rec.name)") && js.contains("var f = RF.flyStart(rec, EN);") && read("src/main/webapp/js/trip.js").contains("try { f = RF.flyStart(got.rec, EN); }")
+        assertTrue("3D 영상은 처음 · 끝 300m 늘 빼고(내 기록 · 연 GPX 파일 둘 다 RF.flyStart, 2026-11-23), 산행 중에는 안 넘어감", ck.contains("var all = cleanTrack(rec.track, rec.kind === \"bike\"), tr = keepEnds ? all : trimEnds(all, FLY_TRIM_M);") && ck.contains("var FLY_TRIM_M = 300;")
+            && !ck.contains("String(nameIn(rec.name)") && js.contains("var f = RF.flyStart(rec, EN);") && read("src/main/webapp/js/trip.js").contains("try { f = RF.flyStart(got.rec, EN, keepEnds); }") && read("src/main/webapp/js/trip.js").contains("$(\"rec-fly\").onclick = function () { flyFile(got); };")
             && js.contains("if (hike.running) { toast(T(\"산행 중에는 3D 영상을 만들지 않습니다."));
         assertTrue("만든 3D 영상은 이 폰에 저장 - 앱은 갤러리(영상 Movies/routefly), 브라우저는 내려받기, 옛 앱은 공유 창",
             js.contains("return GALLERY.saveMedia({ data: b64, name: name });") && js.contains("}).catch(function () { shareBlob(blob, name, text); });")

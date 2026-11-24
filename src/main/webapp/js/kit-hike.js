@@ -1351,12 +1351,13 @@
      * 🛩 3D 비행 영상 준비(2026-11-22 홍TV님 - 내 기록, 2026-11-23 홍TV님 - 코스 모음에서 연 GPX 파일도): 튐을 거르고 처음 · 끝 FLY_TRIM_M 을 늘 잘라(집 · 주차한 곳)
      * 이 기기 GPX(storeGpx)로 넣고, 3D 화면(app.js videoRecord)이 읽을 이름 · 사진 자리를 sessionStorage "rf-fly-rec" 에 둠.
      * 사진은 남은 구간의 것만(시각이 있으면 그 사이, 시각 없는 GPX 는 잘라 낸 처음 · 끝 점에서 FLY_TRIM_M 밖). 사진 그림은 3D 화면이 IndexedDB rf-photos 에서 읽음.
+     * keepEnds - 공개 코스(코스 보기 ?c=, 2026-11-25 홍TV님 "이 화면에서는 모두 촬영")는 집 · 주차한 곳이 아니라 자르지 않음.
      * 돌려줌 {secs, url, msg} - 영상 길이(약 250m 에 1초, 20 ~ 60초) · 3D 화면 주소 · 묻는 글. 남는 점이 2개보다 적으면 {short: 안내 글}.
      */
     var FLY_TRIM_M = 300;
-    function flyStart(rec, en) {
+    function flyStart(rec, en, keepEnds) {
         var L = function (ko, e) { return en ? e : ko; }, name = String((en && rec.name != null ? enName(rec.name) : rec.name) || "");   // RF.nameIn 과 같은 이름
-        var all = cleanTrack(rec.track, rec.kind === "bike"), tr = trimEnds(all, FLY_TRIM_M);
+        var all = cleanTrack(rec.track, rec.kind === "bike"), tr = keepEnds ? all : trimEnds(all, FLY_TRIM_M);
         if (tr.length < 2) return { short: L("기록이 짧아(처음 · 끝 " + FLY_TRIM_M + "m 를 빼면 남는 것이 없음) 만들 수 없습니다.", "The record is too short (nothing left after trimming " + FLY_TRIM_M + " m at each end).") };
         var t0 = tr[0][2], t1 = tr[tr.length - 1][2], timed = typeof t0 === "number" && typeof t1 === "number";
         var notes = (rec.notes || []).filter(function (n) {

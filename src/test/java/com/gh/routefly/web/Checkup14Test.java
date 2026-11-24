@@ -82,9 +82,9 @@ public class Checkup14Test {
         // C1 목록 줄 · 사진 카드를 키보드로
         assertEquals("코스 · 찜 · 저장 목록 줄", 3, hk.split(java.util.regex.Pattern.quote("it.tabIndex = 0; it.setAttribute(\"role\", \"link\");"), -1).length - 1);
         assertTrue(hk.contains("$(\"pickList\").addEventListener(\"keydown\", function (e) {") && tj.contains("card.tabIndex = 0; card.setAttribute(\"role\", \"button\");"));
-        // C2 코스 보기에서 따라가기 · 공유
+        // C2 코스 보기에서 공유(따라가기는 코스 목록 줄에 있어 2026-11-25 홍TV님이 뺌 - 연 GPX 파일에서 씀, TripOpenFollowTest)
         assertTrue(read("src/main/webapp/trip.html").contains("<button type=\"button\" id=\"rec-go\" data-en=\"🥾 Follow\" hidden>🥾 따라가기</button><button type=\"button\" id=\"rec-share\""));
-        assertTrue(tj.contains("$(\"rec-go\").onclick = function () { location.href = (EN ? \"hike.html?lang=en\" : \"hike.html\") + cQ; };"));
+        assertTrue(tj.contains("$(\"rec-share\").hidden = false;"));
         // C4 폰에서도 그래프 · C5 📊 · C6 제목 · 영어는 GPX 편집 숨김
         assertTrue(tj.contains("if (courseParam) narrow = false;") && hk.contains("ed.textContent = \"📊\";") && tj.contains("T(\" - routefly 코스 보기\", \" - routefly course\")"));
         // E1 /c/ 추천 상품 · E3 /c/ 양옆 · E2 양옆 칸은 애드센스 전 쿠팡

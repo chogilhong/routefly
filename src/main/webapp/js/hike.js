@@ -4278,6 +4278,12 @@
         $("back").innerHTML = T("<b>‹</b>도장 · 완주", "<b>‹</b>Stamps");
         $("back").title = T("도장 · 완주 화면으로", "Back to stamps");
     }
+    // 기록 보기(trip.html)에서 📂 연 GPX 파일의 🥾 따라가기로 들어왔으면(#c=gpx-…&from=trip) "‹ 기록 보기" 로 그 파일 화면에 돌아감(2026-11-25 홍TV님)
+    var fromTrip = /[#&]from=trip(&|$)/.test(location.hash);
+    if (fromTrip) {
+        $("back").innerHTML = T("<b>‹</b>기록 보기", "<b>‹</b>Record view");
+        $("back").title = T("연 GPX 기록 보기 화면으로", "Back to the opened GPX");
+    }
     // 산 소개 페이지(/m/산)의 따라가기로 들어왔으면(#c=…&m=산) "‹ 산 이름" 으로 그 페이지에 돌아감(2026-10-14 홍TV님 - 못 돌아갔음)
     var fromMountain = RF.safeDecode((/[#&]m=([^&]+)/.exec(location.hash) || [])[1] || "");
     if (fromMountain) {
@@ -4295,6 +4301,7 @@
         if ($("recClear").style.display === "block") clearRecLine();
         if (!/[#&]c=/.test(location.hash)) { showPick(); return; }
         if (fromSeries) { location.href = "series.html"; return; }
+        if (fromTrip) { location.href = (EN ? "trip.html?lang=en" : "trip.html") + "#open"; return; }   // 이 탭에 담아 둔 그 파일을 다시 그림(trip.js OPEN_KEY)
         if (fromMountain) {
             var mBack = /\/m\//.test(document.referrer || "");
             try { mBack = mBack || sessionStorage.getItem("rf-fly-back") === "1"; } catch (err) { /* referrer 만 */ }   // 새로 고치면 referrer 가 없음 - 산 소개에서 누를 때 적어 둠

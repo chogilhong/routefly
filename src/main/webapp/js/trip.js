@@ -758,10 +758,9 @@
         $("openBtn").hidden = true;
         $("rec-del").hidden = $("rec-save").hidden = $("rec-edit").hidden = true;   // 운영자 · 받아도 되는지 안 뒤에 보임
         $("recBtns").hidden = false;
-        $("rec-fly").onclick = function () { location.href = "index.html" + cQ + "&from=hike" + (EN ? "&lang=en" : ""); };
-        // 🥾 따라가기 · 🔗 공유(점검 14차 C2 - 자세히 본 뒤 목록으로 돌아가 다시 찾아야 했음). 공유는 검색에 내는 코스 소개 페이지(/c/) - 이은 코스는 따라가기 주소
-        $("rec-go").hidden = $("rec-share").hidden = false;
-        $("rec-go").onclick = function () { location.href = (EN ? "hike.html?lang=en" : "hike.html") + cQ; };
+        // 🔗 공유(점검 14차 C2 - 자세히 본 뒤 목록으로 돌아가 다시 찾아야 했음). 공유는 검색에 내는 코스 소개 페이지(/c/) - 이은 코스는 따라가기 주소
+        // 🥾 따라가기 · 3D 미리보기는 코스 목록 줄에 있어 여기서는 안 보임 - 🛩 3D 영상은 내 기록 · 연 GPX 와 같이 촬영(2026-11-25 홍TV님 "이 화면에서는 모두 촬영")
+        $("rec-share").hidden = false;
         $("rec-share").onclick = function () {
             var url = new URL(/^[a-z0-9][a-z0-9_-]{0,63}$/.test(courseParam) ? "c/" + courseParam : "hike.html" + cQ, location.href).href, ttl = $("title").textContent;
             if (navigator.share) { navigator.share({ title: ttl, url: url }).catch(function () { /* 닫음 */ }); return; }
@@ -790,6 +789,7 @@
             $("rec-edit").hidden = !a[1] || EN;
             courseInfo = c;   // RF.courseFetch 가 이미 fromApi 꼴(거리 · 높이 · 지점 · 공단 정보)
             show(got.rec, function () { return Promise.resolve(null); });
+            $("rec-fly").onclick = function () { flyFile(got, true); };   // 공개 코스라 처음 · 끝을 자르지 않음
         }).catch(function () { $("side").innerHTML = "<p class=\"empty\">" + T("코스를 받지 못했습니다.", "Could not load the course.") + "</p>"; });
     }
 
@@ -805,9 +805,9 @@
      * 연 GPX 파일로 🛩 3D 비행 영상(2026-11-23 홍TV님) - 내 기록과 같은 준비(RF.flyStart: 처음 · 끝 300m 자름). 파일 속 사진은 3D 화면이 읽는 이 기기 사진 저장소(rf-photos)에
      * 넣어 둠(내 기록에 없는 사진은 따라가기가 나중에 저절로 지움 - hike.js gcPhotos). 영상은 따라가기 화면(hike.html#vid)에서 저장 · 보내기.
      */
-    function flyFile(got) {
+    function flyFile(got, keepEnds) {
         var f;
-        try { f = RF.flyStart(got.rec, EN); } catch (e) { alert(T("영상을 준비하지 못했습니다: ", "Could not prepare the video: ") + (e && e.message || e)); return; }
+        try { f = RF.flyStart(got.rec, EN, keepEnds); } catch (e) { alert(T("영상을 준비하지 못했습니다: ", "Could not prepare the video: ") + (e && e.message || e)); return; }
         if (f.short) { alert(f.short); return; }
         if (!confirm(f.msg)) return;
         var ids = Object.keys(got.photos || {});
@@ -838,27 +838,45 @@
     $("prof").addEventListener("mouseleave", hoverOff);
 
     // 📂 GPX 열기 - 이 기기 안에서만 읽음
+    var OPEN_KEY = "rf-trip-open";
     $("openBtn").onclick = function () { $("gpxFile").value = ""; $("gpxFile").click(); };
     $("gpxFile").addEventListener("change", function () {
         var f = this.files && this.files[0];
         if (!f) return;
         if (f.size > 8 * 1024 * 1024) { alert(T("파일이 너무 큽니다(8MB 까지).", "The file is too big (8 MB max).")); return; }
-        f.text().then(function (text) {
-            var got = RF.gpxRecord(text, true, f.name);   // 시각 없는 코스 GPX 도(선 · 지점 · 고도만, 속도 · 시간 없이)
-            if (!got) { alert(T("GPX 에 길(점)이 없습니다.", "The GPX has no track points.")); return; }
-            show(got.rec, function (id) {
-                var b = photoBlob(got.photos[id]);
-                return Promise.resolve(b ? URL.createObjectURL(b) : null);
-            });
-            // 연 GPX 파일도 🛩 3D 영상(2026-11-23 홍TV님) · 📐 GPX 편집(2026-11-24 홍TV님 "넣어줘") - 저장 · 삭제는 내 기록에만 있어 숨김
-            $("recBtns").hidden = false; $("rec-save").hidden = true; $("rec-edit").hidden = EN; $("rec-del").hidden = true;   // GPX 편집은 한국어 화면만
-            $("rec-fly").onclick = function () { flyFile(got); };
-            // 보고 있던 길을 이 탭의 sessionStorage 로 GPX 편집에 넘김(이 기기 안에서만, 서버로 안 감 - 사진은 빼고 선 · 시각 · 높이만). 너무 커서 못 담으면 알림
-            $("rec-edit").onclick = function () {
-                try { sessionStorage.setItem("rf-studio-in", JSON.stringify({ name: got.rec.name || f.name, track: got.rec.track })); }
-                catch (e) { alert(T("길이 너무 커서 넘기지 못했습니다. GPX 편집에서 📂 열기로 이 파일을 여세요.", "The track is too big to pass on. Open this file with 📂 Open in the GPX editor.")); return; }
-                location.href = "studio.html#file";
-            };
-        }).catch(function () { alert(T("파일을 읽지 못했습니다.", "Could not read the file.")); });
+        if (location.hash === "#open") history.replaceState(null, "", location.pathname + location.search);   // 새 파일 - 돌아올 자리 표시는 따라가기를 누를 때 다시
+        f.text().then(function (text) { openText(text, f.name); }).catch(function () { alert(T("파일을 읽지 못했습니다.", "Could not read the file.")); });
     });
+    // 🥾 따라가기에서 돌아오면(#open) 보던 파일을 다시 보여 줌 - 이 탭의 sessionStorage 에만(서버로 안 감). 너무 커서 못 담았으면 첫 화면
+    if (!recParam && !courseParam && location.hash === "#open") {
+        try { var back = JSON.parse(sessionStorage.getItem(OPEN_KEY) || "null"); if (back && back.text) openText(back.text, back.name); } catch (e) { /* 첫 화면 */ }
+    }
+    function openText(text, fname) {
+        var f = { name: fname };
+        var got = RF.gpxRecord(text, true, f.name);   // 시각 없는 코스 GPX 도(선 · 지점 · 고도만, 속도 · 시간 없이)
+        if (!got) { alert(T("GPX 에 길(점)이 없습니다.", "The GPX has no track points.")); return; }
+        show(got.rec, function (id) {
+            var b = photoBlob(got.photos[id]);
+            return Promise.resolve(b ? URL.createObjectURL(b) : null);
+        });
+        // 연 GPX 파일도 🛩 3D 영상(2026-11-23 홍TV님) · 📐 GPX 편집(2026-11-24 홍TV님 "넣어줘") - 저장 · 삭제는 내 기록에만 있어 숨김
+        $("recBtns").hidden = false; $("rec-save").hidden = true; $("rec-edit").hidden = EN; $("rec-del").hidden = true;   // GPX 편집은 한국어 화면만
+        $("rec-fly").onclick = function () { flyFile(got); };
+        // 🥾 따라가기(2026-11-25 홍TV님 "📂 GPX 열기로 들어오면 따라가기 버튼") - 따라가기 GPX 열기와 같은 이 기기 GPX(storeGpx, gpx- ID)로 엶.
+        // 뒤로 오면 이 화면에 같은 파일(#open + sessionStorage)
+        $("rec-go").hidden = false;
+        $("rec-go").onclick = function () {
+            var id = RF.gpxId(text);
+            try { RF.storeGpx(id, RF.gpxToApi(text, f.name)); }
+            catch (e) { alert(T("GPX 를 담지 못했습니다(이 기기 저장 공간): ", "Could not keep the GPX (device storage): ") + (e && e.message || e)); return; }
+            try { sessionStorage.setItem(OPEN_KEY, JSON.stringify({ name: f.name, text: text })); history.replaceState(null, "", "#open"); } catch (e) { /* 너무 크면 돌아올 때 첫 화면 */ }
+            location.href = (EN ? "hike.html?lang=en" : "hike.html") + "#c=" + encodeURIComponent(id) + "&from=trip";
+        };
+        // 보고 있던 길을 이 탭의 sessionStorage 로 GPX 편집에 넘김(이 기기 안에서만, 서버로 안 감 - 사진은 빼고 선 · 시각 · 높이만). 너무 커서 못 담으면 알림
+        $("rec-edit").onclick = function () {
+            try { sessionStorage.setItem("rf-studio-in", JSON.stringify({ name: got.rec.name || f.name, track: got.rec.track })); }
+            catch (e) { alert(T("길이 너무 커서 넘기지 못했습니다. GPX 편집에서 📂 열기로 이 파일을 여세요.", "The track is too big to pass on. Open this file with 📂 Open in the GPX editor.")); return; }
+            location.href = "studio.html#file";
+        };
+    }
 })();
