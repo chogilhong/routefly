@@ -27,7 +27,7 @@ public class FullReviewStage2Test {
     @Test
     public void indexPagesHaveSearchBox() {
         String ko = MountainServlet.indexPage(peaks(), new JsonArray(), "", false, "", "");
-        assertTrue("코스 모음 설명 줄 바로 아래 검색칸", ko.contains("노선 안내도를 봅니다.</p><form class=\"mSearch\" role=\"search\" action=\"../hike.html\" method=\"get\">"));
+        assertTrue("코스 모음 설명 줄 · 영상 단추(2026-11-25) 바로 아래 검색칸", ko.contains("노선 안내도를 봅니다.</p>" + MountainServlet.GUIDE_VIDEOS + "<form class=\"mSearch\" role=\"search\" action=\"../hike.html\" method=\"get\">"));
         assertTrue(ko.contains("<input type=\"hidden\" name=\"lang\" value=\"ko\"><input type=\"search\" name=\"q\""));
         assertTrue("낚시(tidefly) 찾기도 되어 예에 고기 · 항구 이름(2026-11-15 · 11-16 홍TV님)", ko.contains("placeholder=\"예: 지리산, 설악산, 대진항, 쭈꾸미, 광어\""));
         String en = MountainEn.indexPage(peaks(), new JsonArray(), "", "");

@@ -1551,6 +1551,11 @@ public class MountainServlet extends HttpServlet {
      * seasonHtml - 지금 철 칸(seasonFold, 철이 아니면 ""). 검색칸 바로 아래 - 철에만 나와 첫 화면에(2026-11-14).
      * (인자가 적은 겹 메서드는 테스트만 불러 지움 - 점검 10차 G1)
      */
+    /** 코스 모음(/m/) 첫 화면의 설명 영상 단추 - 홍TV님이 올린 유튜브(2026-11-25 홍TV님 "첫 화면에 올려서 볼 수 있게 해"). 영상이 한국어라 /en/m/ 에는 넣지 않음. */
+    static final String GUIDE_VIDEOS = "<nav class=\"vids\" aria-label=\"설명 영상\">"
+            + "<a href=\"https://youtu.be/K1oKGDTY5t0\" target=\"_blank\" rel=\"noopener\">▶ 사용법 영상</a>"
+            + "<a href=\"https://youtu.be/AoQexAxZ-58\" target=\"_blank\" rel=\"noopener\">▶ 산악회 방 설명서</a></nav>";
+
     static String indexPage(JsonArray peaks, JsonArray groups, String base, boolean openPeaks, String steep, String seasonHtml) {
         StringBuilder b = new StringBuilder(head("루트플라이 100대 명산 · 둘레길 · 자전거길 코스", "routefly(루트플라이) - 산림청 100대 명산 " + peaks.size()
                 + "곳의 등산코스 · 날씨 · 일출 일몰과 백두대간 · 국가숲길 · 코리아둘레길 · 국토종주 자전거길 노선. 3D 지형 위로 미리 날아 보고 핸드폰으로 따라 걷기.", base + "/m/", base, base + "/en/m/"));
@@ -1562,6 +1567,7 @@ public class MountainServlet extends HttpServlet {
                 .append("<a class=\"goHike\" href=\"").append(REL).append("/hike.html?lang=ko\" title=\"코스를 골라 핸드폰으로 따라 걷기 - GPS · 음성 안내 · SOS\">🥾 따라가기 ›</a></div>")
                 .append("<h1 class=\"idx\">등산 · 걷기 · 자전거</h1>")   // "코스" 는 뺌(2026-10-17 홍TV님 - 줄바꿈 없이 한 줄)
                 .append("<p class=\"lead\">코스를 3D 지형 위로 미리 날아 보고, 핸드폰 GPS 로 따라 걷는 무료 서비스(회원 가입 없음). 산을 고르면 정상까지 가는 코스와 오늘 날씨 · 미세먼지 · 일출 · 일몰을, 길을 고르면 노선 안내도를 봅니다.</p>")   // 처음 온 사람이 무엇을 하는 곳인지(2026-11-12 점검 - root.html 첫 글과 같은 사실만). 끝의 영어 산 목록 링크는 2026-11-18 홍TV님 "이제는 필요없잖아"로 뺌 - 위 한/EN 단추로 감
+                .append(GUIDE_VIDEOS)   // 설명(.lead) 아래 · 산불 안내(withFire 가 .lead 바로 뒤에 넣음) 아래 - 사용법 · 산악회 방 설명서 영상(2026-11-25 홍TV님 "그림 아래에")
                 .append(searchForm(false))
                 .append(seasonHtml)
                 .append(APP_SLOT)   // 안드로이드 브라우저에만 원스토어 띠 - 맨 아래(foot)에 두었더니 끝까지 내려야 보였음(2026-11-10 홍TV님 "제일 아래에 있네")
