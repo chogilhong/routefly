@@ -11,6 +11,13 @@
     return String(text || '').split(/\r?\n/).map(function (s) { return s.trim(); }).filter(function (s) { return s && !/^```/.test(s); });
   }
 
+  /**
+   * 순수 함수 - 읽는 말 · 자막 말 나누기(2026-11-25 홍TV님 가야산 "대가야" 발음): "대가야{대 가야}" 처럼 낱말 바로 뒤 { } 에 읽는 말을 적으면
+   * 소리는 { } 안(spoken), 자막 · srt 는 앞 낱말(shown). { } 가 없으면 둘 다 그대로.
+   */
+  function spoken(x) { return String(x).replace(/([^\s{}]+)\{([^{}]*)\}/g, function (m, w, r) { return r.trim() || w; }); }
+  function shown(x) { return String(x).replace(/\{[^{}]*\}/g, ''); }
+
   /** 순수 함수 - 캐시 열쇠. */
   function cacheKey(voice, rate, text) { return voice + '|' + rate + '|' + text; }
 
@@ -71,7 +78,7 @@
     return texts.map(function (x, i) { return (i + 1) + '\n' + srtTime(times[i][0]) + ' --> ' + srtTime(times[i][1]) + '\n' + x + '\n'; }).join('\n');
   }
 
-  var api = { lines: lines, cacheKey: cacheKey, parseWav: parseWav, joinWav: joinWav, srtTime: srtTime, srt: srt };
+  var api = { lines: lines, spoken: spoken, shown: shown, cacheKey: cacheKey, parseWav: parseWav, joinWav: joinWav, srtTime: srtTime, srt: srt };
   if (typeof module !== 'undefined' && module.exports) { module.exports = api; return; }
   root.RFV = api;
 
@@ -90,14 +97,14 @@
     ul.innerHTML = '';
     lines($('vcText').value).forEach(function (x, i) {
       var li = document.createElement('li'), sp = document.createElement('span'), sm = document.createElement('small'), play = document.createElement('button'), redo = document.createElement('button');
-      var c = cache[cacheKey(o.voice, o.rate, x)];
-      sp.textContent = (i + 1) + '. ' + x;
-      sm.textContent = c && c.err ? '실패' : c ? (c.wav.pcm.length / (c.wav.rate * c.wav.channels * c.wav.bits / 8)).toFixed(1) + '초' : x.length + '자 · 아직';
+      var say = spoken(x), c = cache[cacheKey(o.voice, o.rate, say)];
+      sp.textContent = (i + 1) + '. ' + shown(x) + (say !== shown(x) ? '  (읽기: ' + say + ')' : '');
+      sm.textContent = c && c.err ? '실패' : c ? (c.wav.pcm.length / (c.wav.rate * c.wav.channels * c.wav.bits / 8)).toFixed(1) + '초' : say.length + '자 · 아직';
       if (c && c.err) li.className = 'bad';
       play.textContent = '🔊'; play.title = '이 줄 듣기'; play.disabled = !c || !!c.err;
       play.onclick = function () { playParts([c.wav]); };
       redo.textContent = '↻'; redo.title = '이 줄 다시 만들기';
-      redo.onclick = function () { delete cache[cacheKey(o.voice, o.rate, x)]; make([x]); };
+      redo.onclick = function () { delete cache[cacheKey(o.voice, o.rate, say)]; make([x]); };
       li.appendChild(sp); li.appendChild(sm); li.appendChild(play); li.appendChild(redo);
       ul.appendChild(li);
     });
@@ -107,7 +114,7 @@
     if (busy) return;
     var o = opts();
     if (!o.voice) { info('목소리를 먼저 고르세요'); return; }
-    var todo = (only || lines($('vcText').value)).filter(function (x) { var c = cache[cacheKey(o.voice, o.rate, x)]; return !c || c.err; });
+    var todo = (only || lines($('vcText').value)).map(spoken).filter(function (x, i, all) { var c = cache[cacheKey(o.voice, o.rate, x)]; return (!c || c.err) && all.indexOf(x) === i; });
     if (!todo.length) { render(); info('바뀐 줄이 없습니다'); return; }
     busy = true;
     var i = 0;
@@ -136,13 +143,13 @@
   function joined() {
     var o = opts(), xs = lines($('vcText').value), parts = [];
     for (var i = 0; i < xs.length; i++) {
-      var c = cache[cacheKey(o.voice, o.rate, xs[i])];
+      var c = cache[cacheKey(o.voice, o.rate, spoken(xs[i]))];
       if (!c || c.err) { info((i + 1) + '번 줄이 아직입니다 - 먼저 만들기'); return null; }
       parts.push(c.wav);
     }
     var j = parts.length ? joinWav(parts, o.gap) : null;
     if (!j) { info(parts.length ? '줄마다 wav 모양이 다릅니다' : '줄이 없습니다'); return null; }
-    j.texts = xs;
+    j.texts = xs.map(shown);   // 자막은 { } 앞 낱말 그대로
     return j;
   }
 
