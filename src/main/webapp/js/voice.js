@@ -111,9 +111,43 @@
       play.onclick = function () { playParts([c.wav]); };
       redo.textContent = '↻'; redo.title = '이 줄 다시 만들기';
       redo.onclick = function () { delete cache[cacheKey(o.voice, o.rate, say)]; make([x]); };
-      li.appendChild(sp); li.appendChild(sm); li.appendChild(play); li.appendChild(redo);
+      // 견줘 듣기(2026-11-25 홍TV님 "목소리를 바꿔서 한~두 줄만 들어 볼 수 있도록 … 기존 것은 그대로") - 고른 목소리 · 만든 소리는 그대로
+      var tr = document.createElement('button');
+      tr.textContent = '🎧'; tr.title = '견줄 목소리로 이 줄만 들어 보기';
+      tr.disabled = !$('vcTry').value || $('vcTry').value === o.voice;
+      tr.onclick = function () { tryLine(say); };
+      li.appendChild(sp); li.appendChild(sm); li.appendChild(play); li.appendChild(redo); li.appendChild(tr);
       ul.appendChild(li);
     });
+  }
+
+  /** 한 줄을 서버에서 받아 cache 에 넣음(promise). */
+  function fetchLine(x, voice, rate) {
+    var k = cacheKey(voice, rate, x);
+    return fetch('voice', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: x, voice: voice, rate: rate }) })
+      .then(function (r) {
+        if (!r.ok) return r.json().then(function (j) { throw new Error(j.error || 'HTTP ' + r.status); }, function () { throw new Error('HTTP ' + r.status); });
+        return r.arrayBuffer();
+      })
+      .then(function (buf) {
+        var w = parseWav(buf);
+        if (!w) throw new Error('wav 모양이 아닙니다');
+        cache[k] = { wav: w };
+        sent += x.length;
+        return w;
+      });
+  }
+
+  /** 견줄 목소리로 한 줄 듣기 - 이미 만든 것이면 바로, 아니면 그 줄만 만들어 들음(빠르기는 같음). */
+  function tryLine(say) {
+    var o = opts(), v = $('vcTry').value;
+    if (!v || busy) return;
+    var c = cache[cacheKey(v, o.rate, say)];
+    if (c && !c.err) { playParts([c.wav]); return; }
+    busy = true;
+    info('견줄 목소리로 만드는 중');
+    fetchLine(say, v, o.rate).then(function (w) { busy = false; info('견줄 목소리 ' + $('vcTry').selectedOptions[0].textContent); playParts([w]); })
+      .catch(function (e) { busy = false; info('멈춤: ' + e.message); });
   }
 
   function make(only) {
@@ -128,19 +162,8 @@
       if (i >= todo.length) { busy = false; render(); info('다 만들었습니다'); return; }
       var x = todo[i++], k = cacheKey(o.voice, o.rate, x);
       info(i + ' / ' + todo.length + ' 줄 만드는 중');
-      fetch('voice', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: x, voice: o.voice, rate: o.rate }) })
-        .then(function (r) {
-          if (!r.ok) return r.json().then(function (j) { throw new Error(j.error || 'HTTP ' + r.status); }, function () { throw new Error('HTTP ' + r.status); });
-          return r.arrayBuffer();
-        })
-        .then(function (buf) {
-          var w = parseWav(buf);
-          if (!w) throw new Error('wav 모양이 아닙니다');
-          cache[k] = { wav: w };
-          sent += x.length;
-          render();
-          next();
-        })
+      fetchLine(x, o.voice, o.rate)
+        .then(function () { render(); next(); })
         .catch(function (e) { cache[k] = { err: true }; busy = false; render(); info('멈춤: ' + e.message); });
     })();
   }
@@ -215,6 +238,17 @@
       $(id).addEventListener('input', function () { save(id, $(id).value); render(); });
     });
     $('vcVoice').addEventListener('change', function () { save('vcVoice', $('vcVoice').value); render(); });
+    $('vcTry').addEventListener('change', function () { save('vcTry', $('vcTry').value); render(); });
+    // 들어 보고 마음에 들면 바꿈 - 원래 목소리로 만든 소리는 이 창에 남아 다시 돌아가도 새로 안 만듦
+    $('vcUse').onclick = function () {
+      var v = $('vcTry').value;
+      if (!v || v === $('vcVoice').value) return;
+      $('vcTry').value = $('vcVoice').value;
+      $('vcVoice').value = v;
+      save('vcVoice', v); save('vcTry', $('vcTry').value);
+      render();
+      info('목소리를 바꿨습니다 - ▶ 바뀐 줄만 만들기를 누르세요(원래 목소리는 견줘 듣기 칸으로)');
+    };
     $('vcMake').onclick = function () { make(); };
     $('vcPlay').onclick = function () {
       if (audio && !audio.paused) { pause(); return; }
@@ -229,12 +263,16 @@
     $('vcWav').onclick = function () { var j = joined(); if (j) download(j.wav, 'audio/wav', fileName() + '.wav'); };
     $('vcSrt').onclick = function () { var j = joined(); if (j) download(srt(j.texts, j.times), 'application/x-subrip', fileName() + '.srt'); };
     fetch('voice?list=1', { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (j) {
-      var sel = $('vcVoice');
+      var sel = $('vcVoice'), tsel = $('vcTry');
       sel.innerHTML = '';
+      tsel.innerHTML = '';
+      tsel.appendChild(new Option('고르기', ''));
       if (j.error) { sel.appendChild(new Option('목소리 없음', '')); info(j.error); return; }
-      (j.voices || []).forEach(function (x) { sel.appendChild(new Option((x.local || x.name) + ' · ' + (x.gender === 'Female' ? '여' : x.gender === 'Male' ? '남' : x.gender || '') + ' (' + x.name + ')', x.name)); });
+      (j.voices || []).forEach(function (x) { tsel.appendChild(new Option((x.local || x.name) + ' · ' + (x.gender === 'Female' ? '여' : x.gender === 'Male' ? '남' : x.gender || '') + ' (' + x.name + ')', x.name)); sel.appendChild(new Option((x.local || x.name) + ' · ' + (x.gender === 'Female' ? '여' : x.gender === 'Male' ? '남' : x.gender || '') + ' (' + x.name + ')', x.name)); });
       var want = load('vcVoice');
       if (want && [].some.call(sel.options, function (op) { return op.value === want; })) sel.value = want;
+      var tw = load('vcTry');
+      if (tw && [].some.call(tsel.options, function (op) { return op.value === tw; })) tsel.value = tw;
       monthChars = j.monthChars;
       render();
       info('');

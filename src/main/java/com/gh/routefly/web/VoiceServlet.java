@@ -198,6 +198,8 @@ public class VoiceServlet extends HttpServlet {
                 + "<p class=\"lead\">발음이 어색한 낱말은 바로 뒤에 { } 로 읽는 말을 적으세요 - 예) 대가야{대 가야}. 소리는 { } 안 말로, 자막 · srt 는 대가야 그대로 나옵니다.</p>"
                 + "<div class=\"vc-bar\"><label>산 이름 <input id=\"vcName\" size=\"10\" placeholder=\"두타산\"></label>"
                 + "<label>목소리 <select id=\"vcVoice\"><option value=\"\">불러오는 중…</option></select></label>"
+                // 견줘 듣기(2026-11-25 홍TV님) - 줄마다 🎧 로 한두 줄만 들어 보고, 마음에 들면 바꾸기(만든 소리는 그대로)
+                + "<label>견줘 듣기 <select id=\"vcTry\"><option value=\"\">고르기</option></select></label><button id=\"vcUse\" title=\"견줄 목소리를 쓰는 목소리로\">⇄ 이 목소리로 바꾸기</button>"
                 + "<label>빠르기 <input id=\"vcRate\" type=\"number\" min=\"" + MIN_RATE + "\" max=\"" + MAX_RATE + "\" step=\"5\" value=\"0\" style=\"width:4.5em\">%</label>"
                 + "<label>줄 사이 <input id=\"vcGap\" type=\"number\" min=\"0\" max=\"2000\" step=\"50\" value=\"300\" style=\"width:5em\">ms</label></div>"
                 + "<textarea id=\"vcText\" placeholder=\"해설 블록을 붙여 넣으세요 - 한 줄이 한 장면\"></textarea>"

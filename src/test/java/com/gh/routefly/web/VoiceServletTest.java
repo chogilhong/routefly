@@ -41,6 +41,8 @@ public class VoiceServletTest {
         assertTrue(p.contains("<meta name=\"robots\" content=\"noindex\">"));
         assertTrue("/check/ 아래라 한 칸 위", p.contains("<script src=\"../js/voice.js\"></script>"));
         assertTrue("읽는 말 안내(2026-11-25)", p.contains("대가야{대 가야}"));
+        // 견줘 듣기(2026-11-25 홍TV님 "목소리를 바꿔서 한~두 줄만 … 기존 것은 그대로 두고 테스트 후에 바꿀지 선택")
+        assertTrue(p.contains("id=\"vcTry\"") && p.contains("id=\"vcUse\""));
         assertTrue(p.contains("id=\"vcText\"") && p.contains("id=\"vcVoice\"") && p.contains("id=\"vcWav\"") && p.contains("id=\"vcSrt\""));
         // 전체 듣기 중에는 같은 단추가 ⏹ 멈춤(2026-11-21 홍TV님), 다 들으면 되돌아옴
         String js = new String(java.nio.file.Files.readAllBytes(java.nio.file.Path.of("src/main/webapp/js/voice.js")), java.nio.charset.StandardCharsets.UTF_8).replace("\r\n", "\n");
@@ -48,6 +50,10 @@ public class VoiceServletTest {
         // 멈추면 자리를 남겨 이어 듣기(2026-11-25 홍TV님 "이어서 듣게"), 글 · 목소리가 같을 때만, ⏮ 처음부터
         assertTrue(js.contains("if (audio && !audio.paused) { pause(); return; }") && js.contains("if (audio && audioSig === sig) { resume(); return; }")
                 && js.contains("'▶ 이어 듣기 (' + clock(audio.currentTime) + ')'") && p.contains("id=\"vcRestart\" hidden"));
+        String jsTry = js;
+        assertTrue("🎧 은 견줄 목소리로 그 줄만, 쓰는 목소리 · 만든 소리는 그대로", jsTry.contains("tr.onclick = function () { tryLine(say); };")
+                && jsTry.contains("var c = cache[cacheKey(v, o.rate, say)];") && jsTry.contains("fetchLine(say, v, o.rate)")
+                && jsTry.contains("$('vcTry').value = $('vcVoice').value;") && jsTry.contains("$('vcVoice').value = v;"));
         // 소리는 읽는 말로 만들고 캐시 열쇠도 읽는 말(자막만 고쳐도 다시 안 만듦), srt 는 자막 말
         assertTrue(js.contains("var say = spoken(x), c = cache[cacheKey(o.voice, o.rate, say)];") && js.contains("j.texts = xs.map(shown);") && js.contains(".map(spoken).filter("));
     }
