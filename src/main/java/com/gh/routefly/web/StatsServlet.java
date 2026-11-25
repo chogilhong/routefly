@@ -205,14 +205,16 @@ public class StatsServlet extends HttpServlet {
         out.append(checkTable(days, last));   // 날마다 위 · 늘 펼침(2026-10-22 홍TV님)
         out.append(Access.section(System.currentTimeMillis()));   // 오늘 접속 분석 - 사람 확인 아래(2026-10-29 홍TV님)
         out.append("<section><h2>날마다</h2><table class=\"st\"><tr><th>날짜</th><th class=\"num\">방문자</th><th class=\"num\">사람 확인</th><th class=\"num\">모바일</th><th class=\"num\">PC</th><th class=\"num\">앱</th><th class=\"num\">화면</th><th class=\"num\">로봇</th></tr>").append(rows).append("</table></section>");
+        // 쿠팡 카드 누름 - 자리별(2026-11-24 홍TV님): 그 날 한 사람이 한 자리를 여러 번 눌러도 한 번, 운영자 · 로봇 빼고. 애드센스는 애드센스 관리 화면에서
+        // 날마다 바로 아래 · 늘 펼침(2026-11-25 홍TV님 "광고 화면별 통계는 아직 안 보이네" - 맨 아래 접힌 칸이라 못 찾음)
+        out.append(top("광고 카드 누름 - 자리별(" + last.size() + "일 - 쿠팡 카드, 사람 확인된 방문자만 · 한 사람 · 한 자리 하루 한 번)", adClicks, 20)
+                .replace("<tr><td>아직 없음</td></tr>", "<tr><td>아직 없음 - 쿠팡 카드를 누른 사람이 없음(애드센스 광고는 구글 칸 안이라 여기서 못 셈 - 애드센스 관리 화면에서)</td></tr>"));
         out.append(top("모바일 · PC 방문자(" + last.size() + "일 - 10-20 부터 셈)", devs, 5))
                 .append(top("인기 산 페이지(" + last.size() + "일)", mountains, 20))
                 .append(top("인기 산 페이지 - 영어(" + last.size() + "일 - /en/m/, 외국 손님)", enMountains, 20))
                 .append(courseTable(courses, courseNames == null ? Map.of() : courseNames, last.size()))
                 .append(pageChart(days, n, pages, 20))
                 .append(top("들어온 곳(" + last.size() + "일 - 바깥에서 처음 들어온 화면 수)", refs, 20))
-                // 쿠팡 카드 누름 - 자리별(2026-11-24 홍TV님): 그 날 한 사람이 한 자리를 여러 번 눌러도 한 번, 운영자 · 로봇 빼고. 애드센스는 애드센스 관리 화면에서
-                .append(top("광고 카드 누름 - 자리별(" + last.size() + "일 - 쿠팡 카드, 사람 확인된 방문자만 · 한 사람 · 한 자리 하루 한 번)", adClicks, 20))
                 .append(botTable(bots, engines))
                 .append(GUIDE);
         out.append("<p class=\"dim\">숫자만 셉니다 - 방문자는 그 날만 쓰는 해시로 겹침만 걸러 내고 IP 는 남기지 않습니다. 이 화면을 연 기기(브라우저)는 운영자로 보고 방문 수에서 뺍니다(2년, 사이트 데이터를 지우면 다시 셈). 앱은 안내 화면 \"안내\" 제목을 7번 누르고 열쇠를 넣으면 빠집니다.</p></main><script src=\"" + AssetVersion.of("js/stats.js") + "\"></script></body></html>");
@@ -220,7 +222,7 @@ public class StatsServlet extends HttpServlet {
     }
 
     /** 늘 펼친 칸(제목 앞글자) - 접지 않음(2026-10-21 홍TV님). */
-    static final List<String> ALWAYS = List.of("방문 추세", "사람 확인", "오늘 접속 분석", "날마다", "모바일 · PC 방문자");
+    static final List<String> ALWAYS = List.of("방문 추세", "사람 확인", "오늘 접속 분석", "날마다", "광고 카드 누름", "모바일 · PC 방문자");
 
     /**
      * 순수 함수 - 칸(section 의 h2 제목)마다 누르면 접고 펴는 details 로 감쌈(처음엔 접힘). {@link #ALWAYS} 칸은 그대로 늘 보임.
@@ -373,23 +375,34 @@ public class StatsServlet extends HttpServlet {
         }
         // 마지막 날이 오늘이면 아직 세는 중 - 점선 · "오늘" 로(2026-10-22 홍TV님: 새벽 1시 0명이 뚝 떨어진 것처럼 보였음)
         boolean live = end.equals(java.time.LocalDate.now(WeatherServlet.KST));
+        // 사람 확인은 센 첫날(10-22)부터 - 그 뒤 빈 날은 0
+        int h0 = 0;
+        while (h0 < human.size() && human.get(h0) == null) h0++;
+        List<String> hDates = h0 < human.size() ? dates.subList(h0, dates.size()) : null;
+        List<Integer> hv = hDates == null ? null : human.subList(h0, human.size()).stream().map(x -> x == null ? 0 : x).collect(java.util.stream.Collectors.toList());
         return "<section><h2>방문 추세(" + dates.size() + "일)</h2>"   // 넓은 화면 · 휴대폰 두 벌(css 가 하나만 보임 - 한 벌을 줄이면 글자가 너무 작아짐)
-                + "<div class=\"chW\">" + line("방문자", dates, uniq, 640, live, human) + line("화면", dates, views, 640, live) + "</div>"
-                + "<div class=\"chN\">" + line("방문자", dates, uniq, 340, live, human) + line("화면", dates, views, 340, live) + "</div>"
+                + "<div class=\"chW\">" + both(dates, uniq, views, hDates, hv, 640, live) + "</div>"
+                + "<div class=\"chN\">" + both(dates, uniq, views, hDates, hv, 340, live) + "</div>"
                 + "<p class=\"dim\">점에 손가락 · 마우스를 대면 그 날 수가 보입니다. 정확한 수는 아래 표."
-                + (human.stream().anyMatch(java.util.Objects::nonNull) ? " 주황 선은 사람 확인 - 방문자 가운데 화면이 열려 그 안의 프로그램이 돈 사람(10-22 부터, 수집 프로그램을 더 뺀 실제 사람에 가까운 수)." : "") + (live ? " 점선은 오늘 - 아직 세는 중이라 낮게 보입니다." : "") + "</p></section>";
+                + (hv != null ? " 사람 확인 - 방문자 가운데 화면이 열려 그 안의 프로그램이 돈 사람(10-22 부터, 수집 프로그램을 더 뺀 실제 사람에 가까운 수). 방문자보다 폭이 작아 따로 그림(제 눈금)." : "") + (live ? " 점선은 오늘 - 아직 세는 중이라 낮게 보입니다." : "") + "</p></section>";
     }
+
+    /**
+     * 그림 두 개(2026-11-25 홍TV님 "방문자 폭이 크니 사람 확인이 평평하네. 방문자를 화면과 섞어도 될 것 같아. 사람 확인만 별도로"):
+     * 방문자 · 화면 한 그림(한 눈금) + 사람 확인 따로(제 눈금 - 작은 오르내림이 보이게). 사람 확인을 세기 전 기록만이면 첫 그림만.
+     */
+    static String both(List<String> dates, List<Integer> uniq, List<Integer> views, List<String> hDates, List<Integer> hv, int w, boolean live) {
+        return line("방문자 · 화면", dates, uniq, w, live, views, "방문자", "화면", C_UNIQ, C_VIEWS) + (hv == null ? "" : line("사람 확인", hDates, hv, w, live, null, "사람 확인", null, C_HUMAN, null));
+    }
+
+    static final String C_UNIQ = "#38d9ea", C_VIEWS = "#a9e34b", C_HUMAN = "#ffa94d";
 
     /**
      * 선 그림 하나(SVG). 눈금 0 · 가운데 · 위(1 · 2 · 5 × 10ⁿ 로 올림), 날짜는 며칠 안 되면 모두(아니면 처음 · 가운데 · 끝), 마지막 값은 글자로.
      * live - 마지막 날이 오늘(세는 중): 마지막 토막은 점선, 날짜는 "오늘".
+     * n1 · c1 - 첫 선 이름 · 색, v2 - 둘째 선(n2 · c2 - 2026-11-25 부터 화면, 없으면 null). 둘째 선은 null 인 날을 건너뜀. 눈금은 둘 중 큰 값.
      */
-    static String line(String name, List<String> dates, List<Integer> v, int w, boolean live) {
-        return line(name, dates, v, w, live, null);
-    }
-
-    /** v2 - 둘째 선(주황, 사람 확인 - 2026-10-29 홍TV님 "사람 기준으로 한 줄 더"). null 인 날은 건너뜀. */
-    static String line(String name, List<String> dates, List<Integer> v, int w, boolean live, List<Integer> v2) {
+    static String line(String name, List<String> dates, List<Integer> v, int w, boolean live, List<Integer> v2, String n1, String n2, String c1, String c2) {
         int h = w < 500 ? 170 : 190, l = 40, r = 36, t = 14, b = 26, k = v.size();
         int max = 1;
         for (int x : v) max = Math.max(max, x);
@@ -400,7 +413,7 @@ public class StatsServlet extends HttpServlet {
         java.util.function.IntFunction<Double> X = i -> k == 1 ? l + pw / 2 : l + pw * i / (k - 1);
         java.util.function.IntFunction<Double> Y = val -> t + ph * (1 - (double) val / top);
         StringBuilder s = new StringBuilder("<figure style=\"margin:8px 0 14px\"><figcaption class=\"dim\">" + name + " (하루)"
-                + (two ? " <span style=\"color:#38d9ea\">━ 방문자</span> <span style=\"color:#ffa94d\">━ 사람 확인</span>" : "") + "</figcaption>")
+                + (two ? " <span style=\"color:" + c1 + "\">━ " + n1 + "</span> <span style=\"color:" + c2 + "\">━ " + n2 + "</span>" : "") + "</figcaption>")
                 .append("<svg viewBox=\"0 0 ").append(w).append(' ').append(h).append("\" width=\"100%\" role=\"img\" aria-label=\"")
                 .append(name).append(" 날마다 - ").append(dates.get(0)).append("부터 ").append(dates.get(k - 1)).append("까지, 마지막 날 ").append(v.get(k - 1)).append("\">");
         for (int g : new int[] {0, top / 2, top}) {   // 눈금 - 옅게
@@ -422,11 +435,11 @@ public class StatsServlet extends HttpServlet {
             path.append(i == 0 ? "M" : "L").append(String.format(Locale.ROOT, "%.1f,%.1f", X.apply(i), Y.apply(v.get(i))));
         }
         area.append(path).append(String.format(Locale.ROOT, "L%.1f,%.1fL%.1f,%.1fZ", X.apply(solid - 1), Y.apply(0), X.apply(0), Y.apply(0)));
-        s.append("<path d=\"").append(area).append("\" fill=\"#38d9ea\" fill-opacity=\"0.10\"/>");
-        s.append("<path d=\"").append(path).append("\" fill=\"none\" stroke=\"#38d9ea\" stroke-width=\"2\" stroke-linejoin=\"round\" stroke-linecap=\"round\"/>");
-        if (solid < k) s.append(String.format(Locale.ROOT, "<path d=\"M%.1f,%.1fL%.1f,%.1f\" fill=\"none\" stroke=\"#38d9ea\" stroke-opacity=\"0.6\" stroke-width=\"2\" stroke-dasharray=\"4 4\"/>",
+        s.append("<path d=\"").append(area).append("\" fill=\"" + c1 + "\" fill-opacity=\"0.10\"/>");
+        s.append("<path d=\"").append(path).append("\" fill=\"none\" stroke=\"" + c1 + "\" stroke-width=\"2\" stroke-linejoin=\"round\" stroke-linecap=\"round\"/>");
+        if (solid < k) s.append(String.format(Locale.ROOT, "<path d=\"M%.1f,%.1fL%.1f,%.1f\" fill=\"none\" stroke=\"" + c1 + "\" stroke-opacity=\"0.6\" stroke-width=\"2\" stroke-dasharray=\"4 4\"/>",
                 X.apply(k - 2), Y.apply(v.get(k - 2)), X.apply(k - 1), Y.apply(v.get(k - 1))));
-        if (two) {   // 사람 확인 선 - 값이 있는 날만 잇고(빈 날에서 끊음) 오늘 토막은 점선
+        if (two) {   // 둘째 선(화면) - 값이 있는 날만 잇고(빈 날에서 끊음) 오늘 토막은 점선
             StringBuilder p2 = new StringBuilder();
             for (int i = 0; i < k; i++) {
                 Integer x = v2.get(i);
@@ -434,22 +447,22 @@ public class StatsServlet extends HttpServlet {
                 boolean cont = i > 0 && v2.get(i - 1) != null;
                 p2.append(cont ? "L" : "M").append(String.format(Locale.ROOT, "%.1f,%.1f", X.apply(i), Y.apply(x)));
             }
-            s.append("<path d=\"").append(p2).append("\" fill=\"none\" stroke=\"#ffa94d\" stroke-width=\"2\" stroke-linejoin=\"round\" stroke-linecap=\"round\"/>");
-            if (live && k > 1 && v2.get(k - 1) != null && v2.get(k - 2) != null) s.append(String.format(Locale.ROOT, "<path d=\"M%.1f,%.1fL%.1f,%.1f\" fill=\"none\" stroke=\"#ffa94d\" stroke-opacity=\"0.6\" stroke-width=\"2\" stroke-dasharray=\"4 4\"/>",
+            s.append("<path d=\"").append(p2).append("\" fill=\"none\" stroke=\"" + c2 + "\" stroke-width=\"2\" stroke-linejoin=\"round\" stroke-linecap=\"round\"/>");
+            if (live && k > 1 && v2.get(k - 1) != null && v2.get(k - 2) != null) s.append(String.format(Locale.ROOT, "<path d=\"M%.1f,%.1fL%.1f,%.1f\" fill=\"none\" stroke=\"" + c2 + "\" stroke-opacity=\"0.6\" stroke-width=\"2\" stroke-dasharray=\"4 4\"/>",
                     X.apply(k - 2), Y.apply(v2.get(k - 2)), X.apply(k - 1), Y.apply(v2.get(k - 1))));
             for (int i = 0; i < k; i++) if (v2.get(i) != null && colW >= 12)
-                s.append(String.format(Locale.ROOT, "<circle cx=\"%.1f\" cy=\"%.1f\" r=\"3\" fill=\"#ffa94d\" stroke=\"#1a212b\" stroke-width=\"1.5\"/>", X.apply(i), Y.apply(v2.get(i))));
+                s.append(String.format(Locale.ROOT, "<circle cx=\"%.1f\" cy=\"%.1f\" r=\"3\" fill=\"" + c2 + "\" stroke=\"#1a212b\" stroke-width=\"1.5\"/>", X.apply(i), Y.apply(v2.get(i))));
             Integer last = v2.get(k - 1);
             if (last != null) {   // 마지막 값 - 방문자 글자와 겹치지 않게 위아래로 떼어 놓음
                 double y1 = Y.apply(v.get(k - 1)) + 4, y2 = Y.apply(last) + 4;
                 if (Math.abs(y2 - y1) < 13) y2 = y1 + (y2 >= y1 ? 13 : -13);
-                s.append(String.format(Locale.ROOT, "<text x=\"%.1f\" y=\"%.1f\" fill=\"#ffa94d\" font-size=\"12\" font-weight=\"bold\">%,d</text>", X.apply(k - 1) + 8, y2, last));
+                s.append(String.format(Locale.ROOT, "<text x=\"%.1f\" y=\"%.1f\" fill=\"" + c2 + "\" font-size=\"12\" font-weight=\"bold\">%,d</text>", X.apply(k - 1) + 8, y2, last));
             }
         }
         for (int i = 0; i < k; i++) {   // 점(점 사이가 넉넉할 때만) + 손 대는 칸(점보다 넓게)
-            if (colW >= 12) s.append(String.format(Locale.ROOT, "<circle cx=\"%.1f\" cy=\"%.1f\" r=\"4\" fill=\"#38d9ea\" stroke=\"#1a212b\" stroke-width=\"2\"/>", X.apply(i), Y.apply(v.get(i))));
+            if (colW >= 12) s.append(String.format(Locale.ROOT, "<circle cx=\"%.1f\" cy=\"%.1f\" r=\"4\" fill=\"" + c1 + "\" stroke=\"#1a212b\" stroke-width=\"2\"/>", X.apply(i), Y.apply(v.get(i))));
             s.append(String.format(Locale.ROOT, "<rect x=\"%.1f\" y=\"%d\" width=\"%.1f\" height=\"%.1f\" fill=\"transparent\"><title>%s · %s %,d%s</title></rect>",
-                    X.apply(i) - colW / 2, t, colW, ph, dates.get(i), name, v.get(i), two && v2.get(i) != null ? String.format(Locale.ROOT, " · 사람 확인 %,d", v2.get(i)) : ""));
+                    X.apply(i) - colW / 2, t, colW, ph, dates.get(i), n1, v.get(i), two && v2.get(i) != null ? String.format(Locale.ROOT, " · %s %,d", n2, v2.get(i)) : ""));
         }
         s.append(String.format(Locale.ROOT, "<text x=\"%.1f\" y=\"%.1f\" fill=\"#e9eef4\" font-size=\"12\" font-weight=\"bold\">%,d</text>",   // 마지막 값
                 X.apply(k - 1) + 8, Y.apply(v.get(k - 1)) + 4, v.get(k - 1)));

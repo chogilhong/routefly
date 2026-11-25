@@ -47,7 +47,10 @@ public class AdClickTest {
         String ads = read("src/main/webapp/js/ads.js");
         assertTrue(ads.contains("navigator.sendBeacon(root + \"api/adclick\")"));
         assertTrue(read("src/main/java/com/gh/routefly/web/AdClickServlet.java").contains("Stats.adClick(ip, Stats.adArea(req.getHeader(\"Referer\")));"));
-        assertTrue(StatsServlet.page(Stats.days(), 7, null).contains("광고 카드 누름 - 자리별"));
+        String pg = StatsServlet.page(Stats.days(), 7, null);
+        assertTrue(pg.contains("광고 카드 누름 - 자리별"));
+        // 2026-11-25 홍TV님 "광고 화면별 통계는 아직 안 보이네" - 날마다 바로 아래, 접지 않음
+        assertTrue("날마다 다음 칸 · 늘 펼침", pg.indexOf("<section><h2>광고 카드 누름") > pg.indexOf("<section><h2>날마다</h2>") && pg.indexOf("<section><h2>광고 카드 누름") < pg.indexOf("모바일 · PC 방문자("));
         for (String p : new String[] {"privacy.html", "privacy-en.html"}) assertTrue(p, read("src/main/webapp/" + p).contains("2026-11-24 - "));
     }
 

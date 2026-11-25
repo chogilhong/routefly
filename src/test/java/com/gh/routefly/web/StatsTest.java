@@ -147,11 +147,10 @@ public class StatsTest {
         days.put("2026-10-14", JsonParser.parseString("{\"pages\":{\"/hike.html\":5},\"uniq\":4,\"bots\":0}").getAsJsonObject());
         days.put("2026-10-16", JsonParser.parseString("{\"pages\":{\"/hike.html\":130},\"uniq\":37,\"bots\":0}").getAsJsonObject());
         String h = StatsServlet.trend(days, 30);
-        assertTrue("빈 날(10-15)은 0", h.contains("<title>2026-10-15 · 방문자 0</title>"));
-        assertTrue(h.contains("<title>2026-10-16 · 화면 130</title>"));
+        assertTrue("빈 날(10-15)은 0", h.contains("<title>2026-10-15 · 방문자 0 · 화면 0</title>"));
+        assertTrue(h.contains("<title>2026-10-16 · 방문자 37 · 화면 130</title>"));
         assertTrue(h.contains("방문 추세(3일)"));
-        assertTrue("눈금 위끝 50(37 올림)", h.contains(">50</text>"));
-        assertTrue("눈금 위끝 200(130 올림)", h.contains(">200</text>"));
+        assertTrue("방문자 · 화면 한 그림 - 눈금 위끝 200(둘 중 큰 130 올림)", h.contains(">200</text>") && !h.contains(">50</text>"));
         assertFalse("최근 2일만이면 10-14 빠짐", StatsServlet.trend(days, 2).contains("2026-10-14"));
         assertEquals("", StatsServlet.trend(new TreeMap<>(), 30));
         assertEquals(1, StatsServlet.nice(1));
@@ -169,19 +168,22 @@ public class StatsTest {
         String lh = StatsServlet.trend(live, 30);
         assertTrue(lh, lh.contains(">오늘</text>") && lh.contains("stroke-dasharray=\"4 4\""));
         assertTrue(lh.contains("점선은 오늘"));
-        assertTrue("오늘 수도 손 대면 보임", lh.contains("<title>" + today + " · 방문자 0</title>"));
+        assertTrue("오늘 수도 손 대면 보임", lh.contains("<title>" + today + " · 방문자 0 · 화면 0</title>"));
 
-        // 사람 확인 선(2026-10-29 홍TV님) - jsUniq 가 있는 날만 주황 선, 손 대면 함께 보임, 눈금은 둘 중 큰 값
+        // 사람 확인(2026-10-29 홍TV님 주황 선) - 2026-11-25 홍TV님 "방문자를 화면과 섞어도 될 것 같아. 사람 확인만 별도로": 방문자 · 화면 한 그림 + 사람 확인 따로(센 첫날부터, 제 눈금)
         TreeMap<String, JsonObject> hd = new TreeMap<>();
         hd.put("2026-10-21", JsonParser.parseString("{\"pages\":{\"/hike.html\":9},\"uniq\":8,\"bots\":0}").getAsJsonObject());
         hd.put("2026-10-22", JsonParser.parseString("{\"pages\":{\"/hike.html\":9},\"uniq\":8,\"bots\":0,\"jsUniq\":{\"모바일\":5,\"PC\":1}}").getAsJsonObject());
         hd.put("2026-10-23", JsonParser.parseString("{\"pages\":{\"/hike.html\":9},\"uniq\":7,\"bots\":0,\"jsUniq\":{\"모바일\":4}}").getAsJsonObject());
         String hh = StatsServlet.trend(hd, 30);
-        assertTrue(hh, hh.contains("<title>2026-10-22 · 방문자 8 · 사람 확인 6</title>"));
-        assertTrue("세기 전 날은 사람 확인 없음", hh.contains("<title>2026-10-21 · 방문자 8</title>"));
-        assertTrue(hh.contains("stroke=\"#ffa94d\"") && hh.contains("주황 선은 사람 확인"));
-        for (String fig : hh.split("<figure")) if (fig.contains("화면 (하루)")) assertFalse("화면 그림에는 사람 확인 선 없음", fig.contains("#ffa94d"));
-        assertFalse("세기 전 기록만이면 주황 선 없음", h.contains("#ffa94d"));
+        assertTrue(hh, hh.contains("<title>2026-10-22 · 방문자 8 · 화면 9</title>") && hh.contains("<title>2026-10-22 · 사람 확인 6</title>"));
+        assertFalse("세기 전 날(10-21)은 사람 확인 그림에 없음", hh.contains("<title>2026-10-21 · 사람 확인"));
+        assertTrue(hh.contains("stroke=\"#ffa94d\"") && hh.contains("━ 방문자</span>") && hh.contains("━ 화면</span>") && hh.contains("사람 확인 (하루)"));
+        String[] figs = hh.split("<figure");
+        assertEquals("넓은 화면 · 휴대폰 두 벌 × 그림 둘", 5, figs.length);
+        for (String fig : figs) if (fig.contains("방문자 · 화면 (하루)")) assertFalse("방문자 · 화면 그림에는 사람 확인(주황) 없음", fig.contains("#ffa94d"));
+        for (String fig : figs) if (fig.contains("사람 확인 (하루)")) assertTrue("사람 확인은 제 눈금(위끝 10 - 6 올림)", fig.contains(">10</text>") && !fig.contains("━ 방문자"));
+        assertFalse("세기 전 기록만이면 사람 확인 그림 없음", h.contains("#ffa94d") || h.contains("사람 확인 (하루)"));
     }
 
     /** 운영자 기기(/stats 를 연 브라우저)는 방문 수에서 뺌(2026-10-20 홍TV님). */
