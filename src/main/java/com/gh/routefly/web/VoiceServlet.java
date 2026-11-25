@@ -231,7 +231,7 @@ public class VoiceServlet extends HttpServlet {
                 + "<button id=\"vcUse\" title=\"견줄 목소리를 쓰는 목소리로\">⇄ 이 목소리로 바꾸기</button></div></div>"
                 + "<div class=\"vc-card\"><h2>해설</h2><textarea id=\"vcText\" placeholder=\"해설 블록을 붙여 넣으세요 - 한 줄이 한 장면\"></textarea>"
                 // 2026-11-25 홍TV님 - 읽는 말만 바꾸고 자막은 그대로(voice.js spoken · shown)
-                + "<p class=\"vc-tip\">발음이 어색한 낱말은 바로 뒤에 { } 로 읽는 말 - 예) <code>대가야{대 가야}</code> → 소리는 { } 안 말, 자막 · srt 는 대가야 그대로.</p></div>"
+                + "<p class=\"vc-tip\">발음이 어색한 낱말은 바로 뒤에 { } 로 읽는 말 - 예) <code>대가야{대 가야}</code> → 소리는 { } 안 말, 자막 · srt 는 대가야 그대로. 띄어 쓴 여러 낱말은 [ ] 로 묶기 - <code>[켜 두어야]{켜두어야}</code>.</p></div>"
                 + "<div class=\"vc-card\"><h2>줄</h2><div class=\"vc-sum\" id=\"vcSum\"></div><ol id=\"vcLines\"></ol></div>"
                 + "<p class=\"dim\">글은 Microsoft Azure 음성 서비스로 보내 목소리를 만듭니다(운영자만). 같은 줄 · 같은 목소리 · 같은 빠르기는 다시 보내지 않습니다(이 창을 닫으면 처음부터).</p>"
                 + "<div class=\"vc-bar\"><div class=\"vc-btns\"><button id=\"vcMake\" class=\"pri\">▶ 바뀐 줄만 만들기</button><button id=\"vcPlay\">🔊 전체 듣기</button>"

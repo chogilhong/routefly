@@ -15,8 +15,12 @@
    * 순수 함수 - 읽는 말 · 자막 말 나누기(2026-11-25 홍TV님 가야산 "대가야" 발음): "대가야{대 가야}" 처럼 낱말 바로 뒤 { } 에 읽는 말을 적으면
    * 소리는 { } 안(spoken), 자막 · srt 는 앞 낱말(shown). { } 가 없으면 둘 다 그대로.
    */
-  function spoken(x) { return String(x).replace(/([^\s{}]+)\{([^{}]*)\}/g, function (m, w, r) { return r.trim() || w; }); }
-  function shown(x) { return String(x).replace(/\{[^{}]*\}/g, ''); }
+  // 띄어 쓴 여러 낱말은 [ ] 로 묶음(2026-11-25 홍TV님 "켜 두어야{켜두어야} → 켜 켜두어야 로 읽히네"): [켜 두어야]{켜두어야} - { } 는 바로 앞 낱말 하나만 바꿈
+  function spoken(x) {
+    return String(x).replace(/\[([^\[\]{}]+)\]\{([^{}]*)\}/g, function (m, w, r) { return r.trim() || w; })
+      .replace(/([^\s{}\[\]]+)\{([^{}]*)\}/g, function (m, w, r) { return r.trim() || w; });
+  }
+  function shown(x) { return String(x).replace(/\[([^\[\]{}]+)\]\{[^{}]*\}/g, '$1').replace(/\{[^{}]*\}/g, ''); }
 
   /** 순수 함수 - 이어 듣기 표(2026-11-25 홍TV님 "멈췄다 다시 들으려니 처음부터"): 목소리 · 빠르기 · 줄 사이 · 읽는 말이 같을 때만 멈춘 자리에서 이어 들음. */
   function playSig(voice, rate, gap, texts) { return voice + '|' + rate + '|' + gap + '|' + texts.map(spoken).join('\n'); }

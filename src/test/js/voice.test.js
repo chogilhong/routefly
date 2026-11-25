@@ -13,6 +13,11 @@ assert.strictEqual(V.spoken('6·25{육이오} 때 백학봉{백 학봉}!'), '육
 assert.strictEqual(V.shown('6·25{육이오} 때 백학봉{백 학봉}!'), '6·25 때 백학봉!');
 assert.strictEqual(V.spoken('그대로인 줄'), '그대로인 줄');
 assert.strictEqual(V.spoken('빈 괄호{ }는 앞말'), '빈 괄호는 앞말');
+// 띄어 쓴 여러 낱말은 [ ] 로 묶음(2026-11-25 홍TV님 "켜 두어야{켜두어야} → 켜 켜두어야")
+assert.strictEqual(V.spoken('화면을 [켜 두어야]{켜두어야} 위치가 갑니다.'), '화면을 켜두어야 위치가 갑니다.');
+assert.strictEqual(V.shown('화면을 [켜 두어야]{켜두어야} 위치가 갑니다.'), '화면을 켜 두어야 위치가 갑니다.');
+assert.strictEqual(V.spoken('[켜 두어야]{켜두어야} · 대가야{대 가야}'), '켜두어야 · 대 가야');
+assert.strictEqual(V.spoken('켜 두어야{켜두어야}'), '켜 켜두어야');   // { } 만 쓰면 바로 앞 낱말 하나만 - 그래서 [ ]
 // 이어 듣기 표 - 자막 글만 바뀌면 같음(소리는 그대로), 읽는 말 · 빠르기 · 줄 사이가 바뀌면 다름
 const sg = V.playSig('ko-KR-A', 5, 300, ['대가야{대 가야} 땅', '둘']);
 assert.strictEqual(V.playSig('ko-KR-A', 5, 300, ['대 가야 땅', '둘']), sg);
