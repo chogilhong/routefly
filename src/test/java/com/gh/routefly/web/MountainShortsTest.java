@@ -58,16 +58,8 @@ public class MountainShortsTest {
         hw.add("shorts", videos.getAsJsonArray("화왕산"));
         String hh = MountainServlet.shortsBlock(hw, false);
         assertTrue(hh, hh.contains("<p class=\"hook\">용 9마리 · 못 3개 · 성 2개</p><p>화왕산성 · 억새평전 · 관룡사 - 그 이야기를 2분 30초 영상에 담았습니다.</p>"));
-        assertEquals("6RXD-zFKZZQ", videos.getAsJsonArray("속리산").get(0).getAsJsonObject().get("id").getAsString());   // 2026-11-25
-        JsonObject sn = new JsonObject();
-        sn.add("shorts", videos.getAsJsonArray("속리산"));
-        String snh = MountainServlet.shortsBlock(sn, false);
-        assertTrue(snh, snh.contains("<p class=\"hook\">소가 무릎을 꿇은 산!</p><p>법주사 팔상전 · 정이품송 · 천왕봉 - 그 이야기를 2분 37초 영상에 담았습니다.</p>"));
-        assertEquals("d372NAouBvM", videos.getAsJsonArray("조계산").get(0).getAsJsonObject().get("id").getAsString());   // 2026-11-25
-        JsonObject jg = new JsonObject();
-        jg.add("shorts", videos.getAsJsonArray("조계산"));
-        String jgh = MountainServlet.shortsBlock(jg, false);
-        assertTrue(jgh, jgh.contains("<p class=\"hook\">이 돌을 뽑으면 다리가 무너진다?</p><p>송광사 · 선암사 승선교 · 쌍향수 - 그 이야기를 2분 29초 영상에 담았습니다.</p>"));
+        // 속리산 6RXD-zFKZZQ · 조계산 d372NAouBvM(2026-11-25)은 국가유산청 4유형 사진이 섞여 같은 날 지움 - 산 페이지에서도 뺌
+        assertFalse(videos.has("속리산") || videos.has("조계산"));
         // 물음표 없는 제목은 hook 을 큰 글로(2026-11-22 홍TV님 "전부다 ? 가 있는 것 같아")
         JsonObject jy = new JsonObject();
         jy.add("shorts", videos.getAsJsonArray("재약산"));
