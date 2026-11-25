@@ -41,6 +41,9 @@ public class VoiceServletTest {
         assertTrue(p.contains("<meta name=\"robots\" content=\"noindex\">"));
         assertTrue("/check/ 아래라 한 칸 위", p.contains("<script src=\"../js/voice.js\"></script>"));
         assertTrue("읽는 말 안내(2026-11-25)", p.contains("대가야{대 가야}"));
+        // 화면 꾸밈(2026-11-25 홍TV님 "화면 디자인이 영 없어") - 설정 · 해설 · 줄 카드, 줄 요약, 아래 고정 단추 줄 · 진행 막대
+        assertTrue(p.contains("<div class=\"vc-card\"><h2>설정</h2>") && p.contains("id=\"vcSum\"") && p.contains("<div class=\"vc-bar\">") && p.contains("id=\"vcProg\"")
+                && p.contains("position:sticky;bottom:0"));
         // 견줘 듣기(2026-11-25 홍TV님 "목소리를 바꿔서 한~두 줄만 … 기존 것은 그대로 두고 테스트 후에 바꿀지 선택")
         assertTrue(p.contains("id=\"vcTry\"") && p.contains("id=\"vcUse\""));
         assertTrue(p.contains("id=\"vcText\"") && p.contains("id=\"vcVoice\"") && p.contains("id=\"vcWav\"") && p.contains("id=\"vcSrt\""));

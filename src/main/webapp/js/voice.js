@@ -101,12 +101,19 @@
   function render() {
     var o = opts(), ul = $('vcLines');
     ul.innerHTML = '';
-    lines($('vcText').value).forEach(function (x, i) {
-      var li = document.createElement('li'), sp = document.createElement('span'), sm = document.createElement('small'), play = document.createElement('button'), redo = document.createElement('button');
+    var xs = lines($('vcText').value), done = 0, secs = 0, chars = 0;
+    xs.forEach(function (x, i) {
+      var li = document.createElement('li'), no = document.createElement('span'), sp = document.createElement('div'), sm = document.createElement('small'), bt = document.createElement('div'), play = document.createElement('button'), redo = document.createElement('button');
       var say = spoken(x), c = cache[cacheKey(o.voice, o.rate, say)];
-      sp.textContent = (i + 1) + '. ' + shown(x) + (say !== shown(x) ? '  (읽기: ' + say + ')' : '');
-      sm.textContent = c && c.err ? '실패' : c ? (c.wav.pcm.length / (c.wav.rate * c.wav.channels * c.wav.bits / 8)).toFixed(1) + '초' : say.length + '자 · 아직';
-      if (c && c.err) li.className = 'bad';
+      no.className = 'no'; no.textContent = i + 1;
+      sp.className = 'tx'; sp.textContent = shown(x);
+      if (say !== shown(x)) { var rd = document.createElement('span'); rd.className = 'rd'; rd.textContent = say; sp.appendChild(rd); }   // 읽는 말이 다르면 아래에 작게
+      var d = c && !c.err ? c.wav.pcm.length / (c.wav.rate * c.wav.channels * c.wav.bits / 8) : 0;
+      sm.className = 'st'; sm.textContent = c && c.err ? '실패 - ↻ 로 다시' : c ? d.toFixed(1) + '초 · 만듦' : say.length + '자 · 아직';
+      li.className = c && c.err ? 'bad' : c ? 'ok' : '';
+      if (c && !c.err) { done++; secs += d; }
+      chars += say.length;
+      bt.className = 'bt';
       play.textContent = '🔊'; play.title = '이 줄 듣기'; play.disabled = !c || !!c.err;
       play.onclick = function () { playParts([c.wav]); };
       redo.textContent = '↻'; redo.title = '이 줄 다시 만들기';
@@ -116,9 +123,15 @@
       tr.textContent = '🎧'; tr.title = '견줄 목소리로 이 줄만 들어 보기';
       tr.disabled = !$('vcTry').value || $('vcTry').value === o.voice;
       tr.onclick = function () { tryLine(say); };
-      li.appendChild(sp); li.appendChild(sm); li.appendChild(play); li.appendChild(redo); li.appendChild(tr);
+      bt.appendChild(play); bt.appendChild(redo); bt.appendChild(tr);
+      li.appendChild(no); li.appendChild(sp); li.appendChild(bt); li.appendChild(sm);
       ul.appendChild(li);
     });
+    // 줄 요약 - 만든 줄 · 글자 · 길이(만든 것은 실제, 남은 것은 1초 약 6.9글자로 어림)
+    $('vcSum').innerHTML = '';
+    [['줄', xs.length], ['만듦', done + ' / ' + xs.length], ['글자', chars.toLocaleString()], [done === xs.length && xs.length ? '길이' : '길이(어림)', clock(done === xs.length ? secs + (xs.length - 1) * o.gap / 1000 : chars / 6.9 + (xs.length - 1) * o.gap / 1000)]]
+      .forEach(function (p) { var s2 = document.createElement('span'), b = document.createElement('b'); s2.textContent = p[0] + ' '; b.textContent = p[1]; s2.appendChild(b); $('vcSum').appendChild(s2); });
+    $('vcProg').style.width = xs.length ? Math.round(done / xs.length * 100) + '%' : '0';
   }
 
   /** 한 줄을 서버에서 받아 cache 에 넣음(promise). */
