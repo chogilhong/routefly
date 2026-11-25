@@ -48,6 +48,26 @@ th { color:var(--dim); font-weight:normal; font-size:14px; }
 td.name { white-space:normal; min-width:10em; }
 tr.sos td { background:rgba(201,42,42,0.35); }
 tr.warn td { background:rgba(255,212,59,0.14); }
+/* 승인 기다리는 방 · 지금 산행은 방 하나 = 카드 한 장(2026-11-25 PC 녹화: 9칸 표라 PC 폭에서도 인솔자 · 빼기 칸이, 폰 폭에서는 승인 단추가 화면 밖)
+   - 숫자 칸은 작은 이름표를 위에 두고 네 칸씩, 산행 이름 · 상태 · 단추는 한 줄 전체. 끝난 산행 표는 단추가 없어 옆으로 밀어 보는 표 그대로 */
+#pendSec thead, #liveSec thead { display:none; }
+#pendSec table, #liveSec table, #pend, #live { display:block; width:100%; }
+#pend tr, #live tr { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:8px 10px; padding:12px; margin:0 0 10px; border:1px solid var(--ln); border-radius:12px; }
+#pend td, #live td { border:0; padding:0; white-space:normal; min-width:0; background:none; }
+#pend td.name:first-child, #live td:first-child, #live td:nth-child(2), #live td:nth-child(9), #pend td:nth-child(5), #pend td[colspan], #live td[colspan] { grid-column:1 / -1; }
+#live td:nth-child(7), #live td:nth-child(8) { grid-column:span 2; }
+#live td:nth-child(9), #pend td:nth-child(5) { text-align:right; }
+#live tr.sos { background:rgba(201,42,42,0.35); border-color:var(--red); }
+#live tr.warn { background:rgba(255,212,59,0.14); border-color:var(--yel); }
+#live td:nth-child(n+3):nth-child(-n+8)::before, #pend td:nth-child(n+2):nth-child(-n+4)::before { display:block; font-size:12px; color:var(--dim); }
+#live td:nth-child(3)::before { content:"출발 탑승"; } #live td:nth-child(4)::before { content:"하산 탑승"; } #live td:nth-child(5)::before { content:"SOS"; }
+#live td:nth-child(6)::before { content:"10분 소식 없음"; } #live td:nth-child(7)::before { content:"마지막 소식"; } #live td:nth-child(8)::before { content:"인솔자"; }
+#pend td:nth-child(2)::before { content:"출발"; } #pend td:nth-child(3)::before { content:"인솔자"; } #pend td:nth-child(4)::before { content:"회원"; }
+html[lang="en"] #live td:nth-child(3)::before { content:"Boarded"; } html[lang="en"] #live td:nth-child(4)::before { content:"Back on bus"; }
+html[lang="en"] #live td:nth-child(6)::before { content:"Silent 10 min"; } html[lang="en"] #live td:nth-child(7)::before { content:"Last update"; } html[lang="en"] #live td:nth-child(8)::before { content:"Leader"; }
+html[lang="en"] #pend td:nth-child(2)::before { content:"Departure"; } html[lang="en"] #pend td:nth-child(3)::before { content:"Leader"; } html[lang="en"] #pend td:nth-child(4)::before { content:"Members"; }
+#live td[colspan]::before, #pend td[colspan]::before { content:none; }
+#pend button, #live button { min-height:40px; }
 .red { color:var(--red); font-weight:bold; }
 .yel { color:var(--yel); font-weight:bold; }
 .ok { color:var(--green); }
@@ -106,7 +126,7 @@ tr.warn td { background:rgba(255,212,59,0.14); }
                 <tbody id="pend"></tbody></table></div>
             <p data-en="Rooms where a leader entered your company code. If it is your club&#x27;s room, &lt;b&gt;Approve&lt;/b&gt; - from then on it appears in &quot;Hikes now&quot; below and members&#x27; screens show your office. If you don&#x27;t know the room, &lt;b&gt;Remove&lt;/b&gt; it." class="tip">인솔자가 회사 코드를 넣은 방입니다. 우리 산악회 방이 맞으면 <b>승인</b> - 그때부터 아래 "지금 산행" 에 올라오고, 회원 화면에도 "○○ 사무실" 이 보입니다. 모르는 방이면 <b>빼기</b>.</p>
         </section>
-        <section>
+        <section id="liveSec">
             <h2 data-en="Hikes now &lt;span id=&quot;liveCount&quot; class=&quot;tip&quot;&gt;&lt;/span&gt;">지금 산행 <span id="liveCount" class="tip"></span></h2>
             <div class="wrap" tabindex="0"><table><thead data-en="&lt;tr&gt;&lt;th&gt;Hike&lt;/th&gt;&lt;th&gt;Status&lt;/th&gt;&lt;th&gt;Boarded&lt;/th&gt;&lt;th&gt;Back on bus&lt;/th&gt;&lt;th&gt;SOS&lt;/th&gt;&lt;th&gt;Silent 10 min&lt;/th&gt;&lt;th&gt;Last update&lt;/th&gt;&lt;th&gt;Leader&lt;/th&gt;&lt;th&gt;&lt;/th&gt;&lt;/tr&gt;"><tr><th>산행</th><th>상태</th><th>출발 탑승</th><th>하산 탑승</th><th>SOS</th><th>10분 소식 없음</th><th>마지막 소식</th><th>인솔자</th><th></th></tr></thead>
                 <tbody id="live"></tbody></table></div>
