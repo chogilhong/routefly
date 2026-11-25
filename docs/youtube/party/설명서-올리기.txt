@@ -15,7 +15,7 @@
 06:49 산행 중
 08:12 인솔자도 산행할 때
 09:14 하산 · 방 끝내기
-10:08 회사 사무실
+10:07 회사 사무실
 11:08 회원 안내
 12:03 개인정보
 12:29 마무리
@@ -26,10 +26,11 @@
 ▶ 산악회 방: https://routefly.kr/routefly/party.html
 📘 페이스북: https://www.facebook.com/routefly.kr
 화면: routefly 실제 화면(시험 방 · 가짜 이름 - 실제 회원 정보 없음)
+음악: Cinematic Symphony of Steel - Jimena Contreras (YouTube 오디오 보관함)
 해설: AI 음성(Azure)
 
 #산악회 #안내산악회 #산악회인솔자 #등산앱 #루트플라이 #routefly
 
 [영상]
-C:\GH\workspace\tools\video\party\out\party-설명서.mp4 (12분 43초 - 3 · 40번 줄 다시 만든 판, 챕터 시각 PC 확인)
+C:\GH\workspace\tools\video\party\out\party-설명서.mp4 (12분 41초 - 22:16 목소리 판, ① 자막 · 배경 음악, 챕터 시각 PC 확인)
 썸네일: C:\GH\workspace\tools\video\party\out\thumb-party-설명서.jpg

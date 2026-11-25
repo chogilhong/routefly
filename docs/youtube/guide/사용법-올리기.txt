@@ -1,0 +1,34 @@
+[제목]
+루트플라이 사용법 | 등산 코스 찾기 · 3D 미리보기 · 따라가기 · 산행 기록(무료)
+
+[설명]
+산에 가기 전 코스 찾기부터 3D 미리보기, 산에서 따라가기, 사진 · 기록, 산악회 방, 그리고 출조 · 드론 · 생활 도구까지 루트플라이를 처음부터 차근차근 보여 드립니다. 회원 가입 없이 무료입니다.
+
+00:00 시작
+01:01 코스 찾기
+03:32 3D 미리보기
+04:57 따라가기
+08:29 사진 · 메모
+08:38 내 기록
+10:07 산악회 방
+10:27 더 있는 것
+12:06 자주 묻는 것
+13:16 마무리
+
+💬 루트플라이로 가 보고 싶은 산은 어디인가요? 댓글로 알려 주세요!
+
+▶ 루트플라이: https://routefly.kr
+▶ 코스 모음: https://routefly.kr/routefly/m/
+▶ 산악회 방 설명서 영상은 채널에서 따로 보실 수 있습니다.
+📘 페이스북: https://www.facebook.com/routefly.kr
+화면: routefly 실제 화면(시험 걷기 · 시험 방 · 가짜 이름 - 실제 회원 정보 · 실제 위치 없음)
+지도: 국토교통부 V-World · 지형: Terrain Tiles(AWS Open Data) · © OpenStreetMap contributors
+자료: 산림청 100대 명산 · 등산로정보, 국립공원공단 탐방로, 기상청 단기 · 중기예보, 에어코리아 대기정보, 한국등산·트레킹지원센터(공공데이터포털)
+음악: Cinematic Symphony of Steel - Jimena Contreras (YouTube 오디오 보관함)
+해설: AI 음성(Azure)
+
+#등산앱 #등산코스 #100대명산 #루트플라이 #routefly #등산 #3D지도
+
+[영상]
+C:\GH\workspace\tools\video\guide\out\guide.mp4 (13분 32초 - 21 · 44번 줄 다시 만든 판, ① 자막 · 배경 음악)
+썸네일: C:\GH\workspace\tools\video\guide\out\thumb-guide.jpg
