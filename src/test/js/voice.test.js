@@ -6,6 +6,13 @@ const V = require('../../main/webapp/js/voice.js');
 // 줄 나누기 - 대본 문서의 ``` 블록째 붙여도 됨
 assert.deepStrictEqual(V.lines('```\n  첫 줄 \n\n둘째 줄\r\n```\n'), ['첫 줄', '둘째 줄']);
 assert.strictEqual(V.cacheKey('ko-KR-ANeural', -10, '가'), 'ko-KR-ANeural|-10|가');
+// 읽는 말 · 자막 말(2026-11-25 홍TV님 "음성은 바뀐 걸로 자막은 … 대가야 로") - 낱말{읽는 말}
+assert.strictEqual(V.spoken('대가야{대 가야} 땅의 산이라 가야산,'), '대 가야 땅의 산이라 가야산,');
+assert.strictEqual(V.shown('대가야{대 가야} 땅의 산이라 가야산,'), '대가야 땅의 산이라 가야산,');
+assert.strictEqual(V.spoken('6·25{육이오} 때 백학봉{백 학봉}!'), '육이오 때 백 학봉!');
+assert.strictEqual(V.shown('6·25{육이오} 때 백학봉{백 학봉}!'), '6·25 때 백학봉!');
+assert.strictEqual(V.spoken('그대로인 줄'), '그대로인 줄');
+assert.strictEqual(V.spoken('빈 괄호{ }는 앞말'), '빈 괄호는 앞말');
 
 // wav 만들기(테스트용 - 24kHz 16bit 모노, Azure riff-24khz-16bit-mono-pcm 과 같은 모양). extra 는 fmt 와 data 사이에 끼울 덩어리
 function wav(samples, extra) {

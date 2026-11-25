@@ -194,6 +194,8 @@ public class VoiceServlet extends HttpServlet {
                 + "#vcLines li.bad span{color:#ff8787}button{font:inherit;cursor:pointer}</style></head><body><main>"
                 + "<h1>🎙 목소리 만들기</h1>"
                 + "<p class=\"lead\">대본의 해설(한 줄 = 한 장면)을 붙여 넣고 목소리를 고르면 줄마다 만들어 이어 붙입니다. 결과는 &lt;산&gt;.wav · &lt;산&gt;.srt(make_v2 --voice --srt 에 그대로).</p>"
+                // 2026-11-25 홍TV님 - 읽는 말만 바꾸고 자막은 그대로(voice.js spoken · shown)
+                + "<p class=\"lead\">발음이 어색한 낱말은 바로 뒤에 { } 로 읽는 말을 적으세요 - 예) 대가야{대 가야}. 소리는 { } 안 말로, 자막 · srt 는 대가야 그대로 나옵니다.</p>"
                 + "<div class=\"vc-bar\"><label>산 이름 <input id=\"vcName\" size=\"10\" placeholder=\"두타산\"></label>"
                 + "<label>목소리 <select id=\"vcVoice\"><option value=\"\">불러오는 중…</option></select></label>"
                 + "<label>빠르기 <input id=\"vcRate\" type=\"number\" min=\"" + MIN_RATE + "\" max=\"" + MAX_RATE + "\" step=\"5\" value=\"0\" style=\"width:4.5em\">%</label>"
