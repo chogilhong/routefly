@@ -71,6 +71,22 @@ th { color:var(--dim); font-weight:normal; white-space:nowrap; font-size:12.5px;
 #list td:nth-child(2) { white-space:nowrap; }
 #list td:nth-child(2) small { white-space:normal; }   /* 하산 예상 · 메시지 줄은 줄바꿈(2026-11-12 점검: 390px 폰에서 표가 536px - 배터리 · 내보내기 칸이 화면 밖) */
 tr.sos td { color:var(--red); font-weight:bold; }
+/* 폰 폭에서는 회원 한 명 = 카드 한 장(2026-11-25 PC 녹화: 389px 에서 상태 칸 🚌 하산 탐 · 따로 귀가 · ✕ 가 잘리거나 하차 칸이 "⬇ 한" 으로 눌림) -
+   좌석 · 이름(하차 · 하산 탑승 칸) 한 줄, 마지막 연락 · 멈춘 시간 · 배터리 작게 한 줄, 상태 · 단추는 맨 아래 넓게 */
+@media (max-width:560px) {
+  #room table thead { display:none; }
+  #list tr { display:flex; flex-wrap:wrap; align-items:center; gap:4px 10px; padding:10px 2px; border-top:1px solid var(--ln); }
+  #list td { border:0; padding:0; }
+  #list td:nth-child(1) { min-width:26px; color:var(--dim); }
+  #list td:nth-child(2) { flex:1 1 70%; white-space:normal; }
+  #list td:nth-child(3), #list td:nth-child(4), #list td:nth-child(5) { font-size:13px; color:var(--dim); }
+  #list td:nth-child(3)::before { content:"🕑 "; } #list td:nth-child(4)::before { content:"⏸ "; } #list td:nth-child(5)::before { content:"🔋 "; }
+  #list td:nth-child(6) { flex:1 1 100%; display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
+  #list td:nth-child(6) .undo, #list td:nth-child(6) .kick { margin:0; }
+  #list td:nth-child(6) .kick { margin-left:auto; }
+  #list td[colspan] { flex:1 1 100%; }
+  #list td[colspan]::before { content:none; }
+}
 tr.old td { color:#ffa94d; }
 tr.aboard td { color:var(--dim); }
 .pm { display:flex; flex-direction:column; align-items:center; pointer-events:none; }
