@@ -18,6 +18,12 @@
   function spoken(x) { return String(x).replace(/([^\s{}]+)\{([^{}]*)\}/g, function (m, w, r) { return r.trim() || w; }); }
   function shown(x) { return String(x).replace(/\{[^{}]*\}/g, ''); }
 
+  /** 순수 함수 - 이어 듣기 표(2026-11-25 홍TV님 "멈췄다 다시 들으려니 처음부터"): 목소리 · 빠르기 · 줄 사이 · 읽는 말이 같을 때만 멈춘 자리에서 이어 들음. */
+  function playSig(voice, rate, gap, texts) { return voice + '|' + rate + '|' + gap + '|' + texts.map(spoken).join('\n'); }
+
+  /** 순수 함수 - 초 → "1:05". */
+  function clock(sec) { var t = Math.max(0, Math.floor(sec || 0)); return Math.floor(t / 60) + ':' + ('0' + t % 60).slice(-2); }
+
   /** 순수 함수 - 캐시 열쇠. */
   function cacheKey(voice, rate, text) { return voice + '|' + rate + '|' + text; }
 
@@ -78,7 +84,7 @@
     return texts.map(function (x, i) { return (i + 1) + '\n' + srtTime(times[i][0]) + ' --> ' + srtTime(times[i][1]) + '\n' + x + '\n'; }).join('\n');
   }
 
-  var api = { lines: lines, spoken: spoken, shown: shown, cacheKey: cacheKey, parseWav: parseWav, joinWav: joinWav, srtTime: srtTime, srt: srt };
+  var api = { lines: lines, spoken: spoken, shown: shown, playSig: playSig, clock: clock, cacheKey: cacheKey, parseWav: parseWav, joinWav: joinWav, srtTime: srtTime, srt: srt };
   if (typeof module !== 'undefined' && module.exports) { module.exports = api; return; }
   root.RFV = api;
 
@@ -153,22 +159,43 @@
     return j;
   }
 
-  var audio = null;
-  /** 듣기 멈춤 - 전체 듣기 단추는 듣는 동안 "⏹ 멈춤"(2026-11-21 홍TV님 "전체 듣기 하다가 멈추려면?"). */
+  // 전체 듣기(audio)와 한 줄 듣기(one)는 따로 - 한 줄을 들어도 멈춘 전체 자리는 남음
+  var audio = null, audioSig = null, one = null;
+  /** 전체 듣기를 끝냄(처음부터로) - 다 들었거나 글 · 목소리가 바뀌었을 때. */
   function stop() {
     if (audio) { audio.pause(); URL.revokeObjectURL(audio.src); audio = null; }
+    audioSig = null;
     $('vcPlay').textContent = '🔊 전체 듣기';
+    $('vcRestart').hidden = true;
   }
-  function play(wav, all) {
+  /** 멈춤 - 자리는 남겨 두고 단추는 "▶ 이어 듣기 (1:23)"(2026-11-25 홍TV님 "이어서 듣게"), 옆에 ⏮ 처음부터. */
+  function pause() {
+    audio.pause();
+    $('vcPlay').textContent = '▶ 이어 듣기 (' + clock(audio.currentTime) + ')';
+    $('vcRestart').hidden = false;
+  }
+  function resume() {
+    if (one) one.pause();
+    audio.play();
+    $('vcPlay').textContent = '⏹ 멈춤';
+    $('vcRestart').hidden = true;
+  }
+  function playAll(wav, sig) {
     stop();
+    if (one) one.pause();
     audio = new Audio(URL.createObjectURL(new Blob([wav], { type: 'audio/wav' })));
+    audioSig = sig;
     audio.onended = stop;
-    if (all) $('vcPlay').textContent = '⏹ 멈춤';
+    $('vcPlay').textContent = '⏹ 멈춤';
     audio.play();
   }
   function playParts(parts) {
     var j = joinWav(parts, 0);
-    if (j) play(j.wav, false);
+    if (!j) return;
+    if (audio && !audio.paused) pause();
+    if (one) { one.pause(); URL.revokeObjectURL(one.src); }
+    one = new Audio(URL.createObjectURL(new Blob([j.wav], { type: 'audio/wav' })));
+    one.play();
   }
 
   function download(data, type, name) {
@@ -190,12 +217,15 @@
     $('vcVoice').addEventListener('change', function () { save('vcVoice', $('vcVoice').value); render(); });
     $('vcMake').onclick = function () { make(); };
     $('vcPlay').onclick = function () {
-      if (audio && $('vcPlay').textContent === '⏹ 멈춤') { stop(); return; }
+      if (audio && !audio.paused) { pause(); return; }
+      var o = opts(), sig = playSig(o.voice, o.rate, o.gap, lines($('vcText').value));
+      if (audio && audioSig === sig) { resume(); return; }   // 멈춘 자리에서 이어 들음
       var j = joined();
       if (!j) return;
-      play(j.wav, true);
+      playAll(j.wav, sig);
       info('전체 ' + j.times[j.times.length - 1][1].toFixed(1) + '초');
     };
+    $('vcRestart').onclick = function () { stop(); $('vcPlay').onclick(); };
     $('vcWav').onclick = function () { var j = joined(); if (j) download(j.wav, 'audio/wav', fileName() + '.wav'); };
     $('vcSrt').onclick = function () { var j = joined(); if (j) download(srt(j.texts, j.times), 'application/x-subrip', fileName() + '.srt'); };
     fetch('voice?list=1', { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (j) {

@@ -13,6 +13,14 @@ assert.strictEqual(V.spoken('6·25{육이오} 때 백학봉{백 학봉}!'), '육
 assert.strictEqual(V.shown('6·25{육이오} 때 백학봉{백 학봉}!'), '6·25 때 백학봉!');
 assert.strictEqual(V.spoken('그대로인 줄'), '그대로인 줄');
 assert.strictEqual(V.spoken('빈 괄호{ }는 앞말'), '빈 괄호는 앞말');
+// 이어 듣기 표 - 자막 글만 바뀌면 같음(소리는 그대로), 읽는 말 · 빠르기 · 줄 사이가 바뀌면 다름
+const sg = V.playSig('ko-KR-A', 5, 300, ['대가야{대 가야} 땅', '둘']);
+assert.strictEqual(V.playSig('ko-KR-A', 5, 300, ['대 가야 땅', '둘']), sg);
+assert.notStrictEqual(V.playSig('ko-KR-A', 5, 300, ['대가야 땅', '둘']), sg);
+assert.notStrictEqual(V.playSig('ko-KR-A', 0, 300, ['대 가야 땅', '둘']), sg);
+assert.notStrictEqual(V.playSig('ko-KR-A', 5, 200, ['대 가야 땅', '둘']), sg);
+assert.strictEqual(V.clock(83.9), '1:23');
+assert.strictEqual(V.clock(5), '0:05');
 
 // wav 만들기(테스트용 - 24kHz 16bit 모노, Azure riff-24khz-16bit-mono-pcm 과 같은 모양). extra 는 fmt 와 data 사이에 끼울 덩어리
 function wav(samples, extra) {

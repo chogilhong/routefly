@@ -44,8 +44,10 @@ public class VoiceServletTest {
         assertTrue(p.contains("id=\"vcText\"") && p.contains("id=\"vcVoice\"") && p.contains("id=\"vcWav\"") && p.contains("id=\"vcSrt\""));
         // 전체 듣기 중에는 같은 단추가 ⏹ 멈춤(2026-11-21 홍TV님), 다 들으면 되돌아옴
         String js = new String(java.nio.file.Files.readAllBytes(java.nio.file.Path.of("src/main/webapp/js/voice.js")), java.nio.charset.StandardCharsets.UTF_8).replace("\r\n", "\n");
-        assertTrue(js.contains("if (audio && $('vcPlay').textContent === '⏹ 멈춤') { stop(); return; }") && js.contains("audio.onended = stop;")
-                && js.contains("if (all) $('vcPlay').textContent = '⏹ 멈춤';"));
+        assertTrue(js.contains("audio.onended = stop;") && js.contains("$('vcPlay').textContent = '⏹ 멈춤';"));
+        // 멈추면 자리를 남겨 이어 듣기(2026-11-25 홍TV님 "이어서 듣게"), 글 · 목소리가 같을 때만, ⏮ 처음부터
+        assertTrue(js.contains("if (audio && !audio.paused) { pause(); return; }") && js.contains("if (audio && audioSig === sig) { resume(); return; }")
+                && js.contains("'▶ 이어 듣기 (' + clock(audio.currentTime) + ')'") && p.contains("id=\"vcRestart\" hidden"));
         // 소리는 읽는 말로 만들고 캐시 열쇠도 읽는 말(자막만 고쳐도 다시 안 만듦), srt 는 자막 말
         assertTrue(js.contains("var say = spoken(x), c = cache[cacheKey(o.voice, o.rate, say)];") && js.contains("j.texts = xs.map(shown);") && js.contains(".map(spoken).filter("));
     }

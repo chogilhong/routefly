@@ -201,7 +201,7 @@ public class VoiceServlet extends HttpServlet {
                 + "<label>빠르기 <input id=\"vcRate\" type=\"number\" min=\"" + MIN_RATE + "\" max=\"" + MAX_RATE + "\" step=\"5\" value=\"0\" style=\"width:4.5em\">%</label>"
                 + "<label>줄 사이 <input id=\"vcGap\" type=\"number\" min=\"0\" max=\"2000\" step=\"50\" value=\"300\" style=\"width:5em\">ms</label></div>"
                 + "<textarea id=\"vcText\" placeholder=\"해설 블록을 붙여 넣으세요 - 한 줄이 한 장면\"></textarea>"
-                + "<div class=\"vc-bar\"><button id=\"vcMake\">▶ 바뀐 줄만 만들기</button><button id=\"vcPlay\">🔊 전체 듣기</button>"
+                + "<div class=\"vc-bar\"><button id=\"vcMake\">▶ 바뀐 줄만 만들기</button><button id=\"vcPlay\">🔊 전체 듣기</button><button id=\"vcRestart\" hidden title=\"처음부터 듣기\">⏮ 처음부터</button>"
                 + "<button id=\"vcWav\">⬇ wav</button><button id=\"vcSrt\">⬇ srt</button><span id=\"vcInfo\" class=\"dim\"></span></div>"
                 + "<ol id=\"vcLines\"></ol>"
                 + "<p class=\"dim\">글은 Microsoft Azure 음성 서비스로 보내 목소리를 만듭니다(운영자만). 같은 줄 · 같은 목소리 · 같은 빠르기는 다시 보내지 않습니다(이 창을 닫으면 처음부터).</p>"
