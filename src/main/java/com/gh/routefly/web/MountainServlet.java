@@ -204,14 +204,17 @@ public class MountainServlet extends HttpServlet {
             JsonArray rows = CourseQueries.list(c, new double[] {lon - dLon, lat - dLat, lon + dLon, lat + dLat}, "hike", null);
             courses = near(rows, peak, NEAR_M, MAX_COURSES * 2);   // 정상 이름만 같은 다른 산길을 뺀 뒤에도 30개가 차게 넉넉히(2026-10-30 점검)
             List<JsonObject> far = near(rows, peak, NEAR_M, FAR_M, FAR_MAX);   // 들머리 · 끝이 2 ~ 5km 인 원점회귀 · 종주 - 정상을 지날 때만 아래에서 남김(2026-11-21)
+            List<JsonObject> mine = mine(rows, peak, far);   // 홍TV님이 올린 종주(u-) - 들머리가 멀어도 정상을 지나면 남김(2026-11-25 덕유산 육구종주)
             JsonArray picked = new JsonArray();
             courses.forEach(picked::add);
             far.forEach(picked::add);
+            mine.forEach(picked::add);
             Steep.fill(c, picked, Peaks.tops(getServletContext()), Peaks.named(getServletContext()));   // 가장 가파른 1km(난이도) · 정상을 지나면 최고 높이는 공식 값(2026-10-16)
             courses.addAll(through(far, peak));
             courses.removeIf(o -> o.has("summit_miss_m") && o.get("summit_miss_m").getAsDouble() > Peaks.HIDE_MISS_M);   // 이름만 이 산 정상인 다른 산길(2026-10-30)
             courses = markOff(courses, peak);   // 이 산 정상에 안 가는 코스는 표시 · 뒤로(2026-11-20)
             if (courses.size() > MAX_COURSES) courses = new ArrayList<>(courses.subList(0, MAX_COURSES));
+            for (JsonObject o : through(mine, peak)) if (!(o.has("summit_miss_m") && o.get("summit_miss_m").getAsDouble() > Peaks.HIDE_MISS_M)) courses.add(o);   // 30개에 밀려 잘리지 않게 자른 뒤 맨 끝에
             names(courses, parks());   // 앱과 같은 이름(공단 공식 이름 · 산마다 지명) · 지금은 없는 탐방로는 뺌
             officialTimes(c, courses);   // 국립공원 공식 오름 · 내림 시간(2026-11-04 홍TV님 - 코스 목록도 공단 시간)
         } catch (Exception e) {
@@ -468,6 +471,25 @@ public class MountainServlet extends HttpServlet {
         com.google.gson.JsonPrimitive id = new com.google.gson.JsonPrimitive(MountainEn.id(peak));
         List<JsonObject> out = new ArrayList<>();
         for (JsonObject o : far) if (o.has("passes") && o.get("passes").isJsonArray() && o.getAsJsonArray("passes").contains(id)) out.add(o);
+        return out;
+    }
+
+    /**
+     * 순수 함수 - 홍TV님이 GPX 편집으로 올린 코스(course_id "u-")가운데 들머리 · 끝이 정상에서 NEAR_M 넘게 떨어지고 far 에 아직 없는 것.
+     * 2026-11-25 홍TV님 "2번으로 해" - 덕유산 육구종주(육십령 → 향적봉 → 구천동, 30km)는 들머리 · 끝이 모두 정상 5km 밖이라 산 페이지에 없었음.
+     * 산 페이지에는 선이 정상을 지날 때만(through) 넣음. DB 조회는 선의 둘레 사각형(MBRIntersects)이라 먼 들머리 종주도 rows 에 듦.
+     */
+    static List<JsonObject> mine(JsonArray rows, JsonObject peak, List<JsonObject> far) {
+        List<double[]> tops = tops(peak);
+        List<JsonObject> out = new ArrayList<>();
+        for (JsonElement e : rows) {
+            JsonObject c = e.getAsJsonObject();
+            String id = str(c, "course_id");
+            if (id == null || !id.startsWith("u-") || far.contains(c)) continue;
+            double d = Double.POSITIVE_INFINITY;
+            for (double[] t : tops) d = Math.min(d, Math.min(gap(c, "end_lat", "end_lon", t), gap(c, "start_lat", "start_lon", t)));
+            if (d > NEAR_M) out.add(c);
+        }
         return out;
     }
 
