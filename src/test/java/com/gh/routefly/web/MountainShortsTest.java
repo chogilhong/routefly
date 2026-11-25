@@ -69,6 +69,15 @@ public class MountainShortsTest {
         jg.add("shorts", videos.getAsJsonArray("조계산"));
         String jgh = MountainServlet.shortsBlock(jg, false);
         assertTrue(jgh, jgh.contains("<p class=\"hook\">이 돌을 뽑으면 다리가 무너진다?</p><p>송광사 · 선암사 승선교 · 쌍향수 - 그 이야기를 2분 29초 영상에 담았습니다.</p>"));
+        // 2026-11-25 가야산 · 백암산
+        assertEquals("7z0FJ8ViUj4", videos.getAsJsonArray("가야산").get(0).getAsJsonObject().get("id").getAsString());
+        JsonObject gy = new JsonObject();
+        gy.add("shorts", videos.getAsJsonArray("가야산"));
+        assertTrue(MountainServlet.shortsBlock(gy, false).contains("<p class=\"hook\">수천만 글자에 틀린 글자가 없다?</p><p>해인사 · 팔만대장경 · 홍류동 - 그 이야기를 2분 25초 영상에 담았습니다.</p>"));
+        assertEquals("cIrihN0ipak", videos.getAsJsonArray("백암산").get(0).getAsJsonObject().get("id").getAsString());
+        JsonObject ba = new JsonObject();
+        ba.add("shorts", videos.getAsJsonArray("백암산"));
+        assertTrue(MountainServlet.shortsBlock(ba, false).contains("<p class=\"hook\">흰 양이 불경을 들으러 왔다?</p><p>백양사 · 백학봉 · 쌍계루 - 그 이야기를 2분 26초 영상에 담았습니다.</p>"));
         assertFalse("지운 옛 판 주소는 없음", new com.google.gson.Gson().toJson(videos).contains("6RXD-zFKZZQ") || new com.google.gson.Gson().toJson(videos).contains("d372NAouBvM"));
         // 물음표 없는 제목은 hook 을 큰 글로(2026-11-22 홍TV님 "전부다 ? 가 있는 것 같아")
         JsonObject jy = new JsonObject();
@@ -80,7 +89,7 @@ public class MountainShortsTest {
         for (JsonElement e : peaks) {
             String id = e.getAsJsonObject().get("id").getAsString();
             if (id.equals("계룡산")) gyeryong = e.getAsJsonObject();
-            if (id.equals("가야산")) gaya = e.getAsJsonObject();
+            if (id.equals("황석산")) gaya = e.getAsJsonObject();   // 영상이 없는 산(2026-11-25 가야산은 영상이 생겨 황석산으로)
         }
         // 한국어: 예고 칸(2026-11-21 홍TV님 시안 승인) - 제목의 물음 · 볼거리 이름 · 단추 · 자료 · 길이(PC ffprobe 151.6초)
         String ko = MountainServlet.shortsBlock(gyeryong, false);
