@@ -1155,9 +1155,10 @@
                      ["start", "들머리", "예: 밤골"], ["top", "정상 · 거치는 곳(없으면 비움)", "예: 백운대"], ["end", "날머리", "예: 우이동"],
                      ["maker", "만든 이(코스 화면에 따로 보임 · 비우면 routefly)", "예: 보낸 사람 이름"]];
             var h = '<h3 style="margin:0 0 10px;font-size:17px">코스로 올릴 이름</h3>';
+            // 거치는 곳은 60자까지(2026-11-26 홍TV님 설악산 공룡능선 "… 양폭대피소 비선대" 가 30자에서 "비선" 으로 잘렸음) - 다 합친 이름은 아래에서 60자로 자름
             F.forEach(function (f) {
                 h += '<label style="display:block;margin:0 0 8px;font-size:13px;color:#9aa6b4">' + f[1]
-                    + '<input data-k="' + f[0] + '" placeholder="' + f[2] + '" maxlength="' + (f[0] === "maker" ? 20 : 30) + '" style="display:block;width:100%;box-sizing:border-box;margin-top:3px;height:38px;padding:0 10px;border-radius:8px;border:1px solid #2a3442;background:#0b1118;color:#e8edf3;font:inherit;font-size:15px"></label>';
+                    + '<input data-k="' + f[0] + '" placeholder="' + f[2] + '" maxlength="' + (f[0] === "maker" ? 20 : f[0] === "top" ? 60 : 30) + '" style="display:block;width:100%;box-sizing:border-box;margin-top:3px;height:38px;padding:0 10px;border-radius:8px;border:1px solid #2a3442;background:#0b1118;color:#e8edf3;font:inherit;font-size:15px"></label>';
             });
             h += '<p style="margin:10px 0 4px;font-size:13px;color:#9aa6b4">목록에 이대로 보입니다</p><p class="nfOut" style="margin:0 0 2px;font-weight:bold;word-break:keep-all"></p><p class="nfMade" style="margin:0 0 14px;font-size:12.5px;color:#9aa6b4"></p>'
                 + '<div style="display:flex;gap:8px"><button type="button" class="b nfNo" style="flex:1">취소</button><button type="button" class="b nfOk" style="flex:1;background:#38d9ea;color:#062b30;font-weight:bold">다음</button></div>';
