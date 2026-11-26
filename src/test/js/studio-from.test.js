@@ -4,7 +4,7 @@
  */
 "use strict";
 var fs = require("fs"), path = require("path");
-var src = fs.readFileSync(path.join(__dirname, "../../main/webapp/js/studio.js"), "utf8");
+var src = fs.readFileSync(path.join(__dirname, "../../main/webapp/js/studio.js"), "utf8").replace(/\r\n/g, "\n");   // Windows(PC) 는 CRLF 로 받음 - 아래 정규식은 \n 만 봄(2026-11-26 PC)
 var m = /    function studioFrom\(ref, origin\) \{[\s\S]*?\n    \}\n/.exec(src);
 if (!m) { console.log("FAIL studioFrom 을 찾지 못함"); process.exit(1); }
 var studioFrom = new Function("URL", m[0] + "return studioFrom;")(URL);
