@@ -17,7 +17,13 @@ assert.strictEqual(V.spoken('빈 괄호{ }는 앞말'), '빈 괄호는 앞말');
 assert.strictEqual(V.spoken('화면을 [켜 두어야]{켜두어야} 위치가 갑니다.'), '화면을 켜두어야 위치가 갑니다.');
 assert.strictEqual(V.shown('화면을 [켜 두어야]{켜두어야} 위치가 갑니다.'), '화면을 켜 두어야 위치가 갑니다.');
 assert.strictEqual(V.spoken('[켜 두어야]{켜두어야} · 대가야{대 가야}'), '켜두어야 · 대 가야');
-assert.strictEqual(V.spoken('켜 두어야{켜두어야}'), '켜 켜두어야');   // { } 만 쓰면 바로 앞 낱말 하나만 - 그래서 [ ]
+assert.strictEqual(V.spoken('켜 두어야{켜두어야}'), '켜두어야');   // 2026-11-26 부터 붙인 것이 같으면 [ ] 없이도 앞 낱말들을 함께(예전엔 '켜 켜두어야')
+// [ ] 없이도 띄어 쓴 낱말을 붙여 읽기(2026-11-26 홍TV님 "리만 가설{리만가설} … 리만이 두 번 읽혀")
+assert.strictEqual(V.spoken('리만 가설{리만가설}이 풀렸습니다'), '리만가설이 풀렸습니다');
+assert.strictEqual(V.shown('리만 가설{리만가설}이 풀렸습니다'), '리만 가설이 풀렸습니다');
+assert.strictEqual(V.spoken('그 리만 가설{리만가설}, 소수'), '그 리만가설, 소수');
+assert.strictEqual(V.spoken('일반화된 리만 가설{일반화된리만가설}'), '일반화된리만가설');
+assert.strictEqual(V.spoken('세 낱말 이어 붙이기 안 맞음{다른말}'), '세 낱말 이어 붙이기 안 다른말');   // 붙인 것과 다르면 앞 낱말 하나만(예전대로)
 // 이어 듣기 표 - 자막 글만 바뀌면 같음(소리는 그대로), 읽는 말 · 빠르기 · 줄 사이가 바뀌면 다름
 const sg = V.playSig('ko-KR-A', 5, 300, ['대가야{대 가야} 땅', '둘']);
 assert.strictEqual(V.playSig('ko-KR-A', 5, 300, ['대 가야 땅', '둘']), sg);
