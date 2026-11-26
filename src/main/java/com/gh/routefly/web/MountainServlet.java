@@ -553,11 +553,15 @@ public class MountainServlet extends HttpServlet {
     /** 시작이 끝보다 이만큼 넘게 정상에 가까워야 "정상에서 시작하게 적힌 코스"(원점회귀는 두 끝이 가까워 적힌 방향 그대로). */
     static final double FROM_TOP_M = 200;
 
-    /** 순수 함수 - 정상에서 시작하게 적힌 코스인지(시작이 끝보다 정상에 FROM_TOP_M 넘게 가까움). 두 끝 좌표가 다 있어야 true. */
+    /**
+     * 순수 함수 - 정상에서 시작하게 적힌 코스인지(시작이 끝보다 정상에 FROM_TOP_M 넘게 가까움). 두 끝 좌표가 다 있어야 true.
+     * 시작이 정상 NEAR_M 안일 때만 - 2026-11-26 홍TV님 "남설악탐방지원센터 → … → 소공원 인데": 정상을 넘어 반대쪽으로 내려가는 종주(오색 → 대청봉 → 공룡능선 → 소공원)는
+     * 들머리 오색이 소공원보다 정상에 가까울 뿐인데 뒤집혀 "소공원 → … → 남설악" 으로 보였음. 정상에서 시작하는 코스가 아니면 적힌 방향 그대로.
+     */
     static boolean fromTop(JsonObject c, JsonObject peak) {
         double[] t = {peak.get("lat").getAsDouble(), peak.get("lon").getAsDouble()};
         double ds = gap(c, "start_lat", "start_lon", t), de = gap(c, "end_lat", "end_lon", t);
-        return ds != Double.POSITIVE_INFINITY && de != Double.POSITIVE_INFINITY && ds + FROM_TOP_M < de;
+        return ds != Double.POSITIVE_INFINITY && de != Double.POSITIVE_INFINITY && ds <= NEAR_M && ds + FROM_TOP_M < de;
     }
 
     /**
