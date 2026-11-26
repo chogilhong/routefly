@@ -314,11 +314,13 @@
       gutterTa.style.cssText = 'position:absolute;visibility:hidden;left:0;top:0;height:0;min-height:0;overflow:hidden;resize:none';
       ta.parentNode.appendChild(gutterTa);
     }
-    var key = ta.offsetWidth + '|' + ta.value;
+    // 넓이는 스크롤 막대를 뺀 것(clientWidth + 테두리) - 숨은 칸은 막대가 없어, offsetWidth 로 재면 덜 꺾여 아래로 갈수록 번호가 위로 밀렸음(2026-11-26 PC: 94줄에서 52 가 54번째 줄 옆)
+    var cs = getComputedStyle(ta), w = ta.clientWidth + (parseFloat(cs.borderLeftWidth) || 0) + (parseFloat(cs.borderRightWidth) || 0);
+    var key = w + '|' + ta.value;   // 막대가 생기고 없어질 때도 다시 잼
     if (key === gutterKey) return;
     gutterKey = key;
-    gutterTa.style.width = ta.offsetWidth + 'px';
-    var cs = getComputedStyle(ta), padT = parseFloat(cs.paddingTop) || 0, padB = parseFloat(cs.paddingBottom) || 0;
+    gutterTa.style.width = w + 'px';
+    var padT = parseFloat(cs.paddingTop) || 0, padB = parseFloat(cs.paddingBottom) || 0;
     var raw = ta.value.split(/\r?\n/), nums = lineNumbers(ta.value);
     gutterTops = [];
     for (var i = 0; i < raw.length; i++) {

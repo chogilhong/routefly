@@ -22,6 +22,8 @@ public class VoiceGutterTest {
         String js = new String(Files.readAllBytes(Paths.get("src/main/webapp/js/voice.js")), StandardCharsets.UTF_8);
         assertTrue("숨은 textarea 로 잼", js.contains("gutterTa = ta.cloneNode(false);") && js.contains("y = gutterTa.scrollHeight - padB;"));
         assertTrue("글 · 넓이가 같으면 다시 재지 않음", js.contains("if (key === gutterKey) return;"));
+        assertTrue("넓이는 스크롤 막대를 뺀 것(2026-11-26 PC: 아래로 갈수록 밀림)", js.contains("w = ta.clientWidth + (parseFloat(cs.borderLeftWidth) || 0) + (parseFloat(cs.borderRightWidth) || 0);")
+                && js.contains("gutterTa.style.width = w + 'px';") && !js.contains("gutterTa.style.width = ta.offsetWidth"));
         assertTrue("쳐 넣는 동안은 잠깐 뒤 한 번", js.contains("gutterTimer = setTimeout(function () { gutterMeasure(); gutterPaint(); }, 150);"));
         assertTrue("스크롤은 잰 위치로 바로", js.contains("$('vcText').addEventListener('scroll', function () { if ($('vcNo')) gutterPaint(); });"));
     }
