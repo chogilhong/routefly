@@ -88,7 +88,14 @@
     return texts.map(function (x, i) { return (i + 1) + '\n' + srtTime(times[i][0]) + ' --> ' + srtTime(times[i][1]) + '\n' + x + '\n'; }).join('\n');
   }
 
-  var api = { lines: lines, spoken: spoken, shown: shown, playSig: playSig, clock: clock, cacheKey: cacheKey, parseWav: parseWav, joinWav: joinWav, srtTime: srtTime, srt: srt };
+  /** 순수 함수 - 전체 듣기에서 t 초에 읽는 줄 번호(0부터, 줄 사이 쉼은 앞 줄) - times 는 joinWav 의 [시작, 끝]. 처음 줄 앞이면 0. */
+  function lineAt(times, t) {
+    var i = 0;
+    while (i + 1 < times.length && times[i + 1][0] <= t) i++;
+    return i;
+  }
+
+  var api = { lines: lines, spoken: spoken, shown: shown, playSig: playSig, clock: clock, cacheKey: cacheKey, parseWav: parseWav, joinWav: joinWav, srtTime: srtTime, srt: srt, lineAt: lineAt };
   if (typeof module !== 'undefined' && module.exports) { module.exports = api; return; }
   root.RFV = api;
 
@@ -131,6 +138,7 @@
       li.appendChild(no); li.appendChild(sp); li.appendChild(bt); li.appendChild(sm);
       ul.appendChild(li);
     });
+    if (nowLine >= 0 && ul.children[nowLine]) ul.children[nowLine].classList.add('now');   // 다시 그려도 읽는 줄 밝힘은 그대로
     // 줄 요약 - 만든 줄 · 글자 · 길이(만든 것은 실제, 남은 것은 1초 약 6.9글자로 어림)
     $('vcSum').innerHTML = '';
     [['줄', xs.length], ['만듦', done + ' / ' + xs.length], ['글자', chars.toLocaleString()], [done === xs.length && xs.length ? '길이' : '길이(어림)', clock(done === xs.length ? secs + (xs.length - 1) * o.gap / 1000 : chars / 6.9 + (xs.length - 1) * o.gap / 1000)]]
@@ -200,11 +208,23 @@
   }
 
   // 전체 듣기(audio)와 한 줄 듣기(one)는 따로 - 한 줄을 들어도 멈춘 전체 자리는 남음
-  var audio = null, audioSig = null, one = null;
+  var audio = null, audioSig = null, one = null, nowLine = -1;
+  /**
+   * 전체 듣기 중 읽는 줄을 밝히고 화면 가운데로(2026-11-26 홍TV님 "6까지 읽었어. 그럼 스크롤을 올려서 다음 줄부터 볼 수 있도록") -
+   * 줄이 바뀔 때만 옮김. i 가 -1 이면 밝힘만 지움.
+   */
+  function markLine(i) {
+    if (i === nowLine) return;
+    nowLine = i;
+    var lis = $('vcLines').children;
+    for (var k = 0; k < lis.length; k++) lis[k].classList.toggle('now', k === i);
+    if (i >= 0 && lis[i]) lis[i].scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }
   /** 전체 듣기를 끝냄(처음부터로) - 다 들었거나 글 · 목소리가 바뀌었을 때. */
   function stop() {
     if (audio) { audio.pause(); URL.revokeObjectURL(audio.src); audio = null; }
     audioSig = null;
+    markLine(-1);
     $('vcPlay').textContent = '🔊 전체 듣기';
     $('vcRestart').hidden = true;
   }
@@ -220,12 +240,13 @@
     $('vcPlay').textContent = '⏹ 멈춤';
     $('vcRestart').hidden = true;
   }
-  function playAll(wav, sig) {
+  function playAll(wav, sig, times) {
     stop();
     if (one) one.pause();
     audio = new Audio(URL.createObjectURL(new Blob([wav], { type: 'audio/wav' })));
     audioSig = sig;
     audio.onended = stop;
+    audio.ontimeupdate = function () { if (audio) markLine(lineAt(times, audio.currentTime)); };
     $('vcPlay').textContent = '⏹ 멈춤';
     audio.play();
   }
@@ -273,7 +294,7 @@
       if (audio && audioSig === sig) { resume(); return; }   // 멈춘 자리에서 이어 들음
       var j = joined();
       if (!j) return;
-      playAll(j.wav, sig);
+      playAll(j.wav, sig, j.times);
       info('전체 ' + j.times[j.times.length - 1][1].toFixed(1) + '초');
     };
     $('vcRestart').onclick = function () { stop(); $('vcPlay').onclick(); };

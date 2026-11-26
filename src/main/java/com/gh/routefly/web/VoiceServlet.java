@@ -215,6 +215,7 @@ public class VoiceServlet extends HttpServlet {
                 + "#vcLines li{display:grid;grid-template-columns:30px 1fr auto;gap:4px 10px;align-items:start;padding:10px 0;border-top:1px solid var(--ln)}#vcLines li:first-child{border-top:0}"
                 + "#vcLines .no{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:12px;background:var(--bg);border:1px solid var(--ln);color:var(--dim)}"
                 + "#vcLines li.ok .no{background:rgba(56,217,234,.15);border-color:var(--sky);color:var(--sky)}#vcLines li.bad .no{background:rgba(255,135,135,.15);border-color:#ff8787;color:#ff8787}"
+                + "#vcLines li.now{background:rgba(56,217,234,.10);box-shadow:inset 3px 0 0 var(--sky);border-radius:8px}"   // 전체 듣기 중 읽는 줄(2026-11-26)
                 + "#vcLines .tx{line-height:1.6}#vcLines .rd{display:block;font-size:12px;color:var(--dim);margin-top:2px}#vcLines .rd::before{content:'🔈 읽기 ';}"
                 + "#vcLines .st{grid-column:2;font-size:12px;color:var(--dim)}#vcLines li.bad .st{color:#ff8787}"
                 + "#vcLines .bt{grid-row:1 / span 2;grid-column:3;display:flex;gap:6px}#vcLines .bt button{padding:6px 9px;min-height:34px}"

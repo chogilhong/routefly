@@ -26,6 +26,13 @@ assert.notStrictEqual(V.playSig('ko-KR-A', 0, 300, ['대 가야 땅', '둘']), s
 assert.notStrictEqual(V.playSig('ko-KR-A', 5, 200, ['대 가야 땅', '둘']), sg);
 assert.strictEqual(V.clock(83.9), '1:23');
 assert.strictEqual(V.clock(5), '0:05');
+// 전체 듣기 중 읽는 줄(2026-11-26 홍TV님 "다음 줄부터 볼 수 있도록") - 줄 사이 쉼은 앞 줄
+const tm = [[0, 8.3], [8.6, 17.2], [17.5, 23.1]];
+assert.strictEqual(V.lineAt(tm, 0), 0);
+assert.strictEqual(V.lineAt(tm, 8.4), 0);
+assert.strictEqual(V.lineAt(tm, 8.6), 1);
+assert.strictEqual(V.lineAt(tm, 30), 2);
+assert.strictEqual(V.lineAt([[0, 1]], 5), 0);
 
 // wav 만들기(테스트용 - 24kHz 16bit 모노, Azure riff-24khz-16bit-mono-pcm 과 같은 모양). extra 는 fmt 와 data 사이에 끼울 덩어리
 function wav(samples, extra) {
