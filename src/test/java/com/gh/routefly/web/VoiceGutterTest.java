@@ -18,6 +18,7 @@ public class VoiceGutterTest {
     public void 읽는_말_색과_줄_번호() throws Exception {
         String p = VoiceServlet.page();
         assertTrue(p.contains("#vcLines .rd{display:block;font-size:12.5px;color:#ffb84d;margin-top:2px}#vcLines .rd::before{content:'🔈 읽기 {';}#vcLines .rd::after{content:'}';}"));
+        assertTrue("번호 칸이 칸 아래로 삐져나오지 않게(textarea block)", p.contains(".vc-ed textarea{padding-left:46px;display:block}"));
         assertTrue(p.contains("<div class=\"vc-ed\"><div class=\"vc-no\" id=\"vcNo\" aria-hidden=\"true\"></div><textarea id=\"vcText\""));
         String js = new String(Files.readAllBytes(Paths.get("src/main/webapp/js/voice.js")), StandardCharsets.UTF_8);
         assertTrue("숨은 textarea 로 잼", js.contains("gutterTa = ta.cloneNode(false);") && js.contains("y = gutterTa.scrollHeight - padB;"));

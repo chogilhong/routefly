@@ -229,7 +229,7 @@ public class VoiceServlet extends HttpServlet {
                 + ".vc-try{display:flex;gap:8px;align-items:flex-end;margin-top:12px;padding-top:12px;border-top:1px dashed var(--ln);flex-wrap:wrap}.vc-try .vc-f{flex:1;min-width:200px}"
                 + ".vc textarea{min-height:240px;line-height:1.7;resize:vertical}"
                 // 해설 칸 왼쪽 줄 번호(2026-11-26 홍TV님 "해설에 있는 글에도 동일하게 숫자 표시") - 줄 목록과 같은 번호(빈 줄 · ``` 줄은 번호 없음), 줄이 꺾여도 첫 줄에
-                + ".vc-ed{position:relative}.vc-ed textarea{padding-left:46px}.vc-no{position:absolute;left:1px;top:1px;bottom:1px;width:38px;overflow:hidden;pointer-events:none;border-right:1px solid var(--ln);border-radius:9px 0 0 9px;background:var(--panel)}"
+                + ".vc-ed{position:relative}.vc-ed textarea{padding-left:46px;display:block}.vc-no{position:absolute;left:1px;top:1px;bottom:1px;width:38px;overflow:hidden;pointer-events:none;border-right:1px solid var(--ln);border-radius:9px 0 0 9px;background:var(--panel)}"
                 + ".vc-no span{position:absolute;right:6px;font-size:11.5px;color:var(--sky);font-variant-numeric:tabular-nums}"
                 + ".vc-tip{margin:8px 0 0;font-size:12.5px;color:var(--dim)}.vc-tip code{background:var(--bg);border:1px solid var(--ln);border-radius:6px;padding:1px 6px;color:var(--tx)}"
                 + ".vc button{font:inherit;font-size:14px;cursor:pointer;border-radius:10px;border:1px solid var(--ln);background:var(--bg);color:var(--tx);padding:8px 12px;min-height:38px;white-space:nowrap}"
