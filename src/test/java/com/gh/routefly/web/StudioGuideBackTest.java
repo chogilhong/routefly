@@ -25,6 +25,6 @@ public class StudioGuideBackTest {
         assertTrue(pk.contains("if (backTo === \"studio\") {") && pk.contains("$(\"back\").textContent = T(\"‹ GPX 편집\", \"‹ GPX editor\");\n            $(\"back\").href = \"studio.html\";"));
         String rt = read("src/main/webapp/js/route.js");
         assertTrue(rt.contains("backTo === \"studio\" ? \"studio.html\" : \"series.html\"") && rt.contains("backTo === \"studio\" ? T(\"‹ GPX 편집\", \"‹ GPX editor\")"));
-        assertTrue("park · route 는 서비스워커 화면 파일 - 캐시 이름을 올림", read("src/main/webapp/sw.js").contains("var SHELL = \"rf-shell-v427\""));
+        assertTrue("park · route 는 서비스워커 화면 파일 - 캐시 이름을 올림", read("src/main/webapp/sw.js").contains("var SHELL = \"rf-shell-v428\""));
     }
 }

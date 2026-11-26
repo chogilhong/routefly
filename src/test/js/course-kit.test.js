@@ -1225,6 +1225,11 @@ tick().then(function () {
         eq("경로(rte)만 있는 GPX 도", RF.gpxRecord('<gpx><rte><rtept lat="37" lon="127"/><rtept lat="37.2" lon="127"/></rte></gpx>', true).rec.track.length, 2);
         eq("같은 사진은 같은 열쇠 · 시각 없는 코스 GPX 는 기록이 아님", [RF.gpxRecord(gx).rec.notes[0].photo === back.rec.notes[0].photo, RF.gpxRecord('<gpx><trk><trkseg><trkpt lat="37" lon="127"></trkpt><trkpt lat="37.1" lon="127"></trkpt></trkseg></trk></gpx>')], [true, null]);
         eq("짧으면 남는 것 없음 · 0m 면 그대로", [RF.trimEnds(line, 600).length, RF.trimEnds(line, 0).length], [0, 11]);
+        // 3D 영상 선(2026-11-26 홍TV님 "코스 연결해서 올린 것은 앞 뒤 300m 자르지 말고"): 시각 있는 걸은 기록만 자르고, 시각 없는 코스 파일 · keepEnds 는 그대로
+        var walked = line.map(function (p, i) { return [p[0], p[1], 1700000000000 + i * 60000]; }), plan = line.map(function (p) { return [p[0], p[1], null]; });
+        eq("걸은 기록은 처음 · 끝 300m 자름", RF.flyTrack(walked, false).length, RF.trimEnds(walked, 300).length);
+        eq("시각 없는 코스 파일은 그대로", RF.flyTrack(plan, false).length, 11);
+        eq("keepEnds 면 걸은 기록도 그대로", RF.flyTrack(walked, true).length, 11);
     })();
     // 이은 코스(대표 코스)는 조각마다 받아 이음 - 코스 보기 · 코스 GPX 저장이 이은 ID 를 api/course 에 한 번에 물어 400 이었음(점검 14차 A5, RF.courseFetch)
     var CDIR = path.join(__dirname, "../resources/course/"), asked = [];

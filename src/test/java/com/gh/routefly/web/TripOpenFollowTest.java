@@ -23,7 +23,7 @@ public class TripOpenFollowTest {
         String tj = read("src/main/webapp/js/trip.js"), ck = read("src/main/webapp/js/course-kit.js");
         assertTrue("코스 보기 3D 영상은 촬영, 공개 코스라 처음 · 끝 안 자름",
             tj.contains("$(\"rec-fly\").onclick = function () { flyFile(got, true); };") && ck.contains("function flyStart(rec, en, keepEnds) {")
-            && ck.contains("tr = keepEnds ? all : trimEnds(all, FLY_TRIM_M);"));
+            && ck.contains("tr = flyTrack(all, keepEnds);") && ck.contains("return keepEnds || !timed ? (all || []).slice() : trimEnds(all, FLY_TRIM_M);"));
         assertFalse("코스 보기는 3D 미리보기 · 따라가기 단추를 쓰지 않음", tj.contains("\"index.html\" + cQ + \"&from=hike\"") || tj.contains("(EN ? \"hike.html?lang=en\" : \"hike.html\") + cQ"));
         assertTrue("연 GPX 파일은 이 기기 GPX 로 따라가기",
             tj.contains("$(\"rec-go\").hidden = false;") && tj.contains("try { RF.storeGpx(id, RF.gpxToApi(text, f.name)); }")
