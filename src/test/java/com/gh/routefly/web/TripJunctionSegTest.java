@@ -26,6 +26,6 @@ public class TripJunctionSegTest {
         String ck = read("src/main/webapp/js/course-kit.js");
         assertTrue("지날 때마다", ck.contains("passesNear(c, s.lat, s.lon, maxM).forEach(function (q) {"));
         assertTrue("기록 보기용 작은 course-kit 에 있음", read("src/main/webapp/js/kit-trip.js").contains("trailEnds: trailEnds"));
-        assertTrue("trip 은 서비스워커 화면 파일 - 캐시 이름을 올림", read("src/main/webapp/sw.js").contains("var SHELL = \"rf-shell-v432\""));
+        assertTrue("trip 은 서비스워커 화면 파일 - 캐시 이름을 올림", read("src/main/webapp/sw.js").contains("var SHELL = \"rf-shell-v433\""));
     }
 }

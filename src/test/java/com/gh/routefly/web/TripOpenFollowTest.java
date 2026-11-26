@@ -39,7 +39,7 @@ public class TripOpenFollowTest {
             && read("src/main/webapp/js/course-kit.js").contains("return b && Date.now() - b.t < 15 * 60000 && /^trip\\.html(\\?[^#]*)?(#open)?$/.test(String(b.u)) ? b.u : null;"));
         assertTrue("촬영이 끝나면 따라가기를 거치지 않고 그 기록 보기로 - 그 화면에서 💾 저장(2026-11-25 홍TV님 \"촬영이 끝나면 그냥 이 자리에\")",
             read("src/main/webapp/js/app.js").contains("location.href = RF.vidBackUrl() || \"hike.html#vid\";")
-            && tj.contains("RF.videoReady(EN, function (t, ok) { return RFDialog.alert(t, { ok: ok }); }")
+            && tj.contains("RF.videoReady(EN, function (t, ok, no) { return RFDialog.confirm(t, { ok: ok, cancel: no }); }")
             && read("src/main/webapp/trip.html").contains("<script src=\"js/rf-dialog.js\"></script>"));
         assertTrue("만든 영상(#vid)은 걷던 산행 이어 열기로 덮지 않음 - 💾 저장 창이 뜸(2026-11-25 PC)",
             read("src/main/webapp/js/hike.js").contains("&& !/^#(recdo|coursegpx)=/.test(location.hash) && location.hash !== \"#vid\") {"));

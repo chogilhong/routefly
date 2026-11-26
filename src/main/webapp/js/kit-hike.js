@@ -1357,7 +1357,7 @@
      */
     var FLY_TRIM_M = 300;
     /**
-     * 3D 화면이 만든 영상(IndexedDB rf-video "last") - 있으면 ask(글, 단추 글) 뒤 이 기기에 저장하고 지움(따라가기 · 기록 보기가 같이 씀).
+     * 3D 화면이 만든 영상(IndexedDB rf-video "last") - 있으면 ask(글, 저장 단추 글, 저장 안 함 단추 글 → true/false) 뒤 저장을 골랐으면 이 기기에 저장하고 지움(따라가기 · 기록 보기가 같이 씀).
      * 앱은 갤러리(RfGallery - Movies/routefly), 옛 앱은 공유 창(Filesystem + Share), 브라우저는 내려받기. note(글) - 끝 알림.
      */
     function videoReady(en, ask, note) {
@@ -1370,8 +1370,9 @@
             q.onsuccess = function () {
                 var v = q.result;
                 if (!v || !v.blob) { db.close(); return; }
-                ask(en ? "🛩 The 3D flight video is ready." : "🛩 3D 비행 영상이 준비됐습니다.", en ? "💾 Save" : "💾 저장").then(function () {
-                    videoSave(v.blob, v.name, (v.title ? v.title + " - " : "") + "routefly", en, note);
+                // 저장 · 저장 안 함을 고름(2026-11-26 홍TV님 "저장할 수도 있고 저장 안 할 수도 있고") - 어느 쪽이든 다시 묻지 않게 지움
+                ask(en ? "🛩 The 3D flight video is ready." : "🛩 3D 비행 영상이 준비됐습니다.", en ? "💾 Save" : "💾 저장", en ? "Don't save" : "저장 안 함").then(function (yes) {
+                    if (yes !== false) videoSave(v.blob, v.name, (v.title ? v.title + " - " : "") + "routefly", en, note);
                     try { db.transaction("v", "readwrite").objectStore("v").delete("last"); } catch (e) { /* 다음에 덮어씀 */ }
                 });
             };

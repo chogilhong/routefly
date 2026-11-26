@@ -69,7 +69,7 @@ public class VideoKitTest {
             && js.contains("if (hike.running) { toast(T(\"산행 중에는 3D 영상을 만들지 않습니다."));
         assertTrue("만든 3D 영상은 이 폰에 저장 - 앱은 갤러리(영상 Movies/routefly), 브라우저는 내려받기, 옛 앱은 공유 창",
             ck.contains("b64().then(function (d) { return gal.saveMedia({ data: d, name: name }); })") && ck.contains("var gal = plug(\"RfGallery\");")
-            && ck.contains("if (!nat) { down(); return; }") && ck.contains("videoSave(v.blob, v.name,") && js.contains("RF.videoReady(EN, function (t, ok) { return hAlert(t, { ok: ok }); }")
+            && ck.contains("if (!nat) { down(); return; }") && ck.contains("videoSave(v.blob, v.name,") && js.contains("RF.videoReady(EN, function (t, ok, no) { return hAsk(t, { ok: ok, cancel: no }); }")
             && plug.contains("public void saveMedia(PluginCall call)") && plug.contains("(video ? Environment.DIRECTORY_MOVIES : Environment.DIRECTORY_PICTURES) + \"/routefly\""));
         assertTrue("3D 화면으로 - 위성 없이(sat 없음)", ck.contains("url: \"index.html?video=1&rec=1&secs=\" + secs") && !ck.contains("video=1&rec=1&sat=1") && !js.contains("video=1&rec=1&sat=1"));
         assertTrue("영상에서만 지형을 코스 높낮이에 맞춰 더 돋움 · 음영 진하게(2026-11-23 홍TV님 \"고저가 잘 표현이 안 되어\")",

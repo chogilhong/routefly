@@ -2398,7 +2398,7 @@
     }
     /** 3D 화면이 만든 영상(rf-video "last")을 저장 - 한 번 저장하면 지움(기록 보기와 같은 RF.videoReady). */
     function vidReady() {
-        RF.videoReady(EN, function (t, ok) { return hAlert(t, { ok: ok }); }, function (m) { toast(m, 5000); });
+        RF.videoReady(EN, function (t, ok, no) { return hAsk(t, { ok: ok, cancel: no }); }, function (m) { toast(m, 5000); });
     }
 
     // ------------------------------------------------------------------ 사진 · 메모 (2026-10-08 홍TV님 - 램블러처럼 기록에 사진 · 메모)
