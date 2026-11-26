@@ -275,6 +275,14 @@
         // back=m - 산 · 길 목록(/m/, 2026-10-15)
         $("back").href = backTo === "list" ? "hike.html" : backTo === "m" ? "m/" : backTo === "en" ? "en/m/" : backTo === "studio" ? "studio.html" : "series.html";   // en - 영어 목록(/en/m/)
         $("back").textContent = backTo === "list" ? T("‹ 목록", "‹ List") : backTo === "m" ? T("‹ 코스 모음", "‹ Trails") : backTo === "en" ? "‹ Back" : backTo === "studio" ? T("‹ GPX 편집", "‹ GPX editor") : T("‹ 도장 · 완주", "‹ Stamps");   // studio - GPX 편집의 안내도에서 고르기(2026-11-26, park.js 와 같게)   // 2026-10-13 홍TV님: "‹ 뒤로" → 돌아갈 곳 이름
+        if (backTo === "studio") {
+            // 들어온 GPX 편집 화면으로 되돌아감(history.back) - 링크로 새로 열면 그 GPX 편집의 "‹ 뒤로" 가 다시 이 화면으로 와 둘이 왔다 갔다 했음(2026-11-26 홍TV님)
+            $("back").addEventListener("click", function (e) {
+                var fromStudio = false;
+                try { var r = new URL(document.referrer); fromStudio = r.origin === location.origin && /\/studio\.html$/.test(r.pathname); } catch (x) { /* 다른 곳 */ }
+                if (fromStudio && history.length > 1) { e.preventDefault(); history.back(); }
+            });
+        }
         // 고른 구간이 없을 때 아래 칸(모두 빼면 다시 이것으로) - 단추는 아래 칸에 맡겨 두고 받음(다시 그려도 됨)
         emptySheet = $("sheet").innerHTML;
         $("sheet").addEventListener("click", function (e) {

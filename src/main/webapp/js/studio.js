@@ -1232,11 +1232,26 @@
     };
     window.addEventListener("resize", function () { if (cur()) profile(); });
     // ‹ 뒤로 - 들어온 화면으로(코스 모음 · 내 기록), 바로 열었으면 코스 모음(2026-10-31 홍TV님 "따라가기로 하지 말고 뒤로")
+    // 처음 GPX 편집을 연 화면을 이 탭에 기억(rf-studio-from) - 🗺 안내도(park · route)를 오간 뒤에도 그리로(2026-11-26 홍TV님 "처음 어디서 열었느냐가 중요해. 거기로 찾아가야지")
+    var FROM_KEY = "rf-studio-from", from = studioFrom(document.referrer, location.origin);
+    try {
+        if (from.first) sessionStorage.setItem(FROM_KEY, from.url);
+        else if (!from.guide && !from.self) sessionStorage.removeItem(FROM_KEY);   // 바로 열었거나 다른 곳에서 - 옛 기억은 버림(뒤로는 코스 모음)
+    } catch (x) { /* 저장 안 되면 아래 기본 */ }
     $("backBtn").addEventListener("click", function (e) {
-        var same = false;
-        try { same = !!document.referrer && new URL(document.referrer).origin === location.origin; } catch (x) { /* 다른 곳 */ }
-        if (same && history.length > 1) { e.preventDefault(); history.back(); }
+        var first = null;
+        try { first = sessionStorage.getItem(FROM_KEY); } catch (x) { /* 없음 */ }
+        if (from.guide) { e.preventDefault(); location.href = first || "m/"; return; }   // 안내도에서 왔으면 처음 연 화면으로(없으면 코스 모음)
+        if (from.first && history.length > 1) { e.preventDefault(); history.back(); }
     });
+    /** 순수 함수 - 들어온 주소(referrer) → {first: 처음 연 화면(같은 사이트 · 안내도 · GPX 편집이 아님), guide: 안내도(park · route)에서 옴, self: GPX 편집에서 옴, url}. */
+    function studioFrom(ref, origin) {
+        var u = null;
+        try { u = ref ? new URL(ref) : null; } catch (x) { u = null; }
+        if (!u || u.origin !== origin) return { first: false, guide: false, self: false, url: null };
+        var guide = /\/(park|route)\.html$/.test(u.pathname), self = /\/studio\.html$/.test(u.pathname);
+        return { first: !guide && !self, guide: guide, self: self, url: u.href };
+    }
     /** 지도 왼쪽 도구 줄 - 길이 없으면 열기 · 그리기 말고는 흐리게(누르면 무엇을 먼저 할지 알림 - 2026-11-02 홍TV님 점검). */
     function toolsOff(off) {
         Array.prototype.forEach.call(document.querySelectorAll("#mapTools [data-go]"), function (b) {
