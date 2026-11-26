@@ -59,7 +59,7 @@ public class BasemapTest {
             js.contains("if (vector) loadMarks();") && js.contains("Promise.all([RF.famousFetch(), photosP])") && read("src/main/webapp/js/course-kit.js").contains("return { gj: famousMarks(peaks, elev, shelters.concat(halla)), peaks: peaks, elev: elev, shelters: shelters };")
             && js.contains("map.setFilter(\"peak\", RFMap.peakOnFilter(peakKeys, false, dropPeaks));") && js.contains("Object.keys(hidden).filter(function (k) { return hidden[k] && /^rf-/.test(k); }), dropHuts));")
             && js.contains("map.setLayoutProperty(\"rf-hut\", \"visibility\", hidden[\"rf-hut\"] ? \"none\" : \"visible\");"));
-        assertTrue("구간 색 · 봉우리 대피소 누르면 그래프에(2026-11-23 홍TV님)", js.contains("if (fam) return RF.trackSegments(rc, fam.huts.concat(fam.peaks, namedPeaks), SEG_NEAR_M, SEG_GAP_M);")
+        assertTrue("구간 색 · 봉우리 대피소 누르면 그래프에(2026-11-23 홍TV님)", js.contains("if (fam) return RF.trackSegments(rc, fam.huts.concat(fam.peaks, namedPeaks, parkEnds), SEG_NEAR_M, SEG_GAP_M);")
             && js.contains("\"line-color\": [\"coalesce\", [\"get\", \"color\"], \"#5b45ff\"]") && js.contains("map.on(\"click\", id, pickPlace);") && js.contains("if (prof) prof.set(q.d);"));
         assertTrue("지도 모양만 준비되면 그림 - load · map.loaded() 를 기다리지 않음(2026-11-23 PC: 일찍 연 GPX 가 안 그려졌음)",
             js.contains("map.once(\"style.load\", function () { styleOk = true;") && js.contains("whenStyle(draw);") && js.contains("whenStyle(applyKinds);")
@@ -83,7 +83,7 @@ public class BasemapTest {
         assertTrue("3D 비행 영상 바탕 = 우리 지도(2026-11-23 홍TV님) - 위성 없을 때만, 층은 모두(2026-11-23 홍TV님 \"뺀 것 다 넣어도\"), 출처 줄에 OpenMapTiles", app.contains("(VIDEO && !VIDEO.sat ? RFMap.open(r[0].basemapUrl, r[0].demUrl, { lang: LANG }) : Promise.resolve(null))")
             && !app.contains("VIDEO_DROP") && app.contains("out.sources = Object.assign({}, vs.sources, { terrain: t });\n        return out;") && app.contains("(videoVec ? T(\"지도: \", \"Map: \") + \"© OpenMapTiles | \" : \"\")")
             && read("src/main/webapp/index.html").contains("<script src=\"vendor/pmtiles-4.5.0/pmtiles.js\"></script>"));
-        assertTrue("구간: 지나간 …산 정상에서도 끊기 · 1km 안은 하나로 · 역 단추(2026-11-23 홍TV님 1 · 2 · 도시 안내)", js.contains("SEG_GAP_M = 1000") && js.contains("fam.huts.concat(fam.peaks, namedPeaks)")
+        assertTrue("구간: 지나간 …산 정상에서도 끊기 · 1km 안은 하나로 · 역 단추(2026-11-23 홍TV님 1 · 2 · 도시 안내)", js.contains("SEG_GAP_M = 1000") && js.contains("fam.huts.concat(fam.peaks, namedPeaks, parkEnds)")
             && js.contains("return /산$/.test(f.name || \"\")") && !js.contains("\"rf-rail\", \"🚉\"")
             && read("src/main/webapp/vendor/rfmap-1.1.8/rfmap.js").contains("\"rf-rail\": [\"#ffffff\", \"dot\"],") && read("src/main/webapp/vendor/rfmap-1.1.8/rfmap.js").contains("cityPoi(\"poi-city\", 15, [\"!=\", cityPoiIcon, \"rf-bus\"]), cityPoi(\"poi-bus\", 16, [\"==\", cityPoiIcon, \"rf-bus\"]),") && read("src/main/webapp/vendor/rfmap-1.1.8/rfmap.js").contains("[\"concat\", ko, \"역\"], ko]")
             && app.contains("map.setFilter(\"peak\", [\"!\", [\"in\", [\"get\", \"name\"], [\"literal\", videoPeakNames.concat(own)]]]);")

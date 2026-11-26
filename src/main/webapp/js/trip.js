@@ -27,6 +27,7 @@
     var styleOk = false, styleQ = [];   // 지도 모양 준비(whenStyle)
     // 공원 탐방로(2026-11-23 홍TV님 "지리산 안내도 코스들을 그려줘 - 일단 표시만"): 기록이 국립공원 안이면 api/park?name=<공원> 의 탐방로 선을 연하게
     var parkCands = [], parkShown = null, PARK_NEAR_M = 1500;
+    var parkEnds = [];   // 지나간 국립공원 탐방로의 처음 · 끝(갈림길 - 비선대 · 마등령 · 무너미고개) - 구간 끊는 곳에 더함(2026-11-26 홍TV님)
     // 대피소 사진(2026-11-23 홍TV님 "대피소 사진을 클릭하면 보여줘 · 대피소가 있는 산은 옆에 사진을 · 내 사진과 위치로 비교해 자리를"): data/shelter-photos.json
     var hutPhotos = {}, HUT_CARD_M = 300;
     // 구간: 끊는 곳끼리 · 처음 · 끝에서 1km 안이면 끊지 않음(2026-11-23 홍TV님 "1km 보다 짧은 구간은 앞에 붙이기" - 전에는 300m)
@@ -359,7 +360,7 @@
     /** 기록 선 - 우리 지도에서 공단 대피소 · 100대 명산 정상 자료가 있으면 그곳(선에서 200m 안)에서 끊어 구간마다 다른 색, 없으면 한 색. */
     function segData() {
         if (!rc) return { type: "FeatureCollection", features: [] };
-        if (fam) return RF.trackSegments(rc, fam.huts.concat(fam.peaks, namedPeaks), SEG_NEAR_M, SEG_GAP_M);
+        if (fam) return RF.trackSegments(rc, fam.huts.concat(fam.peaks, namedPeaks, parkEnds), SEG_NEAR_M, SEG_GAP_M);
         return { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: rc.lon.map(function (x, k) { return [x, rc.lat[k]]; }) } };
     }
 
@@ -373,9 +374,12 @@
         if (park === parkShown) return;
         parkShown = park;
         map.getSource("parktr").setData({ type: "FeatureCollection", features: [] });
+        if (parkEnds.length) { parkEnds = []; paintTrack(); }
         if (!park) return;
         getJson("api/park?name=" + encodeURIComponent(park)).then(function (d) {
             if (parkShown !== park || !d || !d.trails) return;
+            parkEnds = RF.trailEnds(d.trails);   // 공단 탐방로 "설악산 · 비선대 → 마등령" 의 처음 · 끝 - 구간을 갈림길에서도 끊음(2026-11-26 홍TV님 "소공원 ~ 비선대, 비선대 ~ 마등령삼거리 …")
+            if (parkEnds.length) paintTrack();
             var f = d.trails.concat(d.others || []).filter(function (t) { return t.coords && t.coords.length > 1; }).map(function (t) {
                 // 길 위 글자 "거리 · 표준 시간"(2026-11-23 홍TV님 "네이버처럼 - 탐방로 · 우리 코스 선에", 기록 선은 그대로) - 내리막 자료가 없어 오르막까지만 셈
                 var lab = t.distance_m > 0 ? RF.segText({ m: t.distance_m, ms: RF.standardMs("hike", t.distance_m, t.ascent_m) }) : "";

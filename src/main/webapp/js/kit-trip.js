@@ -449,8 +449,10 @@
     function trackSegments(c, stops, maxM, minGapM) {
         var n = c.lat.length, cuts = [];
         (stops || []).forEach(function (s) {
-            var q = snap(c, s.lat, s.lon);
-            if (q && q.off <= maxM && q.d > minGapM && q.d < c.total - minGapM) cuts.push({ d: q.d, name: s.name || null });
+            // 지날 때마다(원점회귀로 비선대를 오갈 때 두 번 - 2026-11-26 홍TV님 "소공원 ~ 비선대 … 비선대 ~ 소공원")
+            passesNear(c, s.lat, s.lon, maxM).forEach(function (d) {
+                if (d > minGapM && d < c.total - minGapM) cuts.push({ d: d, name: s.name || null });
+            });
         });
         cuts.sort(function (a, b) { return a.d - b.d; });
         var at0 = [0], names = [null], asc = c.asc || cumAscent(c.ele);
@@ -473,6 +475,41 @@
                 up: up, down: up != null && net != null ? Math.max(0, Math.round(up - net)) : null } });
         }
         return { type: "FeatureCollection", features: out };
+    }
+
+    /**
+     * 순수 함수 - 공단 탐방로(/api/park trails - name "설악산 · 비선대 → 마등령", coords [[경도, 위도], …])의 처음 · 끝 → [{name, lat, lon}](구간 끊는 곳 - 갈림길, 2026-11-26 홍TV님).
+     * 이름에 " → " 가 없는 탐방로는 뺌(어느 끝이 어디인지 모름). 같은 이름 · 같은 자리(50m 안)는 하나.
+     */
+    function trailEnds(trails) {
+        var out = [];
+        (trails || []).forEach(function (t) {
+            var co = t && t.coords, nm = String((t && t.name) || "");
+            var route = nm.indexOf(" · ") >= 0 ? nm.slice(nm.indexOf(" · ") + 3) : nm, ends = route.split(" → ");
+            if (!co || co.length < 2 || ends.length !== 2 || !ends[0].trim() || !ends[1].trim()) return;
+            [[ends[0].trim(), co[0]], [ends[1].trim(), co[co.length - 1]]].forEach(function (e) {
+                var p = { name: e[0], lat: +e[1][1], lon: +e[1][0] };
+                if (!isFinite(p.lat) || !isFinite(p.lon)) return;
+                if (out.some(function (q) { return q.name === p.name && distM(q.lat, q.lon, p.lat, p.lon) < 50; })) return;
+                out.push(p);
+            });
+        });
+        return out;
+    }
+    /**
+     * 순수 함수 - 선이 (lat, lon) 의 maxM 안을 지나는 때마다 가장 가까운 점의 출발부터 거리(m) 목록 - 선이 maxM 밖으로 나갔다 다시 오면 또 하나.
+     * 한 번(또는 점이 띄엄띄엄해 점으로는 못 찾음)이면 snap 과 같은 자리(선분 위 가장 가까운 곳).
+     */
+    function passesNear(c, lat, lon, maxM) {
+        var kx = 111320 * Math.cos(lat * Math.PI / 180), ky = 110540, out = [], run = null;
+        for (var i = 0; i < c.lat.length; i++) {
+            var x = (c.lon[i] - lon) * kx, y = (c.lat[i] - lat) * ky, off = Math.sqrt(x * x + y * y);
+            if (off <= maxM) { if (!run || off < run.off) run = { i: i, off: off }; continue; }
+            if (run) { out.push(run.i); run = null; }
+        }
+        if (run) out.push(run.i);
+        if (out.length < 2) { var q = snap(c, lat, lon); return q && q.off <= maxM ? [q.d] : []; }   // 점이 띄엄띄엄해도 선분으로(예전과 같게)
+        return out.map(function (k) { return c.dist[k]; });
     }
 
     /**
@@ -2384,6 +2421,7 @@
         fromApi: fromApi,
         gpxToApi: gpxToApi,
         recordCourse: recordCourse,
+        trailEnds: trailEnds,
         flyStart: flyStart,
         vidBackUrl: vidBackUrl,
         videoReady: videoReady,

@@ -375,6 +375,16 @@ eq("문장대", RF.poiIcon("문장대"), "🗻");
                 RF.trackSegments(c, [{ name: "가", lat: 35.30, lon: 127.7040 }], 200, 1000).features.length], [2, 1]);
             eq("구간 색 - 선에서 먼 곳(약 330m) · 서로 가까운 곳(150m 안) · 끝 가까운 곳은 안 끊음", [RF.trackSegments(c, [stopAt(40, 0.003)], 200, 150).features.length,
                 RF.trackSegments(c, [stopAt(40), stopAt(45)], 200, 150).features.length, RF.trackSegments(c, [stopAt(2), stopAt(99)], 200, 150).features.length, RF.trackSegments(c, [], 200, 150).features.length], [1, 2, 1, 1]);
+            // 원점회귀로 같은 갈림길을 두 번 지나면 두 번 다 끊음(2026-11-26 홍TV님 "소공원 ~ 비선대 … 비선대 ~ 소공원") - 동쪽 100칸 갔다가 55m 북쪽 길로 되돌아옴
+            var tr2 = [];
+            for (var j = 0; j <= 100; j++) tr2.push([35.30, 127.70 + j * 0.0001, j * 10000, 1000]);
+            for (var j2 = 100; j2 >= 0; j2--) tr2.push([35.3005, 127.70 + j2 * 0.0001, (201 - j2) * 10000, 1000]);
+            var c2 = RF.recordCourse({ name: "t2", track: tr2 }), s3 = RF.trackSegments(c2, [{ name: "비선대", lat: 35.3002, lon: 127.703 }], 200, 150);
+            eq("구간 - 같은 곳을 두 번 지나면 두 번 끊음", s3.features.map(function (f) { return [f.properties.from, f.properties.to]; }), [[null, "비선대"], ["비선대", "비선대"], ["비선대", null]]);
+            eq("구간 - 공단 탐방로 처음 · 끝(갈림길) 이름 · 자리, 같은 곳은 하나 · 화살표 없는 것은 뺌", RF.trailEnds([
+                { name: "설악산 · 소공원 → 비선대", coords: [[128.49, 38.17], [128.47, 38.16]] }, { name: "설악산 · 비선대 → 마등령", coords: [[128.4700001, 38.16], [128.45, 38.17]] },
+                { name: "설악산 · 토왕성폭포 전망대", coords: [[128.5, 38.15], [128.51, 38.15]] }, { name: "설악산 · 가 → 나", coords: [[128.5, 38.1]] }]),
+                [{ name: "소공원", lat: 38.17, lon: 128.49 }, { name: "비선대", lat: 38.16, lon: 128.47 }, { name: "마등령", lat: 38.17, lon: 128.45 }]);
         })();
         var fm = RF.famousMarks([{ id: "지리산", summit: "천왕봉", lat: 35.33, lon: 127.73, height: 1950 }, { id: "없는산", name: "없는산", lat: 36, lon: 128 }, { id: "x" }],
             { "지리산": 1915 }, [{ name: "장터목대피소", lat: 35.3325, lon: 127.71 }, { name: "자리없음" }]);
