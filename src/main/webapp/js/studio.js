@@ -1236,20 +1236,24 @@
     var FROM_KEY = "rf-studio-from", from = studioFrom(document.referrer, location.origin);
     try {
         if (from.first) sessionStorage.setItem(FROM_KEY, from.url);
-        else if (!from.guide && !from.self) sessionStorage.removeItem(FROM_KEY);   // 바로 열었거나 다른 곳에서 - 옛 기억은 버림(뒤로는 코스 모음)
+        else if (!from.guide && !from.self) sessionStorage.removeItem(FROM_KEY);   // 바로 열었으면 옛 기억은 버림(뒤로는 코스 모음)
     } catch (x) { /* 저장 안 되면 아래 기본 */ }
     $("backBtn").addEventListener("click", function (e) {
         var first = null;
         try { first = sessionStorage.getItem(FROM_KEY); } catch (x) { /* 없음 */ }
         if (from.guide) { e.preventDefault(); location.href = first || "m/"; return; }   // 안내도에서 왔으면 처음 연 화면으로(없으면 코스 모음)
-        if (from.first && history.length > 1) { e.preventDefault(); history.back(); }
+        if (from.first && history.length > 1) { e.preventDefault(); history.back(); }   // 들어온 곳(다른 사이트도)으로
     });
-    /** 순수 함수 - 들어온 주소(referrer) → {first: 처음 연 화면(같은 사이트 · 안내도 · GPX 편집이 아님), guide: 안내도(park · route)에서 옴, self: GPX 편집에서 옴, url}. */
+    /**
+     * 순수 함수 - 들어온 주소(referrer) → {first: 처음 연 화면, guide: GPX 편집이 연 안내도(park · route 의 back=studio)에서 옴, self: GPX 편집에서 옴, url}.
+     * first 는 안내도 · GPX 편집이 아닌 모든 곳 - 다른 사이트 · 따라가기에서 연 안내도의 "이 길을 GPX 편집으로" 도 그곳으로 되돌아감(2026-11-26 홍TV님 "다른 곳에서 들어왔으면 다시 거기로").
+     */
     function studioFrom(ref, origin) {
         var u = null;
         try { u = ref ? new URL(ref) : null; } catch (x) { u = null; }
-        if (!u || u.origin !== origin) return { first: false, guide: false, self: false, url: null };
-        var guide = /\/(park|route)\.html$/.test(u.pathname), self = /\/studio\.html$/.test(u.pathname);
+        if (!u) return { first: false, guide: false, self: false, url: null };
+        var here = u.origin === origin, self = here && /\/studio\.html$/.test(u.pathname);
+        var guide = here && /\/(park|route)\.html$/.test(u.pathname) && /[?&]back=studio(&|$)/.test(u.search);
         return { first: !guide && !self, guide: guide, self: self, url: u.href };
     }
     /** 지도 왼쪽 도구 줄 - 길이 없으면 열기 · 그리기 말고는 흐리게(누르면 무엇을 먼저 할지 알림 - 2026-11-02 홍TV님 점검). */
