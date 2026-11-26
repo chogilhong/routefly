@@ -115,6 +115,14 @@
     while (i + 1 < times.length && times[i + 1][0] <= t) i++;
     return i;
   }
+  /**
+   * 순수 함수 - 글을 고친 뒤 이어 듣기는 멈춘 줄의 처음부터(2026-11-26 홍TV님 "1번을 수정하고 그것만 듣고 확인하고 이어 듣기를 했는데 다시 1번부터"):
+   * 옛 줄 시각 oldTimes 에서 멈춘 t 가 몇 번 줄인지 보고, 새 줄 시각 newTimes 의 그 줄 시작 초. 줄이 줄었으면 마지막 줄.
+   */
+  function resumeFrom(oldTimes, t, newTimes) {
+    if (!oldTimes || !oldTimes.length || !newTimes || !newTimes.length) return 0;
+    return newTimes[Math.min(lineAt(oldTimes, t), newTimes.length - 1)][0];
+  }
 
   /**
    * 순수 함수 - 한 달 무료 양 표시(2026-11-26 홍TV님 "50만자 중 기존 얼마를 사용했고 현재 작업은 얼마고").
@@ -125,7 +133,7 @@
     return '이번 달 ' + n(limit / 10000) + '만 자 중 · 전에 쓴 것 ' + n(before) + '자 · 이번 작업 ' + n(job) + (jobTotal ? ' / ' + n(jobTotal) : '') + '자 · 남은 것 ' + n(left) + '자';
   }
   var LIMIT = 500000;
-  var api = { usageText: usageText, lineNumbers: lineNumbers, lines: lines, spoken: spoken, shown: shown, playSig: playSig, clock: clock, cacheKey: cacheKey, parseWav: parseWav, joinWav: joinWav, srtTime: srtTime, srt: srt, lineAt: lineAt };
+  var api = { usageText: usageText, lineNumbers: lineNumbers, lines: lines, spoken: spoken, shown: shown, playSig: playSig, clock: clock, cacheKey: cacheKey, parseWav: parseWav, joinWav: joinWav, srtTime: srtTime, srt: srt, lineAt: lineAt, resumeFrom: resumeFrom };
   if (typeof module !== 'undefined' && module.exports) { module.exports = api; return; }
   root.RFV = api;
 
@@ -240,7 +248,7 @@
   }
 
   // 전체 듣기(audio)와 한 줄 듣기(one)는 따로 - 한 줄을 들어도 멈춘 전체 자리는 남음
-  var audio = null, audioSig = null, one = null, nowLine = -1;
+  var audio = null, audioSig = null, audioTimes = null, one = null, nowLine = -1;
   /**
    * 전체 듣기 중 읽는 줄을 밝히고 화면 가운데로(2026-11-26 홍TV님 "6까지 읽었어. 그럼 스크롤을 올려서 다음 줄부터 볼 수 있도록") -
    * 줄이 바뀔 때만 옮김. i 가 -1 이면 밝힘만 지움.
@@ -255,6 +263,7 @@
   /** 전체 듣기를 끝냄(처음부터로) - 다 들었거나 글 · 목소리가 바뀌었을 때. */
   function stop() {
     if (audio) { audio.pause(); URL.revokeObjectURL(audio.src); audio = null; }
+    audioTimes = null;
     audioSig = null;
     markLine(-1);
     $('vcPlay').textContent = '🔊 전체 듣기';
@@ -272,11 +281,12 @@
     $('vcPlay').textContent = '⏹ 멈춤';
     $('vcRestart').hidden = true;
   }
-  function playAll(wav, sig, times) {
+  function playAll(wav, sig, times, from) {
     stop();
     if (one) one.pause();
     audio = new Audio(URL.createObjectURL(new Blob([wav], { type: 'audio/wav' })));
-    audioSig = sig;
+    audioSig = sig; audioTimes = times;
+    if (from > 0) audio.currentTime = from;
     audio.onended = stop;
     audio.ontimeupdate = function () { if (audio) markLine(lineAt(times, audio.currentTime)); };
     $('vcPlay').textContent = '⏹ 멈춤';
@@ -378,6 +388,12 @@
       if (audio && audioSig === sig) { resume(); return; }   // 멈춘 자리에서 이어 들음
       var j = joined();
       if (!j) return;
+      if (audio && audio.paused && audioTimes) {   // 멈춘 뒤 글 · 목소리를 바꿈 → 새로 이어 붙이되 멈춘 줄의 처음부터(⏮ 처음부터는 audio 를 지운 뒤라 여기 안 옴)
+        var from = resumeFrom(audioTimes, audio.currentTime, j.times);
+        playAll(j.wav, sig, j.times, from);
+        info('고친 글로 ' + (lineAt(j.times, from) + 1) + '번 줄부터 이어 들음');
+        return;
+      }
       playAll(j.wav, sig, j.times);
       info('전체 ' + j.times[j.times.length - 1][1].toFixed(1) + '초');
     };

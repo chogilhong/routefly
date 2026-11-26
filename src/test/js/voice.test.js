@@ -39,6 +39,11 @@ assert.strictEqual(V.lineAt(tm, 8.4), 0);
 assert.strictEqual(V.lineAt(tm, 8.6), 1);
 assert.strictEqual(V.lineAt(tm, 30), 2);
 assert.strictEqual(V.lineAt([[0, 1]], 5), 0);
+// 고친 뒤 이어 듣기 - 멈춘 줄의 처음부터(새 줄 시각으로)
+assert.strictEqual(V.resumeFrom(tm, 9, [[0, 6.5], [7, 16.6], [17, 25]]), 7);
+assert.strictEqual(V.resumeFrom(tm, 3, [[0, 6.5], [7, 16.6]]), 0);
+assert.strictEqual(V.resumeFrom(tm, 30, [[0, 6.5], [7, 16.6]]), 7);   // 줄이 줄었으면 마지막 줄
+assert.strictEqual(V.resumeFrom(null, 5, [[0, 1]]), 0);
 
 // wav 만들기(테스트용 - 24kHz 16bit 모노, Azure riff-24khz-16bit-mono-pcm 과 같은 모양). extra 는 fmt 와 data 사이에 끼울 덩어리
 function wav(samples, extra) {
