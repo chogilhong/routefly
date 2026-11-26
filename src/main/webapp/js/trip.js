@@ -378,7 +378,7 @@
         if (!park) return;
         getJson("api/park?name=" + encodeURIComponent(park)).then(function (d) {
             if (parkShown !== park || !d || !d.trails) return;
-            parkEnds = RF.trailEnds(d.trails);   // 공단 탐방로 "설악산 · 비선대 → 마등령" 의 처음 · 끝 - 구간을 갈림길에서도 끊음(2026-11-26 홍TV님 "소공원 ~ 비선대, 비선대 ~ 마등령삼거리 …")
+            parkEnds = RF.trailEnds(d.trails, d.places);   // 공단 탐방로 "설악산 · 비선대 → 마등령" 의 처음 · 끝 - 구간을 갈림길에서도 끊음(2026-11-26 홍TV님 "소공원 ~ 비선대, 비선대 ~ 마등령삼거리 …")
             if (parkEnds.length) paintTrack();
             var f = d.trails.concat(d.others || []).filter(function (t) { return t.coords && t.coords.length > 1; }).map(function (t) {
                 // 길 위 글자 "거리 · 표준 시간"(2026-11-23 홍TV님 "네이버처럼 - 탐방로 · 우리 코스 선에", 기록 선은 그대로) - 내리막 자료가 없어 오르막까지만 셈

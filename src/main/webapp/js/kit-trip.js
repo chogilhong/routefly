@@ -485,9 +485,17 @@
     /**
      * 순수 함수 - 공단 탐방로(/api/park trails - name "설악산 · 비선대 → 마등령", coords [[경도, 위도], …])의 처음 · 끝 → [{name, lat, lon}](구간 끊는 곳 - 갈림길, 2026-11-26 홍TV님).
      * 이름에 " → " 가 없는 탐방로는 뺌(어느 끝이 어디인지 모름). 같은 이름 · 같은 자리(50m 안)는 하나.
+     * places(/api/park places - 탐방로 위 지점 이름 · 자리)가 끝에서 PLACE_END_M 안이면 그 이름으로 - 공단 탐방로 "소공원 → 희운각대피소" 는 끝이 실제로는
+     * 무너미고개 갈림길(희운각대피소는 약 190m 남쪽)이라 "희운각대피소" 로 끊겼음(2026-11-26 홍TV님 "희운각은 안 들렸어", PC 가 운영 응답으로 확인).
      */
-    function trailEnds(trails) {
-        var out = [];
+    var PLACE_END_M = 50;
+    function trailEnds(trails, places) {
+        var out = [], pl = (places || []).filter(function (p) { return p && p.name && isFinite(+p.lat) && isFinite(+p.lon); });
+        function placeName(lat, lon, name) {
+            var best = null, bd = PLACE_END_M;
+            pl.forEach(function (p) { var d = distM(lat, lon, +p.lat, +p.lon); if (d <= bd) { bd = d; best = p.name; } });
+            return best || name;
+        }
         (trails || []).forEach(function (t) {
             var co = t && t.coords, nm = String((t && t.name) || "");
             var route = nm.indexOf(" · ") >= 0 ? nm.slice(nm.indexOf(" · ") + 3) : nm, ends = route.split(" → ");
@@ -495,6 +503,7 @@
             [[ends[0].trim(), co[0]], [ends[1].trim(), co[co.length - 1]]].forEach(function (e) {
                 var p = { name: e[0], lat: +e[1][1], lon: +e[1][0] };
                 if (!isFinite(p.lat) || !isFinite(p.lon)) return;
+                p.name = placeName(p.lat, p.lon, p.name);
                 if (out.some(function (q) { return q.name === p.name && distM(q.lat, q.lon, p.lat, p.lon) < 50; })) return;
                 out.push(p);
             });
