@@ -21,13 +21,18 @@ public class JsRankTest {
     @Test
     public void 사람_확인된_사람이_본_화면만() throws Exception {
         String ip = "203.0.113.91", day = LocalDate.now(WeatherServlet.KST).toString();
-        String mt = "https://routefly.kr/routefly/m/%EC%A7%80%EB%A6%AC%EC%82%B0?x=1", course = "https://routefly.kr/routefly/c/knps-9001";
+        String mt = "https://routefly.kr/routefly/m/%EC%A7%80%EB%A6%AC%EC%82%B0?x=1";
         Stats.hit("/m/지리산", null, ip, null, null, null, "PC", null);
-        Stats.hit("/c/", "knps-9001", ip, null, null, null, "PC", null);
+        String cid = "knps-9001";
+        Stats.hit("/c/", cid, ip, null, null, null, "PC", null);
+        // 전체 테스트에서는 앞 테스트(CheckupRound11Test 통계_코스_칸_한도)가 그 날 코스 칸을 COURSES_MAX 까지 채워 새 코스는 칸이 안 생김 - 그때는 이미 있는 칸으로(2026-11-26 PC)
+        JsonObject cs = Stats.days().get(day).getAsJsonObject("courses");
+        if (!cs.has(cid)) cid = cs.keySet().stream().filter(k -> Stats.courseKey("/c/" + k) != null).findFirst().orElseThrow();
+        String course = "https://routefly.kr/routefly/c/" + cid;
         assertFalse("사람 확인(js) 전에는 안 셈", Stats.jsPage(ip, "/routefly", mt));
         Stats.js(ip, "PC", false);
         JsonObject d0 = Stats.days().get(day);
-        int m0 = n(d0, "jsPages", "/m/지리산"), c0 = n(d0, "jsCourses", "knps-9001");
+        int m0 = n(d0, "jsPages", "/m/지리산"), c0 = n(d0, "jsCourses", cid);
         assertTrue(Stats.jsPage(ip, "/routefly", mt));
         assertFalse("같은 사람 · 같은 화면 또", Stats.jsPage(ip, "/routefly", mt));
         assertTrue("코스 페이지", Stats.jsPage(ip, "/routefly", course));
@@ -35,7 +40,7 @@ public class JsRankTest {
         assertFalse("다른 사람(방문 · js 없음)", Stats.jsPage("203.0.113.92", "/routefly", mt));
         JsonObject d = Stats.days().get(day);
         assertEquals(m0 + 1, n(d, "jsPages", "/m/지리산"));
-        assertEquals(c0 + 1, n(d, "jsCourses", "knps-9001"));
+        assertEquals(c0 + 1, n(d, "jsCourses", cid));
 
         String pg = StatsServlet.page(Stats.days(), 7, null);
         assertTrue(pg.contains("사람 확인 인기 산 페이지(") && pg.contains("일 - 11-26 부터, 화면 js 가 돈 사람 수") && pg.contains("사람 확인 인기 코스 상위 20(") && pg.contains("사람 확인 화면별("));
