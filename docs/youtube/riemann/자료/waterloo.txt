@@ -1,0 +1,33 @@
+출처: https://www.math.uwaterloo.ca/~mrubinst/alpoge_claude_grh/ (받은 날 2026-11-26)
+쪽 제목: Alpöge/Claude proof of the Generalized Riemann Hypothesis (Michael Rubinstein, University of Waterloo)
+※ 원문을 옮기지 않고 PC Claude 가 요점만 한국어로 정리함(원문은 PC C:\GH\workspace\_dl\riemann\waterloo.html · waterloo.txt)
+
+[요점]
+- 2026-11-20: Levent Alpöge 가 Anthropic 의 Claude 와 함께 찾은 리만 가설(RH)과 디리클레 L-함수의 일반화된 리만 가설(GRH) 증명을 발표.
+  증명은 Lean(증명 보조기)으로 된 형식 증명 - 파일 175,187개, 약 1,700만 줄.
+- 리만 제타 함수용 풀이 글 "The Alpöge–Claude proof of the Riemann hypothesis explained for the Riemann zeta function"
+  - v2: 265쪽, 작업 중 초안, 2026-11-22 (Claude · Codex · Gemini 와 함께 쓴 공부용 안내서)
+  - v1: 164쪽, 2026-11-21 (zeta-paper.pdf - 웹 메모가 받으라 한 파일)
+  - 주된 부등식 (M)(소수 거듭제곱 위 가중합의 위 끝)과 디리클레 지표 두 추정에서 RH 를 이끌어 냄.
+    (M) 자체는 그 글에서 증명하지 않고, 고전적 말로 적은 가설 13개로 줄여 놓음(어느 것도 그 글에서 다 증명하지는 않음). I.12 절에 남은 일 목록.
+  - v2 에 더한 것: 구성의 대상, (M) → 번호 가설로 줄이기, 가장 쉬운 경우(lemniscate) 전체 풀이, Lean 개발이 쓰는 발표된 결과 목록.
+- Lean 검증(mrubinst.github.io/grh-lean-verification): Waterloo 계산 서버에서 Claude Code 로 돌림.
+  2026-11-21 결과 - 네 가지 검사 모두 오류 없음: 175,187 모듈 모두 컴파일, 다섯 정리는 Lean 기본 공리 3개에만 기댐,
+  Lean 커널로 모든 모듈 다시 확인, 따로 짠 커널 nanoda 가 정리가 기대는 선언 1,484,729개를 확인.
+- 짧아진 증명(2026-11-25): Luke Sernau(Anthropic 동료 · Claude 와)가 같은 다섯 정리를 약 76,000줄(compact) · 300,000줄(readable)로 다시 씀.
+  2026-11-26 결과 - 794 모듈 모두 컴파일, 기본 공리 3개, lake comparator --paranoid 가 도전 파일과 다섯 정리가 같음을 확인하고
+  여섯 커널(Lean 기본 · paranoid · nanoda · lean4lean · con-leche · con-ron)이 받아들임("Your solution is okay!", 다섯 시간).
+- 다른 사람 검증: Andrew Sutherland(MIT) 두 증명 모두, Elliot Arledge(독립 재빌드 · 공리 감사 · nanoda), Bartosz Naskręcki(riemann-rev 현황판).
+
+[링크]
+https://alpo.ge/remark.pdf (Alpöge 의 4쪽 메모)
+https://www.math.uwaterloo.ca/~mrubinst/alpoge_claude_grh/zeta-paper_v2.pdf · zeta-paper_v2.tex
+https://www.math.uwaterloo.ca/~mrubinst/alpoge_claude_grh/zeta-paper.pdf · zeta-paper.tex
+https://mrubinst.github.io/grh-lean-verification/
+https://mrubinst.github.io/grh-lean-compact-check/
+https://github.com/lsernau/grh-lean
+https://math.mit.edu/~drew/grh/
+https://math.mit.edu/~drew/shortgrh/
+https://github.com/Infatoshi/rh-verification-receipts
+https://github.com/nasqret/riemann-rev
+https://nasqret.github.io/riemann-rev/

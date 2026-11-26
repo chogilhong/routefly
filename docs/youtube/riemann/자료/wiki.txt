@@ -1,0 +1,319 @@
+출처: https://en.wikipedia.org/wiki/Alp%C3%B6ge's_proof_of_the_Riemann_hypothesis (받은 날 2026-11-26)
+
+2026 announcement in mathematics
+
+A request that this article be renamed to Proof of the Riemann hypothesisProof of the Riemann hypothesis is under discussion. Please do not move this article until the discussion is closed.
+
+This article documents a current event and may change rapidly. Please update outdated or incomplete information with citations to reliable sources. (November 2026) (Learn how and when to remove this message)
+
+Graph of the top layers of the original proof
+
+Millennium Prize Problems
+
+Birch and Swinnerton-Dyer conjecture
+
+Hodge conjecture
+
+Navier–Stokes existence and smoothness (active; solution claimed)
+
+P versus NP problem
+
+Poincaré conjecture (solved)
+
+Riemann hypothesis (active; solution claimed)
+
+Yang–Mills existence and mass gap (partial solution claimed)
+
+v
+
+t
+
+e
+
+On 20 November 2026, Anthropic mathematician Levent Alpöge released a formal proof of the Riemann hypothesis, a long-standing open problem in mathematics and one of the Millennium Prize Problems. He used an unreleased model of Claude, a large language model developed by Anthropic, to develop an argument proving not only the classical Riemann hypothesis, but also the generalized Riemann hypothesis for Dirichlet L-functions.[1] Other extensions of the problem, like the extended Riemann hypothesis or the grand Riemann hypothesis, remain unproven.
+
+The proof is formalized in Lean, a proof assistant. On 21 November 2026, the Lean FRO and the Mathlib Initiative announced that they had verified the proof and had full confidence in its correctness.
+Alpöge's original proof consisted of about 17 million lines of code. A more efficient version with 300,000 lines of code was published by Anthropic researcher Luke Sernau on 25 November 2026.
+
+As of November 2026[update], no complete human-readable account of the proof has been published. Early reviewers have said the proof draws on a wide swath of results from modern number theory, including the Langlands program and arithmetic geometry. A core idea is to transport certain methods from the Weil conjectures to the integers.
+
+Background
+[edit]
+
+Main article: Riemann hypothesis
+
+This plot of Riemann's zeta (ζ) function (here with argument z) shows trivial zeros where ζ(z)=0, a pole where ζ(z)→∞, the critical line of nontrivial zeros with Re⁡(z) =1/2 and density of absolute values.
+
+The Riemann hypothesis states that the Riemann zeta function has its zeros only at the negative even integers and at complex numbers with real part 12. First posed in 1859 by Bernhard Riemann,[2] the hypothesis implies bounds on the distribution of prime numbers.[3] It makes up part of Hilbert's eighth problem and is one of the Millennium Prize Problems of the Clay Mathematics Institute. The name is also used for some closely related analogues such as the Riemann hypothesis for curves over finite fields, which was proved by André Weil around 1940.
+
+The Riemann zeta function ζ is a function whose argument may be any complex number other than 1, and whose values are also complex. It has zeros at the negative even integers, called trivial zeros, and all other zeros are nontrivial zeros. The Riemann hypothesis is concerned with the locations of these nontrivial zeros, and states that all the nontrivial zeros lie on the critical line, consisting of the complex numbers 12+it where t is a real number and i is the imaginary unit.
+
+The hypothesis and its generalizations have consequences in several areas of mathematics. The standard hypothesis implies a bound on the error of the logarithmic integral as an estimate of the number of primes less than a given value.[4] Some conditional proofs assume the truth of generalizations of the hypothesis, such as those for Goldbach's weak conjecture—before it was proved unconditionally—and for Artin's conjecture on primitive roots.
+
+Development
+[edit]
+
+Alpöge released a Lean formalization of about 17 million lines of code.[5] He initially reported that an attempt to render the argument in prose had produced more than 250,000 pages; on 23 November 2026, he stated on social media that the figure had been a joke.[6]
+
+Development of the Lean proof ran from 6 October to 16 November. Alpöge writes that in "tens" of cases Claude took an insight from a toy setting and carried the argument over to a full proof.[7]
+
+The Wall Street Journal wrote that Claude did not work autonomously and that Alpöge guided the model.[8]
+Abhishek Saha, a number theorist at Queen Mary University of London, told Al Jazeera that Alpöge deserves credit for the proof and it should earn him the Fields Medal.[9]
+
+With the release of Alpöge's proof, the Lean community set out to reduce, simplify, and refactor the proof with the aim of making it more accessible, readable, and integrated with the community.[10] On 25 November, Anthropic researcher Luke Sernau released a more efficient version of the proof, spanning 300,000 lines in a "readable" version or 76,000 lines in a "compact" version, under the Apache software license.[11] The "readable" version has since been adopted by the Lean community and further refactors are based on this work.[10][11]
+
+Of the 300,000 lines of Lean code, 177,492 lines are a library of known results from the literature, which are included because they were not present in mathlib at the time of writing. The remaining 122,410 lines of code constitute the new argument in the proof.[12] The library contains results from class field theory, Artin reciprocity, étale cohomology, Hodge structures, ideal class groups of cyclotomic fields, Galois representations of modular forms, Hecke polynomials, p-adic Hodge theory, crystalline cohomology, Kisin modules, Shimura varieties, the Siegel–Weil formula, the Rallis formula, the simple trace formula, the Chowla–Selberg formula, the Pólya–Vinogradov inequality, and the prime number theorem for arithmetic progressions.[13]
+
+Verification
+[edit]
+
+The five headline theorems from the proof were checked using Lean by Andrew Sutherland,[14] among others.[15][16][17] All of Sutherland's tests passed.
+
+In particular, verifying the proof involves four criteria established by the Lean community:[18]
+
+The proof states the Riemann hypothesis correctly in Lean. It imports a previously vetted definition of the Riemann hypothesis from mathlib. It also establishes purely arithmetical consequences of the hypothesis, such as Robin's inequality, which do not require defining the zeta function.
+
+The code compiles to produce an export file. This requires substantial computational resources. It was performed by volunteers dozens of times.
+
+The code proves the statement of the Riemann hypothesis without redefining it. This is established by comparator tools.
+
+The export file passes the proof checker. It passes all known checkers, including third-party formally verified software.
+
+On 21 November, the Lean FRO and the Mathlib Initiative stated "full confidence" that Alpöge's proof is correct.[18][19][20][21]
+
+On 26 November, Sutherland finished testing the two shortened versions of the proof (the "readable" version with 300,000 lines, and the "compact" version with 76,000 lines), confirming that they are correct.[22]
+
+Responses
+[edit]
+
+This section needs expansion. You can help by adding missing information. (November 2026)
+
+On the significance of the result
+[edit]
+
+Several mathematicians described the results as historically significant. James Maynard described the proof, if correct, as "a historic milestone".[23] Martin Bridson, president of the Clay Mathematics Institute, called it "an announcement of historic significance" and said he expected understanding the proof would take time. Brian Conrey, Brian Greene, Shing-Tung Yau, and Alex Kontorovich also commented on its significance.[24][25][26][27] Andrew Granville and Maksym Radziwill criticized the clarity of Alpöge's document and the lack of human understanding of the proof.[23][28][29]
+
+On the mathematical content
+[edit]
+
+In his first comment on the proof on the social media platform X, Alpöge remarked, "the Lean is full of garbage obviously, but compiles, but all criticism of such garbage is totally reasonable and accepted, I should have cleaned it up but it was randomly difficult to for various strange reasons. Mea culpa..."[30]
+
+Terence Tao's preliminary review indicates that the proof "appears to use the full power of modern developments on the Langlands program and arithmetic geometry".[31] Tao referred to a Zulip chat in which number theorists Chris Birkbeck[32] and Filippo Nuccio reacted to an AI-led teardown of the proof; Nuccio wrote, "it basically contains all number theory produced in the last 50 years, in all branches of the discipline."[33]
+Alpöge predicted that the scope of the proof could be greatly simplified.[33]
+Thomas Bloom reported that Alpöge's proof seems more algebraic in approach than OpenAI's analytic proof of the quasi-Riemann hypothesis.[34]
+
+On the role of the AI
+[edit]
+
+In The Conversation, Melissa Lee wrote that the proof has been received differently from some earlier AI-assisted proofs, commenting that "this discovery may also provide one of the first good examples of how AI-assisted breakthroughs can be announced and shared in a way that respects the mathematical community."[35]
+
+Proof strategy
+[edit]
+
+According to Alpöge, an early milestone in the proof is a "descendant" of Sergei Stepanov's argument, which led to a simplified proof of the Riemann hypothesis for curves over finite fields. Imitating that argument over the integers requires carefully managing the "length of a chain of theta lifts".[7]
+
+Robin Zhang at IHES and Michael Rubinstein at the University of Waterloo each used an AI agent to scan the Lean source and summarize the proof of the generalized Riemann hypothesis.[36][37] The following is based on those sources.
+
+Chebyshev ψ(x)
+
+Many classical equivalents are known in terms of prime asymptotics. For example, the RH itself is equivalent to the asymptotic estimate
+ψ(x)=x+O(xlog2x),
+where ψ(x) is Chebyshev's psi function
+ψ(x)=∑pk≤xlog⁡p=∑n≤xΛ(n)
+obtained by summing the logarithm of every maximal prime power not exceeding x, or as the cumulative sum of the von Mangoldt function Λ.[38]
+
+The strategy of Alpöge's proof, when specialized to the RH, is essentially to obtain a quantitative estimate of the error |ψ(x)−x|. The function that he estimates is a smoothed version of this error going back to the classical arguments of de la Vallée-Poussin:
+G(x)=∑n≤xΛ(n)(xn−1)−xlog⁡x+(1+γ)x
+where γ is the Euler constant.
+
+Alpöge's proof, still for the special case of RH, is to show that, for every ϵ>0 and A, there exists Y>A such that
+G(x)≤x1/2+ϵ,Y<x<Y3/2.
+A priori, this estimate is weaker than the error estimate required for RH, so the full proof requires two ingredients. First, it must establish that the weaker estimate is sufficient to establish RH by itself, without going through the ostensibly stronger uniform estimate. Second, it must establish the weaker estimate itself.
+
+The first, proving that this much weaker, intermittent, estimate is equivalent to the RH, is shown essentially using classical methods on oscillations in the distribution of prime numbers due to Edmund Landau and Paul Turán.[39] The Mellin transform of the smoothed error term has poles corresponding to the zeros of the zeta function, and repeated differentiation of the transform introduces a weight that concentrates the integral on an interval where the weaker estimate holds. The resulting bounds on the derivatives are then incompatible with a pole to the right of the critical line.
+
+The second, more substantial, step is to prove the main estimate itself. Here the argument is motivated by Stepanov's bounds on the number of points on curves over finite fields. The role of multiplicity in Stepanov's method is served instead by repeatedly applying the theta correspondence, which transfers automorphic forms between unitary groups. Each transfer increases the divisibility of periods of automorphic forms. The divisibility relates to sums over prime powers, and Arakelov theory allows this data to be compared to estimates of the size of the periods.
+
+This long argument ultimately produces a pair of competing error terms involving the number of theta lifts m: one error is in terms of m, and the other is in terms of x/m. Choosing m on the order of x then produces the required estimate on G(x).
+
+Obtaining estimates from theta functions
+[edit]
+
+A classical example due to Chebyshev shows that, because the binomial coefficient (2nn) is divisible by every prime between n and 2n, and is itself less than 4n, we have an estimate
+∑n<p≤2nlog⁡p≤nlog⁡4
+which illustrates the general method of obtaining estimates of the sum of logarithms of primes relevant for the proof. On the left-hand side of the inequality, one has a sum of logarithms of primes similar to those appearing in the function G(x), and on the right-hand side one has an upper bound coming from an absolute upper bound of the arithmetic function under consideration (in this case a binomial coefficient).
+
+This estimate using binomial coefficients is too crude for the proof, which requires summing logarithms of all small primes, and also accounting for multiplicities. The role of the binomial coefficient is instead played by invariants computed from theta functions. One the arithmetic side, special values of theta functions and their derivatives are often algebraic integers after suitable normalization, so they have divisibility by primes that can be assembled into the analog of the left-hand side of the inequality. On the analytic side, the absolute value of the special values of theta functions can also be bounded as Gaussian sums.
+
+A prototypical theta function is given by the absolutely convergent summation
+Θ(z)=∑λ∈ℤ[i]e−π|λ|2+λz.
+Differentiation n times at 0 inserts weights:
+Tn=Θ(n)(0)=∑λ∈ℤ[i]λne−π|λ|2.
+The symmetry of the square lattice under mulitplication by i implies that Tn=0 unless 4|n. Moreover, it is a theorem that the normalized coefficients
+An=2nTnT0n+1
+are integers. This is true more generally for theta functions attached to complex multiplication fields. The series can be estimated analytically, giving
+|Tn|≤T0(nπe)n/2.
+So for non-zero Tn,
+log⁡|Tn|2≤nlog⁡n+O(n),
+and the same estimate holds for log⁡An2, because the normalization introduces only an extra O(n).
+
+This estimate shows that if a nonzero An is divisible by pep for primes p in a finite set S, then
+∑p∈Seplog⁡p≤12nlog⁡n+O(n).
+The usefulness of this estimate depends on the multiplicities ep appearing on the left-hand side. For the theta functions used in the proof, the lower bounds on the multiplicities contain terms of the form max⁡(a/pj−w,0) where a is a differentiation order and w is a positive weight. Setting x=a/w and multiplying by log⁡p gives wmax⁡(x/pj−1,0)log⁡p which is w times the contribution of the prime power pj to the sum in the error G(x).
+
+Alpöge obtains higher multiplicities by composing successive theta lifts between spaces of automorphic forms on unitary groups. A theta lift uses a theta function as the kernel of an integral transform that transforms a form from one group to the next. For unitary groups, the integral can be written as a sum over finitely many lattice classes. Each lift is then represented as a matrix product via these lattice classes, and the entries of the matrices are obtained from derivatives of the theta functions attached to pairs of lattices.
+
+Composing the lifts multiplies the associated matrices. Thus if the entries of one integral matrix are divisible by pa and those of another by pb, those of the product are divisible by pa+b. To apply this procedure and obtain useful estimates, it is also necessary to control the denominators that arise along the way. For a chain of m lifts, the main contributions to divisibility grow like m. Errors in estimating the covolumes of the lattices in the full chain collapse to the initial and final lattices. Other errors, include those that relate to denominators, accumulate. Suitably selecting the chains of m theta lifts, the endpoint error is on of the order x/m, while the accumulated errors are of order m, up to small powers of x.
+
+See also
+[edit]
+
+List of mathematical discoveries made with artificial intelligence
+
+References
+[edit]
+
+↑ Howlett, Joseph. "Anthropic mathematician claims to prove Riemann hypothesis, most famous problem in all of math". Scientific American. Archived from the original on 20 November 2026. Retrieved 20 November 2026.
+
+↑ Riemann (1859). sfnp error: no target: CITEREFRiemann1859 (help)
+
+↑ Bombieri (2000). sfnp error: no target: CITEREFBombieri2000 (help)
+
+↑ von Koch, Niels Helge (1901), "Sur la distribution des nombres premiers", Acta Mathematica, 24: 159–182, doi:10.1007/BF02403071, S2CID 119914826, archived from the original on 9 October 2025, retrieved 6 November 2025
+
+↑ "AI may have solved math's greatest mystery. Can humans understand the answer?". Science. 20 November 2026. Archived from the original on 21 November 2026. Retrieved 21 November 2026.
+
+↑ Levent Alpöge [@__alpoge__] (23 November 2026). "Stupid things I did: 1. 250,000+ pages was a joke guys!" (Tweet). Retrieved 23 November 2026 – via X (formerly Twitter).
+
+1 2 Alpöge, Levent (20 November 2026). "Remark" (PDF). Archived (PDF) from the original on 20 November 2026. Retrieved 20 November 2026.
+
+↑ Cohen, Ben; Robinson, Joshua (24 November 2026). "The Most Famous Problem in Math Was Just Solved by AI—and This Human". The Wall Street Journal. ProQuest 3417303245. Retrieved 24 November 2026.
+
+↑ Habib, Heba (21 November 2026). "Riemann hypothesis: Has the world's most famous maths problem been cracked?". Al Jazeera. Retrieved 25 November 2026.
+
+1 2 leanprover-community/riemann-hypothesis, leanprover-community, 26 November 2026, retrieved 26 November 2026
+
+1 2 Sernau, Luke (25 November 2026). "GRH for Dirichlet L-functions, in Lean 4". Retrieved 25 November 2026.
+
+↑ https://github.com/lsernau/grh-lean/blob/main/grh/INDEX.md
+
+↑ https://github.com/lsernau/grh-lean/blob/main/grh/GUIDE.md
+
+↑ Sutherland, Andrew. "RH Lean proof: verification files". math.mit.edu. Massachusetts Institute of Technology. Archived from the original on 20 November 2026. Retrieved 21 November 2026.
+
+↑ Kakaes, Konstantin (20 November 2026). "As mathematicians race to verify AI Riemann proof, a human proof emerges". Quanta Magazine. Retrieved 20 November 2026.
+
+↑ "Han brugte Claude til at løse et af matematikkens gåder. Reaktionerne viser både begejstring og skepsis". y.dk (in Danish). 21 November 2026. Retrieved 22 November 2026.
+
+↑ Rubinstein, Michael (21 November 2026). "An independent check of the Lean proof of RH and GRH". Archived from the original on 22 November 2026. Retrieved 22 November 2026.
+
+1 2 Lean FRO and Mathlib initiative (21 November 2026). "Lean verification of the Riemann Hypothesis". Lean community blog. Archived from the original on 21 November 2026. Retrieved 22 November 2026.
+
+↑ Moskowitz, Clara (20 November 2026). "The AI Riemann hypothesis proof is true, independent mathematicians confirm". Scientific American. Archived from the original on 21 November 2026. Retrieved 21 November 2026.
+
+↑ Olivares, José (21 November 2026). "Two groups verify mathematician's claim that Claude helped prove mathematics problem". The Guardian. Retrieved 21 November 2026.
+
+↑ Aaronson, Scott (20 November 2026). "The stochastic parrots have apparently proved the Riemann Hypothesis". Shtetl-Optimized. Archived from the original on 21 November 2026. Retrieved 22 November 2026.
+
+↑ Sutherland, Andrew (25 November 2026). "Verification files for the shorter Lean proof of RH and GRH". math.mit.edu. Massachusetts Institute of Technology. Archived from the original on 26 November 2026.
+
+1 2 Castelvecchi, Davide (20 November 2026). "Mathematician says he and AI solved Riemann hypothesis — the field's biggest outstanding challenge". Nature. Retrieved 20 November 2026.
+
+↑ AFP (20 November 2026). "Anthropic researcher says Claude solved math's greatest riddle". AFP. Archived from the original on 22 November 2026. Retrieved 20 November 2026.
+
+↑ Rennolds, Nathan (21 November 2026). "Anthropic worker claims to have solved famed 167-year-old maths problem with help of AI". Euronews.
+
+↑ "Has AI solved the Riemann hypothesis? Claim makes waves at 200th birthday event in China". South Chima Morning Post. 23 November 2026.
+
+↑ Golden, Hallie (20 November 2026). "Anthropic worker claims to have solved a Holy Grail of math problems with AI's help". ABC News. Associated Press.
+
+↑ Castelvecchi, Davide (20 November 2026). "Mathematicians astounded by AI and human-written proofs of iconic Riemann hypothesis". Nature. Nature Publishing Group. doi:10.1038/d41586-026-03812-7. ISSN 1476-4687. PMID 43064755.
+
+↑ Thompson, Anthony (21 November 2026). "Anthropic mathematician says AI helped solve famous math problem". USA Today. Gannett. Archived from the original on 22 November 2026. Retrieved 21 November 2026.
+
+↑ "levent (@__alpoge__) on X". X (formerly Twitter). 23 November 2026. Retrieved 23 November 2026.
+
+↑ Tao, Terence (20 November 2026). "Unforced Euler singularity, unforced Navier-Stokes singularity, and the Generalized Riemann Hypothesis". What's new. Archived from the original on 21 November 2026. Retrieved 21 November 2026.
+
+↑ Fernholz, Tim (20 November 2026). "AI claimed a solution to the 167-year-old Riemann hypothesis — and a human did, too". TechCrunch. Archived from the original on 21 November 2026. Retrieved 22 November 2026.
+
+1 2 Kakaes, Konstantin (20 November 2026). "A claimed proof of the Riemann hypothesis". Quanta Magazine. Retrieved 20 November 2026.
+
+↑ Larousserie, David (21 November 2026). "La probable résolution de l'hypothèse de Riemann par une intelligence artificielle marque une bascule pour les mathématiques". Le Monde (in French). ProQuest 3416287926. Archived from the original on 21 November 2026. Retrieved 22 November 2026.
+
+↑ Lee, Melissa (23 November 2026). "'The sacred object in mathematics': The Riemann hypothesis, AI and a proof no human can read". The Conversation. Archived from the original on 24 November 2026.
+
+↑ Zhang, Robin (22 November 2026). A preliminary note on Alpöge's proposed proof of the generalized Riemann hypothesis (Preprint). Hexagon. hexagon:2611.00809v2.
+
+↑ Claude Fable 5.2, Codex Astra 6.2, and Gemini Carbon (22 November 2026). The Alpöge–Claude proof of the Riemann hypothesis explained for the Riemann zeta function (PDF) (Working draft, version 2). At the behest of Michael O. Rubinstein.{{cite report}}: CS1 maint: multiple names: authors list (link) CS1 maint: numeric names: authors list (link)
+
+↑ Broughan, Kevin (27 October 2017). "4. Classical Equivalences". Equivalents of the Riemann Hypothesis: Volume 1, Arithmetic Equivalents. Encyclopedia of Mathematics and its Applications. Vol. 164. Cambridge University Press. p. 80. doi:10.1017/9781108178228. ISBN 9781108178228. Theorem 4.9 (Schoenfeld criterion)
+
+↑ Cf, Kaczorowski, Jerzy; Pintz, János (1986). "Oscillatory properties of arithmetical functions. I" (PDF). Acta Mathematica Hungarica. 48 (1–2): 173–185. doi:10.1007/BF01949062. MR 0858395. Theorem 1 and Corollary 1.{{cite journal}}: CS1 maint: postscript (link)
+
+External links
+[edit]
+
+Source code: GitHub - lsernau/grh-lean
+
+Lean community
+
+GitHub - leanprover-community/riemann-hypothesis
+
+#general > Discussion: Alpöge Proves the Riemann Hypothesis - Lean - Zulip
+
+Verification dashboards
+
+https://math.mit.edu/~drew/grh/
+
+https://mrubinst.github.io/grh-lean-verification/
+
+Claude Didn’t Prove Riemann Alone — Interview with Andrew Sutherland (via YouTube)
+
+Retrieved from "https://en.wikipedia.org/w/index.php?title=Alpöge%27s_proof_of_the_Riemann_hypothesis&oldid=1388015499"
+
+Categories: 
+2026 in science
+
+21st century in mathematics
+
+November 2026
+
+Computer-assisted proofs
+
+Zeta and L-functions
+
+Artificial intelligence controversies
+
+Artificial intelligence in mathematics
+
+Anthropic
+
+Hidden categories: 
+Articles with short description
+
+Short description is different from Wikidata
+
+Use dmy dates from November 2026
+
+Current events from November 2026
+
+Articles containing potentially dated statements from November 2026
+
+All articles containing potentially dated statements
+
+Harv and Sfn no-target errors
+
+CS1 Danish-language sources (da)
+
+Articles to be expanded from November 2026
+
+All articles to be expanded
+
+CS1 French-language sources (fr)
+
+CS1 maint: multiple names: authors list
+
+CS1 maint: numeric names: authors list
+
+CS1 maint: postscript

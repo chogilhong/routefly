@@ -1,0 +1,18 @@
+출처: https://phys.org/news/2026-11-anthropic-claude-math-greatest-riddle.html (받은 날 2026-11-26)
+기사: "Anthropic researcher says he and Claude proved the Riemann hypothesis, first posed in 1859" (phys.org, © 2026 AFP, 2026-11-20)
+※ 기사에 "개인 공부 · 연구 말고는 허락 없이 옮겨 싣지 말 것" 저작권 문구가 있어 원문을 옮기지 않고 PC Claude 가 요점만 한국어로 정리함
+  (원문은 PC C:\GH\workspace\_dl\riemann\phys.html · phys.txt - 공부용으로만)
+
+[요점]
+- 2026-11-20(금): Anthropic 연구원 Levent Alpöge 가 Claude 로 리만 가설을 증명했다고 4쪽 메모로 발표. 160년 넘게 풀리지 않던 문제.
+- 리만 가설: 1859년 베른하르트 리만이 내놓음, 소수의 분포에 관한 문제, 순수 수학의 가장 중요한 미해결 문제로 여겨짐.
+- 발표 때는 독립 검증 · 외부 전문가 검토 전이라고 기사에 적힘.
+- 리만 가설 전문가 Brian Conrey 는 "수학에서 일어난 가장 큰 일" 이라 하면서도 원고는 아직 못 봤고, 매우 복잡해 보이며 더 간단한 길이 있을 것이라 말함.
+- 같은 날 스탠퍼드 Ravi Vakil 교수는 같은 학과 박사후연구원도 따로 증명을 냈다고 말함.
+- 클레이 수학연구소 밀레니엄 문제 7개 가운데 하나(2000년 선정, 각 100만 달러) - 동료 심사 학술지에 실리고 2년 동안 검증을 견뎌야 함.
+- Alpöge 는 같은 방법으로 일반화된 리만 가설도 풀린다고 말함. Claude 와 함께 Lean(컴퓨터로 증명을 확인하는 언어) 판을 만들어 그것만 먼저 공개.
+  글로 쓴 증명은 아주 길 것이고, 자신도 아직 모든 수학을 익히지 못해 제대로 쓰겠다고 함.
+- 발표 전 Anthropic 대표 Dario Amodei 와 상의했다고 함. 발표 전날이 Anthropic 상장 첫날.
+- 8월에 Anthropic 은 공개 전 Claude 가 리만 가설 관련 오래된 결과를 개선했다고 밝힌 적 있음(증명은 아님).
+- 두 달 전 OpenAI 는 AI 가 유체 방정식(나비에-스토크스) 밀레니엄 문제를 풀었다고 발표 - 수학자들은 맞아 보이나 검증 중이라 함.
+- NYU 방문교수 Nestor Guillen: Alpöge 가 증명을 다 이해하지 못했다고 솔직히 말한 점을 높이 사며, AI 가 "도구" 처럼 쓰였다고 평함("기계 신" 생각을 걷어냄).
