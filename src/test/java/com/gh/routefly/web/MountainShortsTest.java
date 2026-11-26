@@ -78,6 +78,15 @@ public class MountainShortsTest {
         JsonObject ba = new JsonObject();
         ba.add("shorts", videos.getAsJsonArray("백암산"));
         assertTrue(MountainServlet.shortsBlock(ba, false).contains("<p class=\"hook\">흰 양이 불경을 들으러 왔다?</p><p>백양사 · 백학봉 · 쌍계루 - 그 이야기를 2분 26초 영상에 담았습니다.</p>"));
+        // 2026-11-26 덕숭산 · 월출산 · 마이산 · 치악산 · 내연산
+        assertEquals("Q6jGk_qwRUQ", videos.getAsJsonArray("덕숭산").get(0).getAsJsonObject().get("id").getAsString());
+        assertEquals("xgtZpayQtTs", videos.getAsJsonArray("월출산").get(0).getAsJsonObject().get("id").getAsString());
+        assertEquals("x2ssEkOJXIE", videos.getAsJsonArray("마이산").get(0).getAsJsonObject().get("id").getAsString());
+        assertEquals("xRDKMHTRlQc", videos.getAsJsonArray("치악산").get(0).getAsJsonObject().get("id").getAsString());
+        assertEquals("0AmMq5qZbfM", videos.getAsJsonArray("내연산").get(0).getAsJsonObject().get("id").getAsString());
+        JsonObject ds = new JsonObject();
+        ds.add("shorts", videos.getAsJsonArray("덕숭산"));
+        assertTrue(MountainServlet.shortsBlock(ds, false).contains("<p class=\"hook\">지은 해가 적힌 가장 오래된 나무 건물?</p><p>수덕사 대웅전 · 만공탑 · 정혜사 돌계단 - 그 이야기를 2분 17초 영상에 담았습니다.</p>"));
         assertFalse("지운 옛 판 주소는 없음", new com.google.gson.Gson().toJson(videos).contains("6RXD-zFKZZQ") || new com.google.gson.Gson().toJson(videos).contains("d372NAouBvM"));
         // 물음표 없는 제목은 hook 을 큰 글로(2026-11-22 홍TV님 "전부다 ? 가 있는 것 같아")
         JsonObject jy = new JsonObject();
