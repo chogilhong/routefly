@@ -30,7 +30,8 @@ import com.google.gson.JsonParser;
  *   <li>{@code POST /check/voice} {text, voice, rate} - 한 줄을 Azure 음성(신경망 TTS)으로 만들어 wav(24kHz 16bit 모노) 그대로.</li>
  * </ul>
  * 키는 설정 voice.azure.key · voice.azure.region(서버에만, 브라우저로 나가지 않음). 무료 등급(F0)은 한 달 50만 자를 넘으면 멈출 뿐 돈이 나가지 않음.
- * 이번 달에 보낸 글자 수는 메모리에서만 셈(서버를 다시 켜면 0부터) - 화면에 참고로 보임.
+ * 이번 달에 보낸 글자 수는 파일(stats.dir/voice-usage.txt "달 글자")에 남김 - 서버를 다시 켜도 이어 셈(2026-11-26 홍TV님 "50만자 중 기존 얼마를 사용했고").
+ * 이 셈을 시작하기 전(2026-11-26 전)에 쓴 양 · 다른 곳에서 같은 키로 쓴 양은 모름 - 정확한 양은 Azure 포털.
  */
 @WebServlet(urlPatterns = {"/check/voice"})
 public class VoiceServlet extends HttpServlet {
@@ -49,6 +50,8 @@ public class VoiceServlet extends HttpServlet {
     private static volatile long voicesAt;
     private static String month = "";
     private static long monthChars;
+    /** 이번 달 글자 파일 - null 이면 아직 안 읽음. 테스트는 바꿔 끼움. */
+    static java.nio.file.Path usageFile;
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
@@ -170,13 +173,36 @@ public class VoiceServlet extends HttpServlet {
         return out;
     }
 
-    /** 이번 달 보낸 글자 수(n 을 더하고 돌려줌). 달이 바뀌면 0부터. */
+    /** 이번 달 보낸 글자 수(n 을 더하고 돌려줌). 달이 바뀌면 0부터. 처음 부를 때 파일에서 읽고, 더하면 파일에 씀(못 쓰면 메모리로만). */
     static synchronized long used(int n) {
         String m = YearMonth.now(java.time.ZoneId.of("Asia/Seoul")).toString();
+        if (usageFile == null) {
+            String dir = RouteflyConfig.get("stats.dir");
+            if (dir == null) dir = System.getProperty("catalina.base", System.getProperty("java.io.tmpdir")) + "/routefly-stats";
+            usageFile = java.nio.file.Paths.get(dir, "voice-usage.txt");
+            readUsage();
+        }
         if (!m.equals(month)) { month = m; monthChars = 0; }
         monthChars += n;
+        if (n > 0) {
+            try {
+                java.nio.file.Files.createDirectories(usageFile.getParent());
+                java.nio.file.Files.writeString(usageFile, month + " " + monthChars + "\n", StandardCharsets.UTF_8);
+            } catch (IOException | RuntimeException e) { /* 메모리로만 셈 */ }
+        }
         return monthChars;
     }
+
+    /** voice-usage.txt "2026-11 8059" → month · monthChars. 없거나 모양이 다르면 그대로. */
+    private static void readUsage() {
+        try {
+            String[] a = java.nio.file.Files.readString(usageFile, StandardCharsets.UTF_8).trim().split("\\s+");
+            if (a.length == 2 && a[0].matches("\\d{4}-\\d{2}")) { month = a[0]; monthChars = Long.parseLong(a[1]); }
+        } catch (IOException | RuntimeException e) { /* 처음 */ }
+    }
+
+    /** 테스트용 - 파일을 바꿔 끼우고 메모리 셈을 비움. */
+    static synchronized void resetUsage(java.nio.file.Path file) { usageFile = file; month = ""; monthChars = 0; if (file != null) readUsage(); }
 
     /** 지역 이름은 영문 소문자 · 숫자만(주소에 들어감). */
     static String region() {

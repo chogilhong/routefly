@@ -76,4 +76,8 @@ assert.strictEqual(V.joinWav([a, V.parseWav(other.buffer.slice(other.byteOffset,
 // srt
 assert.strictEqual(V.srtTime(3725.4567), '01:02:05,457');
 assert.strictEqual(V.srt(['가', '나'], j.times), '1\n00:00:00,000 --> 00:00:01,000\n가\n\n2\n00:00:01,300 --> 00:00:01,800\n나\n');
+// 한 달 무료 양 표시(2026-11-26 홍TV님 "50만자 중 기존 얼마를 사용했고 현재 작업은 얼마고")
+assert.strictEqual(V.usageText(8059, 1200, 7860, 500000), '이번 달 50만 자 중 · 전에 쓴 것 8,059자 · 이번 작업 1,200 / 7,860자 · 남은 것 490,741자');
+assert.strictEqual(V.usageText(0, 0, 0, 500000), '이번 달 50만 자 중 · 전에 쓴 것 0자 · 이번 작업 0자 · 남은 것 500,000자');
+assert.strictEqual(V.usageText(499000, 2000, 2000, 500000).slice(-7), '남은 것 0자');
 console.log('voice ok');

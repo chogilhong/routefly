@@ -95,18 +95,28 @@
     return i;
   }
 
-  var api = { lines: lines, spoken: spoken, shown: shown, playSig: playSig, clock: clock, cacheKey: cacheKey, parseWav: parseWav, joinWav: joinWav, srtTime: srtTime, srt: srt, lineAt: lineAt };
+  /**
+   * 순수 함수 - 한 달 무료 양 표시(2026-11-26 홍TV님 "50만자 중 기존 얼마를 사용했고 현재 작업은 얼마고").
+   * before - 이번 작업 전까지 이번 달에 쓴 글자, job - 이번 작업에서 보낸 글자, jobTotal - 이번 작업 전체(만들 줄 글자 합), limit - 한 달 무료 양.
+   */
+  function usageText(before, job, jobTotal, limit) {
+    var n = function (v) { return Math.round(v).toLocaleString('ko-KR'); }, left = Math.max(0, limit - before - job);
+    return '이번 달 ' + n(limit / 10000) + '만 자 중 · 전에 쓴 것 ' + n(before) + '자 · 이번 작업 ' + n(job) + (jobTotal ? ' / ' + n(jobTotal) : '') + '자 · 남은 것 ' + n(left) + '자';
+  }
+  var LIMIT = 500000;
+  var api = { usageText: usageText, lines: lines, spoken: spoken, shown: shown, playSig: playSig, clock: clock, cacheKey: cacheKey, parseWav: parseWav, joinWav: joinWav, srtTime: srtTime, srt: srt, lineAt: lineAt };
   if (typeof module !== 'undefined' && module.exports) { module.exports = api; return; }
   root.RFV = api;
 
   // ---------------- 화면 ----------------
   var $ = function (id) { return document.getElementById(id); };
-  var cache = {}, sent = 0, monthChars = null, busy = false;
+  var cache = {}, sent = 0, monthChars = null, busy = false, jobSent = 0, jobTotal = 0;   // jobSent · jobTotal - 이번 작업(▶ 바뀐 줄만 만들기 한 번)
   function save(k, v) { try { localStorage.setItem('rf-voice-' + k, v); } catch (e) { /* 저장 못 해도 됨 */ } }
   function load(k) { try { return localStorage.getItem('rf-voice-' + k); } catch (e) { return null; } }
   function opts() { return { voice: $('vcVoice').value, rate: Math.max(-50, Math.min(50, parseInt($('vcRate').value, 10) || 0)), gap: Math.max(0, Math.min(2000, parseInt($('vcGap').value, 10) || 0)) }; }
   function info(msg) {
-    $('vcInfo').textContent = (msg ? msg + ' · ' : '') + '이번 창에서 보낸 글자 ' + sent.toLocaleString() + '자' + (monthChars != null ? ' · 서버 이번 달 ' + (monthChars + sent).toLocaleString() + '자(무료 50만 자)' : '');
+    // monthChars - 화면을 열 때 서버가 준 이번 달 글자(서버가 파일에 남김), sent - 이 창에서 보낸 것(이번 작업 포함)
+    $('vcInfo').textContent = (msg ? msg + ' · ' : '') + (monthChars != null ? usageText(monthChars + sent - jobSent, jobSent, jobTotal, LIMIT) : '이 창에서 보낸 글자 ' + sent.toLocaleString() + '자');
   }
 
   function render() {
@@ -158,7 +168,7 @@
         var w = parseWav(buf);
         if (!w) throw new Error('wav 모양이 아닙니다');
         cache[k] = { wav: w };
-        sent += x.length;
+        sent += x.length; jobSent += x.length;
         return w;
       });
   }
@@ -182,6 +192,7 @@
     var todo = (only || lines($('vcText').value)).map(spoken).filter(function (x, i, all) { var c = cache[cacheKey(o.voice, o.rate, x)]; return (!c || c.err) && all.indexOf(x) === i; });
     if (!todo.length) { render(); info('바뀐 줄이 없습니다'); return; }
     busy = true;
+    jobSent = 0; jobTotal = todo.reduce(function (s, x) { return s + x.length; }, 0);
     var i = 0;
     (function next() {
       if (i >= todo.length) { busy = false; render(); info('다 만들었습니다'); return; }
