@@ -436,6 +436,8 @@
         return { version: 8, sources: sources, layers: layers };
     }
 
+    /** 구간 끊는 곳 둘이 이만큼(m, minGapM 보다 크지 않게) 안이면 같은 자리 - 선에 더 가까운 이름 하나로(trackSegments). */
+    var SAME_CUT_M = 300;
     /** 구간 색(탐방 안내도처럼 구간마다 다른 색 - 바탕의 초록 · 갈색 · 파랑 물과 헷갈리지 않는 진한 색). */
     var SEG_COLORS = ["#e8590c", "#5b45ff", "#d6336c", "#1c7ed6", "#9c36b5", "#f59f00", "#0b7285", "#c92a2a"];
 
@@ -450,16 +452,19 @@
         var n = c.lat.length, cuts = [];
         (stops || []).forEach(function (s) {
             // 지날 때마다(원점회귀로 비선대를 오갈 때 두 번 - 2026-11-26 홍TV님 "소공원 ~ 비선대 … 비선대 ~ 소공원")
-            passesNear(c, s.lat, s.lon, maxM).forEach(function (d) {
-                if (d > minGapM && d < c.total - minGapM) cuts.push({ d: d, name: s.name || null });
+            passesNear(c, s.lat, s.lon, maxM).forEach(function (q) {
+                if (q.d > minGapM && q.d < c.total - minGapM) cuts.push({ d: q.d, off: q.off, name: s.name || null });
             });
         });
         cuts.sort(function (a, b) { return a.d - b.d; });
-        var at0 = [0], names = [null], asc = c.asc || cumAscent(c.ele);
+        var at0 = [0], names = [null], offs = [0], asc = c.asc || cumAscent(c.ele);
         cuts.forEach(function (q) {
-            if (q.d - c.dist[at0[at0.length - 1]] < minGapM) return;
+            var k = at0.length - 1;
+            // 거의 같은 자리(SAME_CUT_M 안)에 둘이면 선에 더 가까운 이름으로(2026-11-26 홍TV님: 무너미고개에서 끊은 곳이 옆 "희운각대피소" 로 나왔음 - "희운각은 안 들렸어")
+            if (k > 0 && Math.abs(q.d - c.dist[at0[k]]) < Math.min(SAME_CUT_M, minGapM)) { if (q.off < offs[k]) { names[k] = q.name; offs[k] = q.off; } return; }
+            if (q.d - c.dist[at0[k]] < minGapM) return;
             var i = indexAt(c, q.d) + 1;
-            if (i > at0[at0.length - 1] && i < n - 1) { at0.push(i); names.push(q.name); }
+            if (i > at0[k] && i < n - 1) { at0.push(i); names.push(q.name); offs.push(q.off); }
         });
         at0.push(n - 1); names.push(null);
         var out = [];
@@ -497,7 +502,7 @@
         return out;
     }
     /**
-     * 순수 함수 - 선이 (lat, lon) 의 maxM 안을 지나는 때마다 가장 가까운 점의 출발부터 거리(m) 목록 - 선이 maxM 밖으로 나갔다 다시 오면 또 하나.
+     * 순수 함수 - 선이 (lat, lon) 의 maxM 안을 지나는 때마다 가장 가까운 점 [{d: 출발부터 거리 m, off: 선까지 m}] - 선이 maxM 밖으로 나갔다 다시 오면 또 하나.
      * 한 번(또는 점이 띄엄띄엄해 점으로는 못 찾음)이면 snap 과 같은 자리(선분 위 가장 가까운 곳).
      */
     function passesNear(c, lat, lon, maxM) {
@@ -505,11 +510,11 @@
         for (var i = 0; i < c.lat.length; i++) {
             var x = (c.lon[i] - lon) * kx, y = (c.lat[i] - lat) * ky, off = Math.sqrt(x * x + y * y);
             if (off <= maxM) { if (!run || off < run.off) run = { i: i, off: off }; continue; }
-            if (run) { out.push(run.i); run = null; }
+            if (run) { out.push(run); run = null; }
         }
-        if (run) out.push(run.i);
-        if (out.length < 2) { var q = snap(c, lat, lon); return q && q.off <= maxM ? [q.d] : []; }   // 점이 띄엄띄엄해도 선분으로(예전과 같게)
-        return out.map(function (k) { return c.dist[k]; });
+        if (run) out.push(run);
+        if (out.length < 2) { var q = snap(c, lat, lon); return q && q.off <= maxM ? [{ d: q.d, off: q.off }] : []; }   // 점이 띄엄띄엄해도 선분으로(예전과 같게)
+        return out.map(function (r) { return { d: c.dist[r.i], off: r.off }; });
     }
 
     /**

@@ -381,6 +381,8 @@ eq("문장대", RF.poiIcon("문장대"), "🗻");
             for (var j2 = 100; j2 >= 0; j2--) tr2.push([35.3005, 127.70 + j2 * 0.0001, (201 - j2) * 10000, 1000]);
             var c2 = RF.recordCourse({ name: "t2", track: tr2 }), s3 = RF.trackSegments(c2, [{ name: "비선대", lat: 35.3002, lon: 127.703 }], 200, 150);
             eq("구간 - 같은 곳을 두 번 지나면 두 번 끊음", s3.features.map(function (f) { return [f.properties.from, f.properties.to]; }), [[null, "비선대"], ["비선대", "비선대"], ["비선대", null]]);
+            // 같은 자리 두 이름(무너미고개 위 · 옆 희운각대피소 160m)이면 선에 가까운 이름(2026-11-26 홍TV님 "희운각은 안 들렸어")
+            eq("구간 - 같은 자리 두 이름은 선에 가까운 것", RF.trackSegments(c, [{ name: "희운각대피소", lat: 35.3015, lon: 127.7041 }, { name: "무너미고개", lat: 35.30, lon: 127.7043 }], 200, 300).features.map(function (f) { return f.properties.to; }), ["무너미고개", null]);
             eq("구간 - 공단 탐방로 처음 · 끝(갈림길) 이름 · 자리, 같은 곳은 하나 · 화살표 없는 것은 뺌", RF.trailEnds([
                 { name: "설악산 · 소공원 → 비선대", coords: [[128.49, 38.17], [128.47, 38.16]] }, { name: "설악산 · 비선대 → 마등령", coords: [[128.4700001, 38.16], [128.45, 38.17]] },
                 { name: "설악산 · 토왕성폭포 전망대", coords: [[128.5, 38.15], [128.51, 38.15]] }, { name: "설악산 · 가 → 나", coords: [[128.5, 38.1]] }]),

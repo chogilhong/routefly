@@ -24,8 +24,8 @@ public class TripJunctionSegTest {
         assertTrue(tj.contains("parkEnds = RF.trailEnds(d.trails);") && tj.contains("if (parkEnds.length) { parkEnds = []; paintTrack(); }"));
         assertTrue(tj.contains("RF.trackSegments(rc, fam.huts.concat(fam.peaks, namedPeaks, parkEnds), SEG_NEAR_M, SEG_GAP_M)"));
         String ck = read("src/main/webapp/js/course-kit.js");
-        assertTrue("지날 때마다", ck.contains("passesNear(c, s.lat, s.lon, maxM).forEach(function (d) {"));
+        assertTrue("지날 때마다", ck.contains("passesNear(c, s.lat, s.lon, maxM).forEach(function (q) {"));
         assertTrue("기록 보기용 작은 course-kit 에 있음", read("src/main/webapp/js/kit-trip.js").contains("trailEnds: trailEnds"));
-        assertTrue("trip 은 서비스워커 화면 파일 - 캐시 이름을 올림", read("src/main/webapp/sw.js").contains("var SHELL = \"rf-shell-v430\""));
+        assertTrue("trip 은 서비스워커 화면 파일 - 캐시 이름을 올림", read("src/main/webapp/sw.js").contains("var SHELL = \"rf-shell-v431\""));
     }
 }

@@ -32,6 +32,6 @@ public class StudioGuideLoopTest {
         assertTrue(st.contains("if (from.guide) { e.preventDefault(); location.href = first || \"m/\"; return; }") && st.contains("if (from.first) sessionStorage.setItem(FROM_KEY, from.url);"));
         for (String page : new String[] {"privacy.html", "privacy-en.html"}) assertTrue("개인정보처리방침에 저장 열쇠 " + page, read("src/main/webapp/" + page).contains("(rf-studio-from,"));
         ReviewRound5Test.node("src/test/js/studio-from.test.js");
-        assertTrue("park · route 는 서비스워커 화면 파일 - 캐시 이름을 올림", read("src/main/webapp/sw.js").contains("var SHELL = \"rf-shell-v430\""));
+        assertTrue("park · route 는 서비스워커 화면 파일 - 캐시 이름을 올림", read("src/main/webapp/sw.js").contains("var SHELL = \"rf-shell-v431\""));
     }
 }
