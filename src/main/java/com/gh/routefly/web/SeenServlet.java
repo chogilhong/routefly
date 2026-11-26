@@ -30,6 +30,7 @@ public class SeenServlet extends HttpServlet {
         if (why == null && !Stats.seenToday(ip)) why = "방문 없음";
         if (why == null) {
             boolean got = Stats.js(ip, Stats.device(ua), app);
+            Stats.jsPage(ip, req.getContextPath(), req.getHeader("Referer"));   // 사람 확인 순위 - 이 화면(경로)을 본 사람(2026-11-26)
             if (app) Stats.appWhy(got ? "셈" : "이미 셈");
             if (app) log.info("[SEEN] 앱 신호 {} - {}", got ? "셈" : "이미 셈", page(req.getHeader("Referer")));
         } else if (app) {

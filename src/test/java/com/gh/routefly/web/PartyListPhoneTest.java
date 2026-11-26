@@ -22,6 +22,6 @@ public class PartyListPhoneTest {
         String m = h.substring(at, h.indexOf("\n}\n", at));
         assertTrue(m.contains("#list tr { display:flex; flex-wrap:wrap;") && m.contains("#list td:nth-child(6) { flex:1 1 100%; display:flex; flex-wrap:wrap;")
                 && m.contains("#list td:nth-child(3)::before { content:\"🕑 \"; }") && m.contains("#list td:nth-child(5)::before { content:\"🔋 \"; }"));
-        assertTrue("party.html 은 서비스워커 화면 파일 - 캐시 이름을 올림", new String(Files.readAllBytes(Paths.get("src/main/webapp/sw.js")), StandardCharsets.UTF_8).contains("var SHELL = \"rf-shell-v425\""));
+        assertTrue("party.html 은 서비스워커 화면 파일 - 캐시 이름을 올림", new String(Files.readAllBytes(Paths.get("src/main/webapp/sw.js")), StandardCharsets.UTF_8).contains("var SHELL = \"rf-shell-v426\""));
     }
 }

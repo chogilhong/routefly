@@ -319,7 +319,7 @@ public class StatsTest {
         assertTrue("걸러내기 전 신호도 셈(주소마다 하루 한 번 - 점검 10차 B4) · 까닭 숫자", sv.contains("boolean app = \"1\".equals(req.getParameter(\"app\")) && Stats.appSignal(ip);") && sv.contains("if (app) Stats.appWhy(got ? \"셈\" : \"이미 셈\");")
             && sv.contains("} else if (app) {\n            Stats.appWhy(why);"));
         assertTrue("앱 신호는 화면 경로만 로그에(2026-11-15 - ? 뒤 · IP 없이)", sv.contains("log.info(\"[SEEN] 앱 신호 {} - {}\", why, page(req.getHeader(\"Referer\")));"));
-        assertTrue("신호는 하루에 한 번(앱은 웹뷰가 살아 있어 sessionStorage 가 남음)", js.contains("sessionStorage.getItem(\"rf-seen\") === day"));
+        assertTrue("신호는 화면(경로)마다 하루에 한 번(앱은 웹뷰가 살아 있어 sessionStorage 가 남음 - 2026-11-26 사람 확인 순위로 화면마다)", js.contains("var key = \"rf-seen:\" + location.pathname;") && js.contains("sessionStorage.getItem(key) === day"));
         assertTrue("앱 판별은 화면이 다 열린 뒤(원격 화면에 앱 연결이 늦게 들어올 수 있음)", js.contains("if (document.readyState === \"complete\") go(); else window.addEventListener(\"load\", go);"));
     }
 

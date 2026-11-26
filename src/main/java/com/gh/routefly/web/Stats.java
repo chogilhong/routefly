@@ -57,6 +57,7 @@ final class Stats {
     private static final Set<String> jsSeen = new HashSet<>(), susSeen = new HashSet<>(), appSeen = new HashSet<>(), appSigSeen = new HashSet<>();   // appSeen - 그 가운데 routefly 앱 안(2026-11-11)
     /** 그 날 광고 카드를 누른 (사람 해시 | 자리) - 한 사람이 한 자리를 여러 번 눌러도 한 번(2026-11-24). */
     private static final Set<String> adSeen = new HashSet<>();
+    private static final Set<String> jsPageSeen = new HashSet<>();   // 사람 확인 순위 - "사람|화면" 하루 한 번(2026-11-26)
     private static byte[] salt = new byte[16];
     private static boolean loaded = false, dirty = false;
 
@@ -192,6 +193,32 @@ final class Stats {
         return true;
     }
 
+    /**
+     * 사람 확인 순위(2026-11-26 홍TV님 "사람 확인(js 돈 사람)만으로 센 순위") - 화면 js 가 돈 사람(jsSeen)이 본 화면을 "jsPages"(화면별 · 산 페이지) ·
+     * "jsCourses"(코스 소개 페이지 코스마다)에 한 사람 · 한 화면 하루 한 번 셈. 화면은 신호의 Referer 경로(같은 곳이라 Referrer-Policy 로도 경로가 옴).
+     * 그 날 실제로 열린 화면 · 코스(pages · courses 에 이미 있는 것)만 - 아무 주소나 보내 칸을 늘리지 못하게. 센 것이면 true.
+     */
+    static synchronized boolean jsPage(String ip, String ctx, String referer) {
+        load();
+        if (!today.equals(LocalDate.now(WeatherServlet.KST).toString())) return false;
+        String path = SeenServlet.page(referer);
+        if (ctx != null && !ctx.isEmpty() && path.startsWith(ctx + "/")) path = path.substring(ctx.length());
+        String page = pageKey(path), course = courseKey(path);
+        String h = hash(ip);
+        JsonObject day = DAYS.get(today);
+        if (page == null || day == null || !jsSeen.contains(h) || !day.getAsJsonObject("pages").has(page)) return false;
+        if (course != null && !(day.has("courses") && day.getAsJsonObject("courses").has(course))) course = null;
+        if (jsPageSeen.size() >= SEEN_MAX || !jsPageSeen.add(h + "|" + (course != null ? "/c/" + course : page))) return false;
+        if (!day.has("jsPages")) day.add("jsPages", new JsonObject());
+        add(day.getAsJsonObject("jsPages"), page);
+        if (course != null) {
+            if (!day.has("jsCourses")) day.add("jsCourses", new JsonObject());
+            add(day.getAsJsonObject("jsCourses"), course);
+        }
+        dirty = true;
+        return true;
+    }
+
     /** 그 날 화면 방문으로 센 사람인가(앱 신호 까닭 가르기). */
     static synchronized boolean seenToday(String ip) {
         load();
@@ -289,6 +316,7 @@ final class Stats {
             appSeen.clear();
             appSigSeen.clear();
             adSeen.clear();
+            jsPageSeen.clear();
             new SecureRandom().nextBytes(salt);
         }
         JsonObject day = DAYS.computeIfAbsent(d, k -> {

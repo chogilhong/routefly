@@ -157,6 +157,8 @@ public class StatsServlet extends HttpServlet {
         List<String> keys = new ArrayList<>(days.keySet());
         List<String> last = keys.subList(Math.max(0, keys.size() - n), keys.size());
         Map<String, Integer> adClicks = new HashMap<>(), mountains = new HashMap<>(), enMountains = new HashMap<>(), courses = new HashMap<>(), pages = new HashMap<>(), refs = new HashMap<>(), devs = new HashMap<>(), bots = new HashMap<>(), engines = new HashMap<>();
+        // 사람 확인 순위(2026-11-26 홍TV님) - 화면 js 가 돈 사람만, 한 사람 · 한 화면 하루 한 번(Stats.jsPage)
+        Map<String, Integer> jsMountains = new HashMap<>(), jsEn = new HashMap<>(), jsCourses = new HashMap<>(), jsPages = new HashMap<>();
         StringBuilder rows = new StringBuilder();
         int tu = 0, tp = 0, tb = 0;
         for (int i = last.size() - 1; i >= 0; i--) {
@@ -170,6 +172,14 @@ public class StatsServlet extends HttpServlet {
                 else if (k.startsWith("/en/m/") && k.length() > 6) enMountains.merge(k.substring(6), v, Integer::sum);   // 영어 산 페이지는 따로 표(2026-10-21)
                 else pages.merge(k, v, Integer::sum);
             }
+            if (d.has("jsPages")) for (var e : d.getAsJsonObject("jsPages").entrySet()) {
+                String k = e.getKey();
+                int v = e.getValue().getAsInt();
+                if (k.startsWith("/m/") && k.length() > 3) jsMountains.merge(k.substring(3), v, Integer::sum);
+                else if (k.startsWith("/en/m/") && k.length() > 6) jsEn.merge(k.substring(6), v, Integer::sum);
+                else jsPages.merge(pageName(k), v, Integer::sum);
+            }
+            if (d.has("jsCourses")) for (var e : d.getAsJsonObject("jsCourses").entrySet()) jsCourses.merge(e.getKey(), e.getValue().getAsInt(), Integer::sum);
             if (d.has("refs")) for (Map.Entry<String, com.google.gson.JsonElement> e : d.getAsJsonObject("refs").entrySet()) refs.merge(e.getKey(), e.getValue().getAsInt(), Integer::sum);
             int u = d.get("uniq").getAsInt(), b = d.get("bots").getAsInt();
             tu += u; tp += views; tb += b;
@@ -209,11 +219,17 @@ public class StatsServlet extends HttpServlet {
         // 날마다 바로 아래 · 늘 펼침(2026-11-25 홍TV님 "광고 화면별 통계는 아직 안 보이네" - 맨 아래 접힌 칸이라 못 찾음)
         out.append(top("광고 카드 누름 - 자리별(" + last.size() + "일 - 쿠팡 카드, 사람 확인된 방문자만 · 한 사람 · 한 자리 하루 한 번)", adClicks, 20)
                 .replace("<tr><td>아직 없음</td></tr>", "<tr><td>아직 없음 - 쿠팡 카드를 누른 사람이 없음(애드센스 광고는 구글 칸 안이라 여기서 못 셈 - 애드센스 관리 화면에서)</td></tr>"));
+        String hs = last.size() + "일 - 11-26 부터, 화면 js 가 돈 사람 수 · 한 사람 하루 한 번";
         out.append(top("모바일 · PC 방문자(" + last.size() + "일 - 10-20 부터 셈)", devs, 5))
                 .append(top("인기 산 페이지(" + last.size() + "일)", mountains, 20))
                 .append(top("인기 산 페이지 - 영어(" + last.size() + "일 - /en/m/, 외국 손님)", enMountains, 20))
                 .append(courseTable(courses, courseNames == null ? Map.of() : courseNames, last.size()))
                 .append(pageChart(days, n, pages, 20))
+                // 사람 확인 순위(2026-11-26 홍TV님) - 위 순위(로봇 · 운영자만 뺀 화면 수) 바로 아래, 화면 js 가 돈 사람 수
+                .append(top("사람 확인 인기 산 페이지(" + hs + ")", jsMountains, 20))
+                .append(top("사람 확인 인기 산 페이지 - 영어(" + hs + ")", jsEn, 20))
+                .append(courseTable("사람 확인 인기 코스 상위 20(" + hs + ")", jsCourses, courseNames == null ? Map.of() : courseNames))
+                .append(top("사람 확인 화면별(" + hs + ")", jsPages, 20))
                 .append(top("들어온 곳(" + last.size() + "일 - 바깥에서 처음 들어온 화면 수)", refs, 20))
                 .append(botTable(bots, engines))
                 .append(GUIDE);
@@ -242,7 +258,12 @@ public class StatsServlet extends HttpServlet {
 
     /** 순수 함수 - 인기 코스 상위 20(코스 소개 페이지 /c/<코스>, 10-21 부터 셈). 이름은 DB 에서(없으면 번호만), 누르면 그 코스 소개. */
     static String courseTable(Map<String, Integer> m, Map<String, String> names, int days) {
-        StringBuilder b = new StringBuilder("<section><h2>인기 코스 상위 20(" + days + "일 - 코스 소개 페이지, 10-21 부터 셈)</h2><table class=\"st\">");
+        return courseTable("인기 코스 상위 20(" + days + "일 - 코스 소개 페이지, 10-21 부터 셈)", m, names);
+    }
+
+    /** title - 칸 제목(사람 확인 순위도 같은 표 - 2026-11-26). */
+    static String courseTable(String title, Map<String, Integer> m, Map<String, String> names) {
+        StringBuilder b = new StringBuilder("<section><h2>" + ShareServlet.esc(title) + "</h2><table class=\"st\">");
         if (m.isEmpty()) return b.append("<tr><td>아직 없음</td></tr></table></section>").toString();
         b.append("<tr><th>코스</th><th>번호</th><th>수</th></tr>");
         m.entrySet().stream().sorted((x, y) -> y.getValue() - x.getValue()).limit(20).forEach(e -> b.append("<tr><td><a href=\"c/").append(ShareServlet.esc(e.getKey())).append("\">")
