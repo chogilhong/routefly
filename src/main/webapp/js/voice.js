@@ -11,6 +11,12 @@
     return String(text || '').split(/\r?\n/).map(function (s) { return s.trim(); }).filter(function (s) { return s && !/^```/.test(s); });
   }
 
+  /** 순수 함수 - 해설 칸 줄마다 번호(lines() 와 같은 차례, 빈 줄 · ``` 줄은 null) - 해설 칸 왼쪽 번호(2026-11-26 홍TV님). */
+  function lineNumbers(text) {
+    var n = 0;
+    return String(text || '').split(/\r?\n/).map(function (s) { s = s.trim(); return s && !/^```/.test(s) ? ++n : null; });
+  }
+
   /**
    * 순수 함수 - 읽는 말 · 자막 말 나누기(2026-11-25 홍TV님 가야산 "대가야" 발음): "대가야{대 가야}" 처럼 낱말 바로 뒤 { } 에 읽는 말을 적으면
    * 소리는 { } 안(spoken), 자막 · srt 는 앞 낱말(shown). { } 가 없으면 둘 다 그대로.
@@ -119,7 +125,7 @@
     return '이번 달 ' + n(limit / 10000) + '만 자 중 · 전에 쓴 것 ' + n(before) + '자 · 이번 작업 ' + n(job) + (jobTotal ? ' / ' + n(jobTotal) : '') + '자 · 남은 것 ' + n(left) + '자';
   }
   var LIMIT = 500000;
-  var api = { usageText: usageText, lines: lines, spoken: spoken, shown: shown, playSig: playSig, clock: clock, cacheKey: cacheKey, parseWav: parseWav, joinWav: joinWav, srtTime: srtTime, srt: srt, lineAt: lineAt };
+  var api = { usageText: usageText, lineNumbers: lineNumbers, lines: lines, spoken: spoken, shown: shown, playSig: playSig, clock: clock, cacheKey: cacheKey, parseWav: parseWav, joinWav: joinWav, srtTime: srtTime, srt: srt, lineAt: lineAt };
   if (typeof module !== 'undefined' && module.exports) { module.exports = api; return; }
   root.RFV = api;
 
@@ -293,14 +299,64 @@
     a.click();
     setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
   }
+  /**
+   * 해설 칸 왼쪽 줄 번호 - 같은 넓이 · 모양의 숨은 textarea(ta 를 복제)에 앞 줄들만 넣어 높이를 재어, 꺾인 줄도 그 줄의 첫 줄에 번호.
+   * 숨은 div 로 재면 textarea 와 줄 꺾임이 달라 번호가 밀렸음(2026-11-26 확인).
+   */
+  var gutterTa = null, gutterKey = '', gutterTops = [], gutterTimer = 0;
+  /** 줄마다 위치(위에서 px) - 글 · 넓이가 바뀔 때만 다시 잼(값을 줄마다 넣어 재므로 무거움). */
+  function gutterMeasure() {
+    var ta = $('vcText');
+    if (!gutterTa) {
+      gutterTa = ta.cloneNode(false);
+      gutterTa.removeAttribute('id');
+      gutterTa.setAttribute('aria-hidden', 'true'); gutterTa.tabIndex = -1; gutterTa.spellcheck = false;
+      gutterTa.style.cssText = 'position:absolute;visibility:hidden;left:0;top:0;height:0;min-height:0;overflow:hidden;resize:none';
+      ta.parentNode.appendChild(gutterTa);
+    }
+    var key = ta.offsetWidth + '|' + ta.value;
+    if (key === gutterKey) return;
+    gutterKey = key;
+    gutterTa.style.width = ta.offsetWidth + 'px';
+    var cs = getComputedStyle(ta), padT = parseFloat(cs.paddingTop) || 0, padB = parseFloat(cs.paddingBottom) || 0;
+    var raw = ta.value.split(/\r?\n/), nums = lineNumbers(ta.value);
+    gutterTops = [];
+    for (var i = 0; i < raw.length; i++) {
+      if (nums[i] == null) continue;
+      var y = padT;
+      if (i > 0) { gutterTa.value = raw.slice(0, i).join('\n'); y = gutterTa.scrollHeight - padB; }
+      gutterTops.push([nums[i], y]);
+    }
+  }
+  /** 해설 칸 왼쪽 번호를 지금 스크롤에 맞춰 그림(잰 위치는 그대로 씀). */
+  function gutterPaint() {
+    var ta = $('vcText'), no = $('vcNo');
+    no.innerHTML = '';
+    gutterTops.forEach(function (g) {
+      var y = g[1] - ta.scrollTop;
+      if (y < -30 || y > ta.clientHeight) return;
+      var sp = document.createElement('span'); sp.textContent = g[0]; sp.style.top = (y + 4) + 'px'; no.appendChild(sp);
+    });
+  }
+  /** 글 · 크기가 바뀌면 잠깐 뒤(쳐 넣는 동안은 한 번만) 다시 재고 그림. 스크롤은 바로 그림. */
+  function gutter(now) {
+    if (!$('vcText') || !$('vcNo')) return;
+    clearTimeout(gutterTimer);
+    if (now === true) { gutterMeasure(); gutterPaint(); return; }
+    gutterTimer = setTimeout(function () { gutterMeasure(); gutterPaint(); }, 150);
+  }
   function fileName() { return ($('vcName').value.trim() || 'voice').replace(/[\\/:*?"<>|]/g, ''); }
 
   function start() {
     ['vcName', 'vcRate', 'vcGap', 'vcText'].forEach(function (id) {
       var v = load(id);
       if (v != null) $(id).value = v;
-      $(id).addEventListener('input', function () { save(id, $(id).value); render(); });
+      $(id).addEventListener('input', function () { save(id, $(id).value); render(); if (id === 'vcText') gutter(); });
     });
+    $('vcText').addEventListener('scroll', function () { if ($('vcNo')) gutterPaint(); });
+    window.addEventListener('resize', function () { gutter(); });
+    if (window.ResizeObserver) new ResizeObserver(function () { gutter(); }).observe($('vcText'));   // 칸 크기를 끌어 바꿀 때
+    gutter(true);
     $('vcVoice').addEventListener('change', function () { save('vcVoice', $('vcVoice').value); render(); });
     $('vcTry').addEventListener('change', function () { save('vcTry', $('vcTry').value); render(); });
     // 들어 보고 마음에 들면 바꿈 - 원래 목소리로 만든 소리는 이 창에 남아 다시 돌아가도 새로 안 만듦

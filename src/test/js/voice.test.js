@@ -86,4 +86,7 @@ assert.strictEqual(V.srt(['가', '나'], j.times), '1\n00:00:00,000 --> 00:00:01
 assert.strictEqual(V.usageText(8059, 1200, 7860, 500000), '이번 달 50만 자 중 · 전에 쓴 것 8,059자 · 이번 작업 1,200 / 7,860자 · 남은 것 490,741자');
 assert.strictEqual(V.usageText(0, 0, 0, 500000), '이번 달 50만 자 중 · 전에 쓴 것 0자 · 이번 작업 0자 · 남은 것 500,000자');
 assert.strictEqual(V.usageText(499000, 2000, 2000, 500000).slice(-7), '남은 것 0자');
+// 해설 칸 줄 번호 - 줄 목록과 같은 번호, 빈 줄 · ``` 줄은 번호 없음(2026-11-26 홍TV님)
+assert.deepStrictEqual(V.lineNumbers('```\n첫 줄\n\n  둘째 줄 \n```'), [null, 1, null, 2, null]);
+assert.strictEqual(V.lineNumbers('가\n나\n다').filter(Boolean).length, V.lines('가\n나\n다').length);
 console.log('voice ok');

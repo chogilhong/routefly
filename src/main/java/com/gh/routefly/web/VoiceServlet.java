@@ -228,6 +228,9 @@ public class VoiceServlet extends HttpServlet {
                 + ".vc-unit{display:flex;align-items:center;gap:6px}.vc-unit span{color:var(--dim)}"
                 + ".vc-try{display:flex;gap:8px;align-items:flex-end;margin-top:12px;padding-top:12px;border-top:1px dashed var(--ln);flex-wrap:wrap}.vc-try .vc-f{flex:1;min-width:200px}"
                 + ".vc textarea{min-height:240px;line-height:1.7;resize:vertical}"
+                // 해설 칸 왼쪽 줄 번호(2026-11-26 홍TV님 "해설에 있는 글에도 동일하게 숫자 표시") - 줄 목록과 같은 번호(빈 줄 · ``` 줄은 번호 없음), 줄이 꺾여도 첫 줄에
+                + ".vc-ed{position:relative}.vc-ed textarea{padding-left:46px}.vc-no{position:absolute;left:1px;top:1px;bottom:1px;width:38px;overflow:hidden;pointer-events:none;border-right:1px solid var(--ln);border-radius:9px 0 0 9px;background:var(--panel)}"
+                + ".vc-no span{position:absolute;right:6px;font-size:11.5px;color:var(--sky);font-variant-numeric:tabular-nums}"
                 + ".vc-tip{margin:8px 0 0;font-size:12.5px;color:var(--dim)}.vc-tip code{background:var(--bg);border:1px solid var(--ln);border-radius:6px;padding:1px 6px;color:var(--tx)}"
                 + ".vc button{font:inherit;font-size:14px;cursor:pointer;border-radius:10px;border:1px solid var(--ln);background:var(--bg);color:var(--tx);padding:8px 12px;min-height:38px;white-space:nowrap}"
                 + ".vc button:hover:not(:disabled){border-color:var(--sky)}.vc button:disabled{opacity:.4;cursor:default}"
@@ -242,7 +245,7 @@ public class VoiceServlet extends HttpServlet {
                 + "#vcLines .no{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:12px;background:var(--bg);border:1px solid var(--ln);color:var(--dim)}"
                 + "#vcLines li.ok .no{background:rgba(56,217,234,.15);border-color:var(--sky);color:var(--sky)}#vcLines li.bad .no{background:rgba(255,135,135,.15);border-color:#ff8787;color:#ff8787}"
                 + "#vcLines li.now{background:rgba(56,217,234,.10);box-shadow:inset 3px 0 0 var(--sky);border-radius:8px}"   // 전체 듣기 중 읽는 줄(2026-11-26)
-                + "#vcLines .tx{line-height:1.6}#vcLines .rd{display:block;font-size:12px;color:var(--dim);margin-top:2px}#vcLines .rd::before{content:'🔈 읽기 ';}"
+                + "#vcLines .tx{line-height:1.6}#vcLines .rd{display:block;font-size:12.5px;color:#ffb84d;margin-top:2px}#vcLines .rd::before{content:'🔈 읽기 {';}#vcLines .rd::after{content:'}';}"   // 읽는 말은 주황 · { } (2026-11-26 홍TV님 "{읽기} 이렇게 하든가 색을 넣든가")
                 + "#vcLines .st{grid-column:2;font-size:12px;color:var(--dim)}#vcLines li.bad .st{color:#ff8787}"
                 + "#vcLines .bt{grid-row:1 / span 2;grid-column:3;display:flex;gap:6px}#vcLines .bt button{padding:6px 9px;min-height:34px}"
                 + "@media(max-width:560px){.vc-f.wide{grid-column:auto}#vcLines li{grid-template-columns:26px 1fr}#vcLines .bt{grid-row:auto;grid-column:2}.vc-btns .sp{display:none}.vc-btns{gap:6px}.vc button{padding:7px 9px;font-size:13px}}"
@@ -256,7 +259,7 @@ public class VoiceServlet extends HttpServlet {
                 // 견줘 듣기(2026-11-25 홍TV님) - 줄마다 🎧 로 한두 줄만 들어 보고, 마음에 들면 바꾸기(만든 소리는 그대로)
                 + "<div class=\"vc-try\"><label class=\"vc-f\">견줘 듣기 - 줄마다 🎧 로 이 목소리를 한두 줄만<select id=\"vcTry\"><option value=\"\">고르기</option></select></label>"
                 + "<button id=\"vcUse\" title=\"견줄 목소리를 쓰는 목소리로\">⇄ 이 목소리로 바꾸기</button></div></div>"
-                + "<div class=\"vc-card\"><h2>해설</h2><textarea id=\"vcText\" placeholder=\"해설 블록을 붙여 넣으세요 - 한 줄이 한 장면\"></textarea>"
+                + "<div class=\"vc-card\"><h2>해설</h2><div class=\"vc-ed\"><div class=\"vc-no\" id=\"vcNo\" aria-hidden=\"true\"></div><textarea id=\"vcText\" placeholder=\"해설 블록을 붙여 넣으세요 - 한 줄이 한 장면\"></textarea></div>"
                 // 2026-11-25 홍TV님 - 읽는 말만 바꾸고 자막은 그대로(voice.js spoken · shown)
                 + "<p class=\"vc-tip\">발음이 어색한 낱말은 바로 뒤에 { } 로 읽는 말 - 예) <code>대가야{대 가야}</code> → 소리는 { } 안 말, 자막 · srt 는 대가야 그대로. 띄어 쓴 낱말을 붙여 읽을 때는 그대로 - <code>리만 가설{리만가설}</code>, 다르게 읽을 때는 [ ] 로 묶기 - <code>[켜 두어야]{켜 두워야}</code>.</p></div>"
                 + "<div class=\"vc-card\"><h2>줄</h2><div class=\"vc-sum\" id=\"vcSum\"></div><ol id=\"vcLines\"></ol></div>"
