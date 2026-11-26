@@ -855,6 +855,10 @@
             $("sheet").innerHTML = T('<div class="tip">탐방로를 누르면 그 코스를 따라갈 수 있습니다.</div><div class="row"><a class="main" id="followNone" href="hike.html">따라가기</a></div>',
                 '<div class="tip">Tap a trail to follow it.</div><div class="row"><a class="main" id="followNone" href="hike.html">Follow</a></div>');
         }
+        if (backTo === "studio") {   // GPX 편집의 🗺 안내도에서 고르기로 왔으면 위 단추는 GPX 편집으로(2026-11-26 홍TV님 - "목록" 이 따라가기로 가서 헷갈렸음, route.js 와 같게)
+            $("back").textContent = T("‹ GPX 편집", "‹ GPX editor");
+            $("back").href = "studio.html";
+        }
         // 따라가기의 🏞 로 왔어도 위 단추는 park.html 의 기본 "‹ 목록"(따라가기 첫 화면 - 2026-10-13 홍TV님: "‹ 따라가기" → 목록)
         // 고른 탐방로가 없을 때 아래 칸(모두 빼면 다시 이것으로). 따라가기는 아래 칸에 맡겨 받음(다시 그려도 됨)
         emptySheet = $("sheet").innerHTML;

@@ -1293,10 +1293,10 @@
             fetch("api/courses?q=" + encodeURIComponent(n), { headers: { Accept: "application/json" } }).then(function (r) { return r.json(); }).then(function (j) {
                 var rows = (j && j.courses) || [], links = [];
                 RF.routeGuides(rows, 2, [], n).forEach(function (g) {
-                    links.push(["🌲 " + g.name + " 노선 안내도", "route.html?" + (g.trail ? "trail=" + encodeURIComponent(g.trail) : "prefix=" + encodeURIComponent(g.prefix)) + "&name=" + encodeURIComponent(g.name)]);
+                    links.push(["🌲 " + g.name + " 노선 안내도", "route.html?" + (g.trail ? "trail=" + encodeURIComponent(g.trail) : "prefix=" + encodeURIComponent(g.prefix)) + "&name=" + encodeURIComponent(g.name) + "&back=studio"]);
                 });
                 RF.guideMaps(rows, 3, n).forEach(function (g) {
-                    links.push(["🏞 " + g.label + " 탐방 안내도", "park.html?name=" + encodeURIComponent(g.name) + "&from=" + encodeURIComponent(g.from) + (g.label !== g.name ? "&label=" + encodeURIComponent(g.label) : "")]);
+                    links.push(["🏞 " + g.label + " 탐방 안내도", "park.html?name=" + encodeURIComponent(g.name) + "&from=" + encodeURIComponent(g.from) + (g.label !== g.name ? "&label=" + encodeURIComponent(g.label) : "") + "&back=studio"]);
                 });
                 found.textContent = "";
                 if (!links.length) { found.textContent = "찾은 안내도가 없습니다. 다른 이름으로 찾아 보세요."; return; }
@@ -1332,8 +1332,8 @@
         box.hidden = false;
         inp.focus();
     };
-    /** 산 · 공원 이름의 탐방 안내도 주소. */
-    function guideHref(name) { return "park.html?name=" + encodeURIComponent(name); }
+    /** 산 · 공원 이름의 탐방 안내도 주소 - &back=studio: 안내도 위 단추가 "‹ GPX 편집" 으로 여기로 돌아옴(2026-11-26 홍TV님 "GPX 편집으로 나와서 클릭하면 4화면"). */
+    function guideHref(name) { return "park.html?name=" + encodeURIComponent(name) + "&back=studio"; }
 
     function openFromGuide() { return ownerP.then(openGuideNow); }
     /**

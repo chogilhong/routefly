@@ -273,8 +273,8 @@
     function start() {
         // ‹ 뒤로: 따라가기 목록 카드에서 왔으면 그 목록(검색어는 rf-search 로 남아 있음), 그 밖은 도장 · 완주
         // back=m - 산 · 길 목록(/m/, 2026-10-15)
-        $("back").href = backTo === "list" ? "hike.html" : backTo === "m" ? "m/" : backTo === "en" ? "en/m/" : "series.html";   // en - 영어 목록(/en/m/)
-        $("back").textContent = backTo === "list" ? T("‹ 목록", "‹ List") : backTo === "m" ? T("‹ 코스 모음", "‹ Trails") : backTo === "en" ? "‹ Back" : T("‹ 도장 · 완주", "‹ Stamps");   // 2026-10-13 홍TV님: "‹ 뒤로" → 돌아갈 곳 이름
+        $("back").href = backTo === "list" ? "hike.html" : backTo === "m" ? "m/" : backTo === "en" ? "en/m/" : backTo === "studio" ? "studio.html" : "series.html";   // en - 영어 목록(/en/m/)
+        $("back").textContent = backTo === "list" ? T("‹ 목록", "‹ List") : backTo === "m" ? T("‹ 코스 모음", "‹ Trails") : backTo === "en" ? "‹ Back" : backTo === "studio" ? T("‹ GPX 편집", "‹ GPX editor") : T("‹ 도장 · 완주", "‹ Stamps");   // studio - GPX 편집의 안내도에서 고르기(2026-11-26, park.js 와 같게)   // 2026-10-13 홍TV님: "‹ 뒤로" → 돌아갈 곳 이름
         // 고른 구간이 없을 때 아래 칸(모두 빼면 다시 이것으로) - 단추는 아래 칸에 맡겨 두고 받음(다시 그려도 됨)
         emptySheet = $("sheet").innerHTML;
         $("sheet").addEventListener("click", function (e) {
