@@ -168,8 +168,14 @@
     if (n) l.unshift(n);
     return l.slice(0, MAX_SAVED);
   }
+  /** 순수 함수 - 💾 저장할 소리 열쇠(2026-11-27 홍TV님 "저장하고 열면 소리까지"): 지금 글의 줄마다 읽는 말 · 목소리 · 빠르기 열쇠(같은 줄은 하나). */
+  function projKeys(text, voice, rate) {
+    var out = [];
+    lines(text).forEach(function (x) { var k = cacheKey(voice, rate, spoken(x)); if (out.indexOf(k) < 0) out.push(k); });
+    return out;
+  }
   var LIMIT = 500000;
-  var api = { usageText: usageText, lineNumbers: lineNumbers, lines: lines, spoken: spoken, shown: shown, playSig: playSig, clock: clock, cacheKey: cacheKey, parseWav: parseWav, joinWav: joinWav, srtTime: srtTime, srt: srt, lineAt: lineAt, resumeFrom: resumeFrom, fromFile: fromFile, savedNames: savedNames };
+  var api = { usageText: usageText, lineNumbers: lineNumbers, lines: lines, spoken: spoken, shown: shown, playSig: playSig, clock: clock, cacheKey: cacheKey, parseWav: parseWav, joinWav: joinWav, srtTime: srtTime, srt: srt, lineAt: lineAt, resumeFrom: resumeFrom, fromFile: fromFile, savedNames: savedNames, projKeys: projKeys };
   if (typeof module !== 'undefined' && module.exports) { module.exports = api; return; }
   root.RFV = api;
 
@@ -410,6 +416,35 @@
     save('names', JSON.stringify(l));
     fillSaved(l);
   }
+  // 💾 저장(2026-11-27 홍TV님 "저장 기능을 둬서 현재 그대로 저장하고 열면 소리까지") - IndexedDB rf-voice / proj, 열쇠 = 산 이름.
+  // {name, text, voice, rate, gap, t, snd: {소리 열쇠: {rate, channels, bits, pcm}}} - 이 브라우저에만(서버로 안 감)
+  function idbDo(mode, fn) {
+    return new Promise(function (res, rej) {
+      if (!window.indexedDB) { rej(new Error('이 브라우저는 저장소가 없습니다')); return; }
+      var r = indexedDB.open('rf-voice', 1);
+      r.onupgradeneeded = function () { r.result.createObjectStore('proj'); };
+      r.onerror = function () { rej(r.error || new Error('저장소를 열지 못했습니다')); };
+      r.onsuccess = function () {
+        var db = r.result, tx, q;
+        try { tx = db.transaction('proj', mode); q = fn(tx.objectStore('proj')); } catch (e) { db.close(); rej(e); return; }
+        tx.oncomplete = function () { db.close(); res(q ? q.result : undefined); };
+        tx.onerror = tx.onabort = function () { db.close(); rej(tx.error || new Error('저장하지 못했습니다')); };
+      };
+    });
+  }
+  function getProj(n) { return idbDo('readonly', function (st) { return st.get(n); }).catch(function () { return null; }); }
+  /** 저장한 목소리 · 빠르기 · 줄 사이로 맞추고 소리를 cache 에 넣음(이미 만든 줄은 그대로) - 넣은 줄 수. */
+  function applyProj(p) {
+    if (!p) return 0;
+    $('vcRate').value = p.rate; save('vcRate', String(p.rate));
+    $('vcGap').value = p.gap; save('vcGap', String(p.gap));
+    save('vcVoice', p.voice);   // 목록이 아직이면 받은 뒤 이 목소리로
+    if ([].some.call($('vcVoice').options, function (op) { return op.value === p.voice; })) $('vcVoice').value = p.voice;
+    var n = 0;
+    Object.keys(p.snd || {}).forEach(function (k) { var w = p.snd[k]; if (w && w.pcm) { cache[k] = { wav: w }; n++; } });
+    render();
+    return n;
+  }
   /** 해설 칸 · 산 이름을 바꿈(📂 열기 · 저장한 산 고르기) - 듣던 것은 멈춤. */
   function setText(name, text, msg) {
     stop();
@@ -434,19 +469,36 @@
       var n = $('vcSaved').value;
       if (!n) return;
       keepText();   // 보던 글은 그 산 이름으로 남김
-      var t = load('text:' + n);
-      if (t == null) { info(n + ' - 저장한 글이 없습니다'); return; }
-      setText(n, t, n + ' 해설을 불러왔습니다(' + lines(t).length + '줄)');
       $('vcSaved').value = '';
+      getProj(n).then(function (p) {
+        var t = load('text:' + n);   // 글은 칠 때마다 남긴 것(💾 뒤에 고친 글)이 먼저
+        if (t == null && p) t = p.text;
+        if (t == null) { info(n + ' - 저장한 글이 없습니다'); return; }
+        setText(n, t, n + ' 해설을 불러왔습니다(' + lines(t).length + '줄)');
+        var k = applyProj(p);
+        if (p) info(n + ' 해설 ' + lines(t).length + '줄 · 저장한 소리 ' + k + '줄을 불러왔습니다' + (k ? ' - 글을 고친 줄만 ▶ 바뀐 줄만 만들기' : ''));
+      });
     });
+    $('vcSave').onclick = function () {
+      var n = $('vcName').value.trim(), t = $('vcText').value, o = opts();
+      if (!n) { info('산 이름을 먼저 적으세요(저장 이름)'); return; }
+      if (!t.trim()) { info('해설이 비었습니다'); return; }
+      var snd = {}, k = 0;
+      projKeys(t, o.voice, o.rate).forEach(function (key) { var c = cache[key]; if (c && !c.err) { snd[key] = c.wav; k++; } });
+      keepText();
+      idbDo('readwrite', function (st) { return st.put({ name: n, text: t, voice: o.voice, rate: o.rate, gap: o.gap, t: Date.now(), snd: snd }, n); })
+        .then(function () { info(n + ' 저장 - 글 ' + lines(t).length + '줄 · 소리 ' + k + '줄(이 브라우저에)'); })
+        .catch(function (e) { info('저장하지 못했습니다: ' + (e && e.message || e)); });
+    };
     $('vcForget').onclick = function () {
       var n = $('vcSaved').value || $('vcName').value.trim(), l = savedList();
       if (!n || l.indexOf(n) < 0) { info('지울 산을 📚 목록에서 고르세요'); return; }
       try { localStorage.removeItem('rf-voice-text:' + n); } catch (e) { /* 그대로 */ }
+      idbDo('readwrite', function (st) { return st.delete(n); }).catch(function () { /* 저장한 소리가 없었음 */ });
       l = l.filter(function (x) { return x !== n; });
       save('names', JSON.stringify(l));
       fillSaved(l);
-      info(n + ' 을(를) 저장한 목록에서 지웠습니다(해설 칸 글은 그대로)');
+      info(n + ' 을(를) 저장한 목록에서 지웠습니다(저장한 소리도 - 해설 칸 글은 그대로)');
     };
     $('vcOpen').onclick = function () { $('vcFile').click(); };
     $('vcFile').addEventListener('change', function () {
@@ -457,7 +509,9 @@
         input.value = '';
         if (!r.text) { info(r.note || '파일에서 글을 찾지 못했습니다'); return; }
         keepText();   // 보던 글은 그 산 이름으로 남김
-        setText(r.name, r.text, f.name + ' 을(를) 열었습니다(' + lines(r.text).length + '줄)' + (r.note ? ' · ' + r.note : ''));
+        var msg = f.name + ' 을(를) 열었습니다(' + lines(r.text).length + '줄)' + (r.note ? ' · ' + r.note : '');
+        setText(r.name, r.text, msg);
+        getProj(r.name).then(function (p) { var k = applyProj(p); if (k) info(msg + ' · 저장한 소리 ' + k + '개를 넣었습니다(같은 줄만 쓰임)'); });
       }).catch(function () { input.value = ''; info('파일을 읽지 못했습니다'); });
     });
     $('vcText').addEventListener('scroll', function () { if ($('vcNo')) gutterPaint(); });

@@ -118,4 +118,8 @@ assert.strictEqual(V.lineNumbers('가\n나\n다').filter(Boolean).length, V.line
   var many = []; for (var i = 0; i < 70; i++) many.push('산' + i);
   assert.strictEqual(V.savedNames(many, '새').length, 60);
 })();
+// 💾 저장할 소리 열쇠(2026-11-27 홍TV님) - 줄마다 읽는 말로, 같은 줄은 하나, ``` · 빈 줄 없음, 화면 cache 열쇠와 같음
+assert.deepStrictEqual(V.projKeys('```\n가{카}\n\n나\n가{카}\n```', 'v1', 5), ['v1|5|카', 'v1|5|나']);
+assert.strictEqual(V.projKeys('가', 'v1', 5)[0], V.cacheKey('v1', 5, V.spoken('가')));
+assert.deepStrictEqual(V.projKeys('', 'v', 0), []);
 console.log('voice ok');
