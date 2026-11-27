@@ -37,6 +37,8 @@ public class CuriousShortsTest {
         assertEquals("height", v.get(0).getAsJsonObject().getAsJsonObject("faq").get("at").getAsString());
         assertEquals("VJTyvKGq-xc", v.get(1).getAsJsonObject().get("id").getAsString());   // 2편 하산 무릎(2026-11-27, 114.2초) - 등산 시간 문답 아래
         assertEquals("time", v.get(1).getAsJsonObject().getAsJsonObject("faq").get("at").getAsString());
+        assertEquals("GxT9gYoGipE", v.get(2).getAsJsonObject().get("id").getAsString());   // 3편 100대 명산(2026-11-27, 90.6초) - 문답 자리 없이 코스 모음 칸만
+        assertFalse(v.get(2).getAsJsonObject().has("faq"));
     }
 
     @Test
@@ -83,7 +85,7 @@ public class CuriousShortsTest {
         JsonArray peaks = JsonParser.parseString("[{\"id\":\"설악산\",\"lat\":38.1,\"lon\":128.4}]").getAsJsonArray();
         String idx = MountainServlet.indexPage(peaks, new JsonArray(), "https://r.kr", false, "", "", videos());
         // 2026-11-27 홍TV님 "이 둘의 위치를 바꾸자" - 등산 칸 안이 아니라 산 · 길 목록 아래 따로 칸(전에 🧗 가파른 산 순위 자리)
-        assertTrue(idx, idx.contains("<section id=\"curious\"><details class=\"fold kind\" name=\"kind\"><summary><span class=\"ft\">▶ 산에서 궁금한 것</span><span class=\"fs\">짧은 영상 2편</span>"));
+        assertTrue(idx, idx.contains("<section id=\"curious\"><details class=\"fold kind\" name=\"kind\"><summary><span class=\"ft\">▶ 산에서 궁금한 것</span><span class=\"fs\">짧은 영상 3편</span>"));
         assertTrue("목록 아래 · 챙길 것 위", idx.indexOf("<section id=\"curious\">") > idx.indexOf("<section id=\"weekend\" hidden>") && idx.indexOf("<section id=\"curious\">") < idx.indexOf("<section id=\"gearIdx\""));
         assertTrue(idx.contains("<li><a href=\"https://www.youtube.com/shorts/LcpO9nK2EtM\" target=\"_blank\" rel=\"noopener\">정상석 높이와 내 GPS가 다른 이유 <small>1분 17초</small> ›</a></li>"));
         assertTrue("100대 명산 칸 다음", idx.indexOf("산에서 궁금한 것") > idx.indexOf(">설악산</a>"));
