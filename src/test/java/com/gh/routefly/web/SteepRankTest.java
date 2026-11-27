@@ -101,7 +101,7 @@ public class SteepRankTest {
     }
 
     @Test
-    public void 화면() {
+    public void 화면() throws Exception {
         assertEquals("셈하기 전에는 칸이 없음", "", SteepRank.html(null, false));
         JsonArray peaks = new JsonArray();
         peaks.add(peak("백운산(정선)", 884));
