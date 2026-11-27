@@ -841,7 +841,10 @@
         var f;
         try { f = RF.flyStart(got.rec, EN, keepEnds); } catch (e) { alert(T("영상을 준비하지 못했습니다: ", "Could not prepare the video: ") + (e && e.message || e)); return; }
         if (f.short) { alert(f.short); return; }
-        if (!confirm(f.msg)) return;
+        // 앱에서도 우리 글자 창(브라우저 confirm 은 앱에서 CANCEL · OK 영어 - 2026-11-27 PC)
+        RFDialog.confirm(f.msg, { ok: T("시작", "Start") }).then(function (yes) { if (yes) flyGo(got, f, hash); });
+    }
+    function flyGo(got, f, hash) {
         var ids = Object.keys(got.photos || {});
         new Promise(function (resolve) {
             if (!ids.length || !window.indexedDB) { resolve(); return; }

@@ -873,8 +873,8 @@
             photos: notes.filter(function (n) { return n.photo; }).map(function (n) { return { lat: n.lat, lon: n.lon, photo: n.photo }; }) }));
         var secs = Math.max(20, Math.min(60, Math.round(rc.total / 250)));
         return { secs: secs, url: "index.html?video=1&rec=1&secs=" + secs + (en ? "&lang=en" : "") + "#c=" + encodeURIComponent(id),
-            msg: L("3D 화면에서 " + secs + "초 동안 날며 영상을 만들고 따라가기 화면으로 돌아옵니다. 화면을 켜 둔 채 기다려 주세요. 영상 모양은 지금 화면 모양 그대로입니다(폰을 세로로 들면 세로 영상).",
-                "The 3D screen flies for " + secs + " s while recording, then comes back to the hike screen. Keep the screen on. The video has the shape of your screen (hold the phone upright for a vertical video).") };
+            msg: L("3D 화면에서 " + secs + "초 동안 날며 영상을 만들고 이 화면으로 돌아옵니다. 화면을 켜 둔 채 기다려 주세요. 영상 모양은 지금 화면 모양 그대로입니다(폰을 세로로 들면 세로 영상).",
+                "The 3D screen flies for " + secs + " s while recording, then comes back to this screen. Keep the screen on. The video has the shape of your screen (hold the phone upright for a vertical video).") };
     }
 
     function recordGpx(rec, photos) {

@@ -1494,8 +1494,8 @@
             + '<label style="' + ls + '">' + tr("보내는 사람 이름(올리면 코스 화면에 \"만든 이\" 로 보임 · 비우면 익명)", "Your name (shown as \"Made by\" on the course screens if published · leave empty to stay anonymous)") + '<input type="text" class="sd" maxlength="20" style="' + is + '"></label>'
             + '<label style="' + ls + '">' + tr("종류", "Type") + '<select class="kd" style="' + is + '"><option value="hike">' + tr("⛰️ 등산", "⛰️ Hiking") + '</option><option value="walk">' + tr("🚶 걷기", "🚶 Walking") + '</option><option value="bike">' + tr("🚴 자전거", "🚴 Cycling") + '</option></select></label>'
             + '<label style="' + ls + '">' + tr("메모(골라서 - 들머리 · 주차 등)", "Note (optional - trailhead, parking, etc.)") + '<textarea class="nt" maxlength="200" rows="2" style="' + is + '"></textarea></label>'
-            + '<p class="tip" style="margin:10px 0 6px">' + tr("길 모양 · 코스 이름 · 보낸 사람 이름을 routefly 가 점검해 공개 코스로 올릴 수 있습니다. 시각 · 사진 · 메모는 보내지 않습니다. 집 근처 출발 · 도착 부분은 먼저 자르세요.",
-                "routefly may review the line, course name and your name and publish them as a public course. Times, photos and photo notes are not sent. Trim the start and end near your home first.")
+            + '<p class="tip" style="margin:10px 0 6px">' + tr("길 모양 · 코스 이름 · 보낸 사람 이름을 routefly 가 점검해 공개 코스로 올릴 수 있습니다(메모는 운영자 점검에만 씀). 시각 · 사진 · 사진 메모는 보내지 않습니다. 집 근처 출발 · 도착 부분은 먼저 자르세요.",
+                "routefly may review the line, course name and your name and publish them as a public course (the note is only for our review). Times, photos and photo notes are not sent. Trim the start and end near your home first.")
             + ' <a href="' + tr("privacy.html", "privacy-en.html") + '#course-submit" target="_blank" rel="noopener" style="color:#38d9ea">' + tr("개인정보처리방침", "Privacy policy") + '</a></p>'
             + '<p style="margin:0"><span class="km tip"></span></p>'
             + '<label style="display:flex;gap:8px;align-items:flex-start;margin-top:10px"><input type="checkbox" class="ag" style="margin-top:3px"><span class="agt"></span></label>'
