@@ -17,7 +17,10 @@
 · Cat 320 사양(07 세대) 작업 최대 압력 35,000 kPa · Eaton · Power & Motion(A380 5,000 psi)
 · DARPA 2013 · IEEE Spectrum 2024-04-16 · TechCrunch 2024-04-17(아틀라스)
 · Weihmann T 2013, PLoS ONE 8(6):e65788(거미 다리) https://doi.org/10.1371/journal.pone.0065788
-그림: routefly 가 직접 그림(선그림)
+사진 · 영상(위키미디어 공용, 바꾸지 않고 씀 - CC BY-SA 는 자르지도 않음):
+· 굴착기 영상(처음): KEmel49 · CC BY-SA 4.0 https://creativecommons.org/licenses/by-sa/4.0/ · https://commons.wikimedia.org/wiki/File:Excavator_digging_land_and_loading_truck.webm
+· 브라마 프레스 그림: Scan by Kogo · 퍼블릭 도메인 · https://commons.wikimedia.org/wiki/File:Bramahsche_Presse.png
+그림: 나머지 장면은 routefly 가 직접 그림(선그림)
 해설: AI 음성(Azure)
 
 #shorts #유압 #굴착기 #파스칼의원리 #routefly

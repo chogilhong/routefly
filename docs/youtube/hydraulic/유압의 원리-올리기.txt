@@ -29,7 +29,19 @@
 · Weihmann T 2013, PLoS ONE 8(6):e65788(거미 다리 관절) https://doi.org/10.1371/journal.pone.0065788
 · Science Museum Group - London Hydraulic Power Company
 · 런던 수력 회사 물 압력은 자료에 따라 700 ~ 800 psi(위키백과 · subbrit ↔ Grace's Guide · Fluid Power Journal)
-그림: routefly 가 직접 그림(선그림)
+사진 · 영상(위키미디어 공용, 바꾸지 않고 씀 - CC BY-SA 는 자르지도 않음):
+· 굴착기 영상(처음): KEmel49 · CC BY-SA 4.0 https://creativecommons.org/licenses/by-sa/4.0/ · https://commons.wikimedia.org/wiki/File:Excavator_digging_land_and_loading_truck.webm
+· 유압 실린더 사진: U.S. Marine Corps - Staff Sgt. David Bickel · 퍼블릭 도메인 · https://commons.wikimedia.org/wiki/File:Mechanics_on_the_Move;_MCED-Palau_23_2_fixes_HYEX_(8053902).jpg
+· 굴착기 영상(흐르는 양): 驭龙飞车手 · CC BY 4.0 https://creativecommons.org/licenses/by/4.0/ · https://commons.wikimedia.org/wiki/File:Hyundai_excavator_undergoing_excavation_work_(20240311)_V1.webm
+· 브라마 프레스 그림: Scan by Kogo · 퍼블릭 도메인 · https://commons.wikimedia.org/wiki/File:Bramahsche_Presse.png
+· 타워브리지 사진: Photochrom Print Collection, Library of Congress · 퍼블릭 도메인 · https://commons.wikimedia.org/wiki/File:Tower_Bridge,_II._(open),_London,_England-LCCN2002696928.jpg
+· 코마츠 PC8000 사진: Bahnfrend · CC BY-SA 4.0 https://creativecommons.org/licenses/by-sa/4.0/ · https://commons.wikimedia.org/wiki/File:Komatsu_PC8000,_Super_Pit,_2016.jpg
+· A380 사진: Julian Herzog · CC BY 4.0 https://creativecommons.org/licenses/by/4.0/ · https://commons.wikimedia.org/wiki/File:Emirates_Airbus_A380-861_A6-EER_MUC_2015_04.jpg
+· A380 주 착륙장치 사진: Julian Herzog · CC BY 4.0 https://creativecommons.org/licenses/by/4.0/ · https://commons.wikimedia.org/wiki/File:British_Airways_Airbus_A380-841_F-WWSK_PAS_2013_08_main_landing_gear_retusche.jpg
+· 아틀라스 사진: DARPA · 퍼블릭 도메인 · https://commons.wikimedia.org/wiki/File:Atlas_frontview_2013.jpg
+· 깡충거미 사진: Thomas Shahan · CC BY 2.0 https://creativecommons.org/licenses/by/2.0/ · https://commons.wikimedia.org/wiki/File:Phidippus_whitmani_-_male_jumping_spider_-_Oklahoma.jpg
+· 굴착기 사진(끝): Bernard Spragg. NZ · CC0 · https://commons.wikimedia.org/wiki/File:Dancing_diggers_(10129084095).jpg
+그림: 나머지 장면은 routefly 가 직접 그림(선그림)
 해설: AI 음성(Azure)
 안내: 숫자는 2026-11 기준 공개 자료 · 셈(35 MPa → 1 cm² 에 약 357 kg, 지름 12cm 피스톤 약 40톤힘은 예로 든 셈)입니다.
 
