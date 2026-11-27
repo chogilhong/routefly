@@ -23,6 +23,7 @@ public class TraverseListTest {
     }
 
     @Test
+    // 설악 세 이름은 2026-11-27 홍TV님이 고침(공룡능선 → 남소종주 · 종주 → 용소종주 · 공룡능선 원점회귀 → 소마공천)
     public void 이름난_종주는_코스마다() throws Exception {
         JsonArray peaks = JsonParser.parseString(read("src/main/webapp/data/mountains100.json")).getAsJsonObject().getAsJsonArray("peaks");
         JsonArray groups = JsonParser.parseString(read("src/main/webapp/data/series.json")).getAsJsonObject().getAsJsonArray("groups");
@@ -35,7 +36,7 @@ public class TraverseListTest {
                 && ko.contains("<li><a href=\"../c/u-20261115-225753\">불수사도북 종주 <small>불암산 → 수락산 → 사패산 → 도봉산 → 북한산 · 45km</small></a></li>")
                 && ko.contains("<li><a href=\"../c/u-20261115-234810\">청광종주</a></li>")
                 && ko.contains("<li><a href=\"../c/u-20261126-142312\">설악산 남소종주 <small>")
-                && ko.contains("<li><a href=\"../c/u-20261126-152238\">설악산 용소종주 <small>")  // 2026-11-27 홍TV님 이름 고침(공룡능선 → 남소종주 · 종주 → 용소종주 · 공룡능선 원점회귀 → 소마공천));
+                && ko.contains("<li><a href=\"../c/u-20261126-152238\">설악산 용소종주 <small>"));
         assertFalse("빈 노선 안내도로 가지 않음", ko.contains("trail=" + MountainServlet.enc("이름난 종주")) || en.contains("trail=" + MountainServlet.enc("이름난 종주")));
         assertTrue(en, en.contains("<li><a href=\"../../c/u-20261116-003832\" lang=\"ko\">지리산 화대종주 <small>화엄사 → 노고단 → 천왕봉 → 대원사 · 42.6km</small></a></li>"));
         JsonObject sr = new JsonObject();
