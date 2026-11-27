@@ -94,4 +94,28 @@ assert.strictEqual(V.usageText(499000, 2000, 2000, 500000).slice(-7), '남은 �
 // 해설 칸 줄 번호 - 줄 목록과 같은 번호, 빈 줄 · ``` 줄은 번호 없음(2026-11-26 홍TV님)
 assert.deepStrictEqual(V.lineNumbers('```\n첫 줄\n\n  둘째 줄 \n```'), [null, 1, null, 2, null]);
 assert.strictEqual(V.lineNumbers('가\n나\n다').filter(Boolean).length, V.lines('가\n나\n다').length);
+// 📂 열기(2026-11-27 홍TV님) - 대본 md 는 "## 해설" 아래 첫 블록, srt 는 자막 글만, txt 는 그대로
+(function () {
+  var md = '# 산\n\n| 1 | 표 |\n\n```\n표 위 블록\n```\n\n## 해설(15줄)\n\n```\n첫 줄 대가야{대 가야}\n둘째 줄\n```\n\n## 끝\n```\n뒤 블록\n```\n';
+  var r = V.fromFile('월악산.md', md);
+  assert.strictEqual(r.name, '월악산');
+  assert.strictEqual(r.text, '첫 줄 대가야{대 가야}\n둘째 줄');
+  assert.strictEqual(r.note, '');
+  var r2 = V.fromFile('x.md', '```\n가\n```\n```\n나\n다\n```');
+  assert.strictEqual(r2.text, '나\n다');   // 해설 제목이 없으면 맨 끝 블록
+  assert.ok(r2.note.length > 0);
+  assert.strictEqual(V.fromFile('x.md', '글만').text, '');
+  var s = V.fromFile('C:\\a\\월악산.srt', '\uFEFF1\r\n00:00:00,000 --> 00:00:01,000\r\n첫 줄\r\n\r\n2\r\n00:00:01,300 --> 00:00:02,000\r\n둘째\r\n줄\r\n');
+  assert.strictEqual(s.name, '월악산');
+  assert.strictEqual(s.text, '첫 줄\n둘째 줄');
+  assert.ok(/\{ \}/.test(s.note));
+  // srt 로 만든 글을 다시 열면 같은 줄 수(V.srt 와 짝)
+  assert.strictEqual(V.fromFile('a.srt', V.srt(['가 나', '다'], [[0, 1], [1.3, 2]])).text, '가 나\n다');
+  assert.strictEqual(V.fromFile('a.txt', ' 가\n나 ').text, '가\n나');
+  assert.deepStrictEqual(V.savedNames(['가', '나', '다'], '나'), ['나', '가', '다']);
+  assert.deepStrictEqual(V.savedNames(null, ' 라 '), ['라']);
+  assert.deepStrictEqual(V.savedNames(['가'], ''), ['가']);
+  var many = []; for (var i = 0; i < 70; i++) many.push('산' + i);
+  assert.strictEqual(V.savedNames(many, '새').length, 60);
+})();
 console.log('voice ok');

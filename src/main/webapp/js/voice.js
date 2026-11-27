@@ -132,8 +132,44 @@
     var n = function (v) { return Math.round(v).toLocaleString('ko-KR'); }, left = Math.max(0, limit - before - job);
     return '이번 달 ' + n(limit / 10000) + '만 자 중 · 전에 쓴 것 ' + n(before) + '자 · 이번 작업 ' + n(job) + (jobTotal ? ' / ' + n(jobTotal) : '') + '자 · 남은 것 ' + n(left) + '자';
   }
+  /**
+   * 순수 함수 - 📂 열기(2026-11-27 홍TV님 "작업해줘"): 파일 이름 · 글 → {name, text, note}. 못 읽으면 text 가 ''.
+   * 대본 md 는 "## 해설…" 아래 첫 ``` 블록(해설 제목이 없으면 맨 끝 ``` 블록), srt 는 번호 · 시각 줄을 빼고 자막 글만(한 자막 = 한 줄 - 읽는 말 { } 은 srt 에 없음), 그 밖(txt)은 그대로.
+   * name - 파일 이름에서 확장자를 뺀 것(월악산.md → 월악산).
+   */
+  function fromFile(fname, text) {
+    var f = String(fname || ''), t = String(text || '').replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
+    var name = f.replace(/^.*[\\/]/, '').replace(/\.[^.]*$/, ''), ext = (/\.([^.]+)$/.exec(f) || [])[1];
+    ext = ext ? ext.toLowerCase() : '';
+    if (ext === 'srt') {
+      var out = t.split(/\n\s*\n/).map(function (b) {
+        return b.split('\n').map(function (x) { return x.trim(); }).filter(function (x) { return x && !/^\d+$/.test(x) && !/-->/.test(x); }).join(' ');
+      }).filter(Boolean);
+      return { name: name, text: out.join('\n'), note: out.length ? 'srt 에는 읽는 말 { } 이 없습니다 - 발음을 고친 줄이 있으면 대본 md 를 여세요' : 'srt 에서 자막을 찾지 못했습니다' };
+    }
+    if (ext === 'md') {
+      var ls = t.split('\n'), from = -1, blocks = [], open = -1;
+      ls.forEach(function (x, i) { if (from < 0 && /^##\s*해설/.test(x)) from = i; });
+      ls.forEach(function (x, i) {
+        if (!/^```/.test(x.trim())) return;
+        if (open < 0) open = i; else { blocks.push([open, i]); open = -1; }
+      });
+      var pick = from >= 0 ? blocks.filter(function (k) { return k[0] > from; })[0] : blocks[blocks.length - 1];
+      if (!pick) return { name: name, text: '', note: '대본에서 해설 블록(``` … ```)을 찾지 못했습니다' };
+      return { name: name, text: ls.slice(pick[0] + 1, pick[1]).join('\n').trim(), note: from >= 0 ? '' : '"## 해설" 제목이 없어 맨 끝 블록을 넣었습니다' };
+    }
+    return { name: name, text: t.trim(), note: '' };
+  }
+  /** 순수 함수 - 산마다 저장(2026-11-27): 저장한 산 이름 목록 - 방금 것을 맨 앞에, 같은 이름은 하나, MAX_SAVED 개까지. */
+  var MAX_SAVED = 60;
+  function savedNames(list, name) {
+    var n = String(name || '').trim();
+    var l = (Array.isArray(list) ? list : []).filter(function (x) { return typeof x === 'string' && x && x !== n; });
+    if (n) l.unshift(n);
+    return l.slice(0, MAX_SAVED);
+  }
   var LIMIT = 500000;
-  var api = { usageText: usageText, lineNumbers: lineNumbers, lines: lines, spoken: spoken, shown: shown, playSig: playSig, clock: clock, cacheKey: cacheKey, parseWav: parseWav, joinWav: joinWav, srtTime: srtTime, srt: srt, lineAt: lineAt, resumeFrom: resumeFrom };
+  var api = { usageText: usageText, lineNumbers: lineNumbers, lines: lines, spoken: spoken, shown: shown, playSig: playSig, clock: clock, cacheKey: cacheKey, parseWav: parseWav, joinWav: joinWav, srtTime: srtTime, srt: srt, lineAt: lineAt, resumeFrom: resumeFrom, fromFile: fromFile, savedNames: savedNames };
   if (typeof module !== 'undefined' && module.exports) { module.exports = api; return; }
   root.RFV = api;
 
@@ -357,13 +393,72 @@
     if (now === true) { gutterMeasure(); gutterPaint(); return; }
     gutterTimer = setTimeout(function () { gutterMeasure(); gutterPaint(); }, 150);
   }
+  // 산마다 저장(2026-11-27 홍TV님) - 해설 글을 산 이름마다 이 브라우저 localStorage(rf-voice-text:<산>, 목록 rf-voice-names)에. 서버로 보내지 않음.
+  function savedList() { try { var l = JSON.parse(load('names') || '[]'); return Array.isArray(l) ? l : []; } catch (e) { return []; } }
+  function fillSaved(l) {
+    var sel = $('vcSaved');
+    sel.innerHTML = '';
+    sel.appendChild(new Option('📚 저장한 산 (' + l.length + ')', ''));
+    l.forEach(function (n) { sel.appendChild(new Option(n, n)); });
+  }
+  /** 지금 해설 글을 지금 산 이름으로 저장 - 이름 · 글이 있을 때만(이름을 치는 중의 반쪽 이름은 change 뒤에만 와서 남지 않음). */
+  function keepText() {
+    var n = $('vcName').value.trim(), t = $('vcText').value;
+    if (!n || !t.trim()) return;
+    save('text:' + n, t);
+    var l = savedNames(savedList(), n);
+    save('names', JSON.stringify(l));
+    fillSaved(l);
+  }
+  /** 해설 칸 · 산 이름을 바꿈(📂 열기 · 저장한 산 고르기) - 듣던 것은 멈춤. */
+  function setText(name, text, msg) {
+    stop();
+    $('vcName').value = name; save('vcName', name);
+    $('vcText').value = text; save('vcText', text);
+    keepText();
+    render();
+    gutter(true);
+    info(msg);
+  }
   function fileName() { return ($('vcName').value.trim() || 'voice').replace(/[\\/:*?"<>|]/g, ''); }
 
   function start() {
     ['vcName', 'vcRate', 'vcGap', 'vcText'].forEach(function (id) {
       var v = load(id);
       if (v != null) $(id).value = v;
-      $(id).addEventListener('input', function () { save(id, $(id).value); render(); if (id === 'vcText') gutter(); });
+      $(id).addEventListener('input', function () { save(id, $(id).value); render(); if (id === 'vcText') { gutter(); keepText(); } });
+    });
+    $('vcName').addEventListener('change', keepText);   // 이름을 다 친 뒤(칸을 떠날 때)
+    fillSaved(savedList());
+    $('vcSaved').addEventListener('change', function () {
+      var n = $('vcSaved').value;
+      if (!n) return;
+      keepText();   // 보던 글은 그 산 이름으로 남김
+      var t = load('text:' + n);
+      if (t == null) { info(n + ' - 저장한 글이 없습니다'); return; }
+      setText(n, t, n + ' 해설을 불러왔습니다(' + lines(t).length + '줄)');
+      $('vcSaved').value = '';
+    });
+    $('vcForget').onclick = function () {
+      var n = $('vcSaved').value || $('vcName').value.trim(), l = savedList();
+      if (!n || l.indexOf(n) < 0) { info('지울 산을 📚 목록에서 고르세요'); return; }
+      try { localStorage.removeItem('rf-voice-text:' + n); } catch (e) { /* 그대로 */ }
+      l = l.filter(function (x) { return x !== n; });
+      save('names', JSON.stringify(l));
+      fillSaved(l);
+      info(n + ' 을(를) 저장한 목록에서 지웠습니다(해설 칸 글은 그대로)');
+    };
+    $('vcOpen').onclick = function () { $('vcFile').click(); };
+    $('vcFile').addEventListener('change', function () {
+      var f = this.files && this.files[0], input = this;
+      if (!f) return;
+      f.text().then(function (txt) {
+        var r = fromFile(f.name, txt);
+        input.value = '';
+        if (!r.text) { info(r.note || '파일에서 글을 찾지 못했습니다'); return; }
+        keepText();   // 보던 글은 그 산 이름으로 남김
+        setText(r.name, r.text, f.name + ' 을(를) 열었습니다(' + lines(r.text).length + '줄)' + (r.note ? ' · ' + r.note : ''));
+      }).catch(function () { input.value = ''; info('파일을 읽지 못했습니다'); });
     });
     $('vcText').addEventListener('scroll', function () { if ($('vcNo')) gutterPaint(); });
     window.addEventListener('resize', function () { gutter(); });

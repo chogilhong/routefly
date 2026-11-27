@@ -792,7 +792,7 @@
         $("rec-share").onclick = function () {
             var url = new URL(/^[a-z0-9][a-z0-9_-]{0,63}$/.test(courseParam) ? "c/" + courseParam : "hike.html" + cQ, location.href).href, ttl = $("title").textContent;
             if (navigator.share) { navigator.share({ title: ttl, url: url }).catch(function () { /* 닫음 */ }); return; }
-            (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(function () { alert(T("주소를 복사했습니다.", "Link copied.")); }, function () { prompt(T("이 주소를 복사하세요", "Copy this link"), url); });
+            (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(function () { RFDialog.alert(T("주소를 복사했습니다.", "Link copied.")); }, function () { prompt(T("이 주소를 복사하세요", "Copy this link"), url); });
         };
         var gpxText = null, gpxName = null;   // 받아 둔 코스로 만든 GPX - 💾 가 그 자리에서 저장(점검 14차 D2)
         $("rec-save").onclick = function () {
@@ -839,8 +839,8 @@
     }
     function flyFile(got, keepEnds, hash) {
         var f;
-        try { f = RF.flyStart(got.rec, EN, keepEnds); } catch (e) { alert(T("영상을 준비하지 못했습니다: ", "Could not prepare the video: ") + (e && e.message || e)); return; }
-        if (f.short) { alert(f.short); return; }
+        try { f = RF.flyStart(got.rec, EN, keepEnds); } catch (e) { RFDialog.alert(T("영상을 준비하지 못했습니다: ", "Could not prepare the video: ") + (e && e.message || e)); return; }
+        if (f.short) { RFDialog.alert(f.short); return; }
         // 앱에서도 우리 글자 창(브라우저 confirm 은 앱에서 CANCEL · OK 영어 - 2026-11-27 PC)
         RFDialog.confirm(f.msg, { ok: T("시작", "Start") }).then(function (yes) { if (yes) flyGo(got, f, hash); });
     }
@@ -878,9 +878,9 @@
     $("gpxFile").addEventListener("change", function () {
         var f = this.files && this.files[0];
         if (!f) return;
-        if (f.size > 8 * 1024 * 1024) { alert(T("파일이 너무 큽니다(8MB 까지).", "The file is too big (8 MB max).")); return; }
+        if (f.size > 8 * 1024 * 1024) { RFDialog.alert(T("파일이 너무 큽니다(8MB 까지).", "The file is too big (8 MB max).")); return; }
         if (location.hash === "#open") history.replaceState(null, "", location.pathname + location.search);   // 새 파일 - 돌아올 자리 표시는 따라가기를 누를 때 다시
-        f.text().then(function (text) { openText(text, f.name); }).catch(function () { alert(T("파일을 읽지 못했습니다.", "Could not read the file.")); });
+        f.text().then(function (text) { openText(text, f.name); }).catch(function () { RFDialog.alert(T("파일을 읽지 못했습니다.", "Could not read the file.")); });
     });
     // 🛩 촬영이 끝나 이 화면으로 돌아옴(app.js 가 RF.vidBackUrl 로) - 여기서 💾 저장(2026-11-25 홍TV님 "촬영이 끝나면 그냥 이 자리에 있으면 돼")
     if (RF.vidBackUrl()) {
@@ -898,7 +898,7 @@
     function openText(text, fname) {
         var f = { name: fname };
         var got = RF.gpxRecord(text, true, f.name);   // 시각 없는 코스 GPX 도(선 · 지점 · 고도만, 속도 · 시간 없이)
-        if (!got) { alert(T("GPX 에 길(점)이 없습니다.", "The GPX has no track points.")); return; }
+        if (!got) { RFDialog.alert(T("GPX 에 길(점)이 없습니다.", "The GPX has no track points.")); return; }
         terrainRec(got.rec).then(function (r) {
             got.rec = r;   // 🛩 3D 영상도 지형 높이로(flyFile 이 누를 때 got.rec 를 씀)
             show(r, function (id) {
@@ -915,14 +915,14 @@
         $("rec-go").onclick = function () {
             var id = RF.gpxId(text);
             try { RF.storeGpx(id, RF.gpxToApi(text, f.name)); }
-            catch (e) { alert(T("GPX 를 담지 못했습니다(이 기기 저장 공간): ", "Could not keep the GPX (device storage): ") + (e && e.message || e)); return; }
+            catch (e) { RFDialog.alert(T("GPX 를 담지 못했습니다(이 기기 저장 공간): ", "Could not keep the GPX (device storage): ") + (e && e.message || e)); return; }
             keepOpen(text, f.name);
             location.href = (EN ? "hike.html?lang=en" : "hike.html") + "#c=" + encodeURIComponent(id) + "&from=trip";
         };
         // 보고 있던 길을 이 탭의 sessionStorage 로 GPX 편집에 넘김(이 기기 안에서만, 서버로 안 감 - 사진은 빼고 선 · 시각 · 높이만). 너무 커서 못 담으면 알림
         $("rec-edit").onclick = function () {
             try { sessionStorage.setItem("rf-studio-in", JSON.stringify({ name: got.rec.name || f.name, track: got.rec.track })); }
-            catch (e) { alert(T("길이 너무 커서 넘기지 못했습니다. GPX 편집에서 📂 열기로 이 파일을 여세요.", "The track is too big to pass on. Open this file with 📂 Open in the GPX editor.")); return; }
+            catch (e) { RFDialog.alert(T("길이 너무 커서 넘기지 못했습니다. GPX 편집에서 📂 열기로 이 파일을 여세요.", "The track is too big to pass on. Open this file with 📂 Open in the GPX editor.")); return; }
             location.href = "studio.html#file";
         };
     }

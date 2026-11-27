@@ -234,6 +234,7 @@ public class VoiceServlet extends HttpServlet {
                 + ".vc-tip{margin:8px 0 0;font-size:12.5px;color:var(--dim)}.vc-tip code{background:var(--bg);border:1px solid var(--ln);border-radius:6px;padding:1px 6px;color:var(--tx)}"
                 + ".vc button{font:inherit;font-size:14px;cursor:pointer;border-radius:10px;border:1px solid var(--ln);background:var(--bg);color:var(--tx);padding:8px 12px;min-height:38px;white-space:nowrap}"
                 + ".vc button:hover:not(:disabled){border-color:var(--sky)}.vc button:disabled{opacity:.4;cursor:default}"
+                + ".vc-open{display:flex;gap:8px;align-items:center;margin-bottom:8px}.vc-open select{flex:1;min-width:0}"
                 + ".vc button.pri{background:var(--sky);border-color:var(--sky);color:#06222a;font-weight:700}"
                 + ".vc-bar{position:sticky;bottom:0;z-index:5;margin:0 -16px;padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:var(--panel);border-top:1px solid var(--ln);box-shadow:0 -6px 18px rgba(0,0,0,.18)}"
                 + ".vc-btns{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.vc-btns .sp{flex:1}"
@@ -259,7 +260,13 @@ public class VoiceServlet extends HttpServlet {
                 // 견줘 듣기(2026-11-25 홍TV님) - 줄마다 🎧 로 한두 줄만 들어 보고, 마음에 들면 바꾸기(만든 소리는 그대로)
                 + "<div class=\"vc-try\"><label class=\"vc-f\">견줘 듣기 - 줄마다 🎧 로 이 목소리를 한두 줄만<select id=\"vcTry\"><option value=\"\">고르기</option></select></label>"
                 + "<button id=\"vcUse\" title=\"견줄 목소리를 쓰는 목소리로\">⇄ 이 목소리로 바꾸기</button></div></div>"
-                + "<div class=\"vc-card\"><h2>해설</h2><div class=\"vc-ed\"><div class=\"vc-no\" id=\"vcNo\" aria-hidden=\"true\"></div><textarea id=\"vcText\" placeholder=\"해설 블록을 붙여 넣으세요 - 한 줄이 한 장면\"></textarea></div>"
+                + "<div class=\"vc-card\"><h2>해설</h2>"
+                // 📂 열기 · 산마다 저장(2026-11-27 홍TV님) - 대본 md 의 해설 블록 · srt · txt 를 해설 칸에, 고친 글은 산 이름마다 이 브라우저에(voice.js fromFile · savedNames)
+                + "<div class=\"vc-open\"><button id=\"vcOpen\" title=\"대본 md(해설 블록) · srt · txt 파일을 해설 칸에\">📂 열기</button>"
+                + "<input id=\"vcFile\" type=\"file\" accept=\".md,.srt,.txt,text/plain,text/markdown\" hidden>"
+                + "<select id=\"vcSaved\" aria-label=\"저장한 산\"><option value=\"\">📚 저장한 산 (0)</option></select>"
+                + "<button id=\"vcForget\" title=\"고른 산을 저장한 목록에서 지우기\" aria-label=\"저장한 산 지우기\">✕</button></div>"
+                + "<div class=\"vc-ed\"><div class=\"vc-no\" id=\"vcNo\" aria-hidden=\"true\"></div><textarea id=\"vcText\" placeholder=\"해설 블록을 붙여 넣으세요 - 한 줄이 한 장면\"></textarea></div>"
                 // 2026-11-25 홍TV님 - 읽는 말만 바꾸고 자막은 그대로(voice.js spoken · shown)
                 + "<p class=\"vc-tip\">발음이 어색한 낱말은 바로 뒤에 { } 로 읽는 말 - 예) <code>대가야{대 가야}</code> → 소리는 { } 안 말, 자막 · srt 는 대가야 그대로. 띄어 쓴 낱말을 붙여 읽을 때는 그대로 - <code>리만 가설{리만가설}</code>, 다르게 읽을 때는 [ ] 로 묶기 - <code>[켜 두어야]{켜 두워야}</code>.</p></div>"
                 + "<div class=\"vc-card\"><h2>줄</h2><div class=\"vc-sum\" id=\"vcSum\"></div><ol id=\"vcLines\"></ol></div>"
