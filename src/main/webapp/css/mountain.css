@@ -311,6 +311,7 @@ ol.ms { margin:0; padding:0; list-style:none; }
 :root[data-theme="light"] .lead a { color:var(--sky); }
 :root[data-theme="light"] .brand span { color:#a15c00; }
 :root[data-theme="light"] .rfTextBtn, :root[data-theme="light"] .days button:not(.on), :root[data-theme="light"] .days select:not(.on) { background:rgba(0,0,0,0.03); }   /* 고른 단추(.on)는 하늘색 채움 그대로(2026-11-21 PC: 흰 바탕에 흰 글이었음) */
+:root[data-theme="light"] .ms a.yt { color:#c92a2a; border-color:rgba(201,42,42,.4); }   /* 종주 ▶ 3D 영상 - 흰 바탕에서 옅은 빨강은 잘 안 보임 */
 :root[data-theme="light"] .days select { color-scheme:light; }
 :root[data-theme="light"] .days button.on, :root[data-theme="light"] .days select.on,
 :root[data-theme="light"] .cs .go a.main, :root[data-theme="light"] .cp .go a.main { color:#fff; }
