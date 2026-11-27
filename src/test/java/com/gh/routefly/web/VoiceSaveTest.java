@@ -24,7 +24,7 @@ public class VoiceSaveTest {
         assertTrue("💾 저장 단추", vs.contains("<button id=\\\"vcSave\\\""));
         assertTrue("지금 글의 만든 소리만 산 이름으로 저장",
             js.contains("projKeys(t, o.voice, o.rate).forEach(function (key) { var c = cache[key]; if (c && !c.err) { snd[key] = c.wav; k++; } });")
-            && js.contains("return st.put({ name: n, text: t, voice: o.voice, rate: o.rate, gap: o.gap, t: Date.now(), snd: snd }, n);"));
+            && js.contains("var p = { name: n, text: t, voice: o.voice, rate: o.rate, gap: o.gap, t: Date.now(), snd: snd };") && js.contains("return st.put(p, n);"));
         assertTrue("열면 목소리 · 빠르기 · 줄 사이를 맞추고 소리를 cache 에",
             js.contains("$('vcRate').value = p.rate;") && js.contains("cache[k] = { wav: w }; n++;"));
         assertTrue("📚 저장한 산 · 📂 열기 둘 다 소리를 넣음",

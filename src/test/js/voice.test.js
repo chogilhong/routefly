@@ -122,4 +122,20 @@ assert.strictEqual(V.lineNumbers('가\n나\n다').filter(Boolean).length, V.line
 assert.deepStrictEqual(V.projKeys('```\n가{카}\n\n나\n가{카}\n```', 'v1', 5), ['v1|5|카', 'v1|5|나']);
 assert.strictEqual(V.projKeys('가', 'v1', 5)[0], V.cacheKey('v1', 5, V.spoken('가')));
 assert.deepStrictEqual(V.projKeys('', 'v', 0), []);
+// 💾 목소리 작업 파일(.rfvoice, 2026-11-27 홍TV님) - 저장한 파일을 열면 글 · 설정 · 소리 바이트가 그대로
+(function () {
+  var pcm = new Uint8Array(70000); for (var i = 0; i < pcm.length; i++) pcm[i] = (i * 7) & 255;
+  var p = { name: '정상석GPS-쇼츠', text: '가{카}\n나', voice: 'ko-KR-SunHiNeural', rate: 30, gap: 100, t: 1, snd: {} };
+  p.snd[V.cacheKey(p.voice, p.rate, '카')] = { rate: 24000, channels: 1, bits: 16, pcm: pcm };
+  var f = V.projFile(p), q = V.readProj(f);
+  assert.strictEqual(q.name, p.name); assert.strictEqual(q.text, p.text); assert.strictEqual(q.voice, p.voice);
+  assert.strictEqual(q.rate, 30); assert.strictEqual(q.gap, 100);
+  var w = q.snd[V.cacheKey(p.voice, p.rate, '카')];
+  assert.strictEqual(w.rate, 24000); assert.strictEqual(w.pcm.length, pcm.length); assert.ok(w.pcm.every(function (x, j) { return x === pcm[j]; }));
+  var r = V.fromFile('아무이름.rfvoice', f);
+  assert.strictEqual(r.name, '정상석GPS-쇼츠'); assert.strictEqual(r.text, p.text); assert.ok(r.proj);
+  assert.strictEqual(V.fromFile('a.rfvoice', '{"kind":"x"}').text, '');
+  assert.strictEqual(V.readProj('그냥 글'), null);
+  assert.strictEqual(V.readProj('\uFEFF' + f).name, p.name);
+})();
 console.log('voice ok');

@@ -141,6 +141,11 @@
     var f = String(fname || ''), t = String(text || '').replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
     var name = f.replace(/^.*[\\/]/, '').replace(/\.[^.]*$/, ''), ext = (/\.([^.]+)$/.exec(f) || [])[1];
     ext = ext ? ext.toLowerCase() : '';
+    if (ext === 'rfvoice') {
+      var pj = readProj(t);
+      if (!pj) return { name: name, text: '', note: '목소리 작업 파일(.rfvoice) 모양이 아닙니다' };
+      return { name: pj.name || name, text: pj.text, note: '', proj: pj };
+    }
     if (ext === 'srt') {
       var out = t.split(/\n\s*\n/).map(function (b) {
         return b.split('\n').map(function (x) { return x.trim(); }).filter(function (x) { return x && !/^\d+$/.test(x) && !/-->/.test(x); }).join(' ');
@@ -174,8 +179,33 @@
     lines(text).forEach(function (x) { var k = cacheKey(voice, rate, spoken(x)); if (out.indexOf(k) < 0) out.push(k); });
     return out;
   }
+  /** base64 ↔ 바이트(목소리 작업 파일 속 소리). */
+  function b64(u8) { var s = '', CH = 0x8000; for (var i = 0; i < u8.length; i += CH) s += String.fromCharCode.apply(null, u8.subarray(i, i + CH)); return btoa(s); }
+  function unb64(s) { var b = atob(s), u = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; }
+  /**
+   * 순수 함수 - 💾 목소리 작업 파일(.rfvoice, 2026-11-27 홍TV님 "탐색기가 뜨고 어디에 저장할 지 정하면 그리고 저장해야지"): 글 · 목소리 · 빠르기 · 줄 사이 · 줄마다 소리(pcm base64) JSON.
+   * p = {name, text, voice, rate, gap, snd: {열쇠: {rate, channels, bits, pcm: Uint8Array}}}.
+   */
+  function projFile(p) {
+    var snd = {};
+    Object.keys(p.snd || {}).forEach(function (k) { var w = p.snd[k]; snd[k] = { rate: w.rate, channels: w.channels, bits: w.bits, pcm: b64(w.pcm) }; });
+    return JSON.stringify({ kind: 'rf-voice', v: 1, name: p.name, text: p.text, voice: p.voice, rate: p.rate, gap: p.gap, t: p.t || 0, snd: snd });
+  }
+  /** 순수 함수 - 목소리 작업 파일 글 → p(소리는 Uint8Array), 이 모양이 아니면 null. */
+  function readProj(str) {
+    var j;
+    try { j = JSON.parse(String(str || '').replace(/^\uFEFF/, '')); } catch (e) { return null; }
+    if (!j || j.kind !== 'rf-voice' || typeof j.text !== 'string') return null;
+    var snd = {};
+    Object.keys(j.snd || {}).forEach(function (k) {
+      var w = j.snd[k];
+      if (!w || typeof w.pcm !== 'string' || !(w.rate > 0) || !(w.channels > 0) || !(w.bits > 0)) return;
+      try { snd[k] = { rate: w.rate, channels: w.channels, bits: w.bits, pcm: unb64(w.pcm) }; } catch (e) { /* 그 줄만 뺌 */ }
+    });
+    return { name: String(j.name || ''), text: j.text, voice: String(j.voice || ''), rate: +j.rate || 0, gap: +j.gap || 0, t: +j.t || 0, snd: snd };
+  }
   var LIMIT = 500000;
-  var api = { usageText: usageText, lineNumbers: lineNumbers, lines: lines, spoken: spoken, shown: shown, playSig: playSig, clock: clock, cacheKey: cacheKey, parseWav: parseWav, joinWav: joinWav, srtTime: srtTime, srt: srt, lineAt: lineAt, resumeFrom: resumeFrom, fromFile: fromFile, savedNames: savedNames, projKeys: projKeys };
+  var api = { usageText: usageText, lineNumbers: lineNumbers, lines: lines, spoken: spoken, shown: shown, playSig: playSig, clock: clock, cacheKey: cacheKey, parseWav: parseWav, joinWav: joinWav, srtTime: srtTime, srt: srt, lineAt: lineAt, resumeFrom: resumeFrom, fromFile: fromFile, savedNames: savedNames, projKeys: projKeys, projFile: projFile, readProj: readProj };
   if (typeof module !== 'undefined' && module.exports) { module.exports = api; return; }
   root.RFV = api;
 
@@ -485,10 +515,20 @@
       if (!t.trim()) { info('해설이 비었습니다'); return; }
       var snd = {}, k = 0;
       projKeys(t, o.voice, o.rate).forEach(function (key) { var c = cache[key]; if (c && !c.err) { snd[key] = c.wav; k++; } });
+      var p = { name: n, text: t, voice: o.voice, rate: o.rate, gap: o.gap, t: Date.now(), snd: snd };
       keepText();
-      idbDo('readwrite', function (st) { return st.put({ name: n, text: t, voice: o.voice, rate: o.rate, gap: o.gap, t: Date.now(), snd: snd }, n); })
-        .then(function () { info(n + ' 저장 - 글 ' + lines(t).length + '줄 · 소리 ' + k + '줄(이 브라우저에)'); })
-        .catch(function (e) { info('저장하지 못했습니다: ' + (e && e.message || e)); });
+      idbDo('readwrite', function (st) { return st.put(p, n); }).catch(function () { /* 파일 저장이 먼저 - 📚 목록에만 못 남음 */ });
+      // 저장할 곳을 고르는 창(크롬 showSaveFilePicker - 단추를 누른 그 자리에서 불러야 열림), 없는 브라우저는 내려받기
+      var data = projFile(p), fname = fileName() + '.rfvoice', what = '글 ' + lines(t).length + '줄 · 소리 ' + k + '줄';
+      if (window.showSaveFilePicker) {
+        window.showSaveFilePicker({ suggestedName: fname, types: [{ description: 'routefly 목소리 작업', accept: { 'application/json': ['.rfvoice'] } }] })
+          .then(function (h) { return h.createWritable().then(function (w) { return w.write(data).then(function () { return w.close(); }); }).then(function () { return h.name; }); })
+          .then(function (saved) { info(saved + ' 저장 - ' + what + ' · 📂 열기로 이 파일을 열면 소리까지 돌아옵니다'); })
+          .catch(function (e) { info(e && e.name === 'AbortError' ? '파일 저장을 그만뒀습니다(이 브라우저 📚 에는 남음)' : '파일로 저장하지 못했습니다: ' + (e && e.message || e)); });
+      } else {
+        download(data, 'application/json', fname);
+        info(fname + ' 을(를) 내려받기 폴더에 저장 - ' + what);
+      }
     };
     $('vcForget').onclick = function () {
       var n = $('vcSaved').value || $('vcName').value.trim(), l = savedList();
@@ -511,6 +551,7 @@
         keepText();   // 보던 글은 그 산 이름으로 남김
         var msg = f.name + ' 을(를) 열었습니다(' + lines(r.text).length + '줄)' + (r.note ? ' · ' + r.note : '');
         setText(r.name, r.text, msg);
+        if (r.proj) { var kp = applyProj(r.proj); info(msg + ' · 목소리 · 빠르기 · 소리 ' + kp + '줄을 되살렸습니다'); return; }   // 💾 로 저장한 파일 - 소리까지
         getProj(r.name).then(function (p) { var k = applyProj(p); if (k) info(msg + ' · 저장한 소리 ' + k + '개를 넣었습니다(같은 줄만 쓰임)'); });
       }).catch(function () { input.value = ''; info('파일을 읽지 못했습니다'); });
     });
