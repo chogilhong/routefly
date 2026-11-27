@@ -84,6 +84,14 @@ public class MountainShortsTest {
         assertEquals("x2ssEkOJXIE", videos.getAsJsonArray("마이산").get(0).getAsJsonObject().get("id").getAsString());
         assertEquals("xRDKMHTRlQc", videos.getAsJsonArray("치악산").get(0).getAsJsonObject().get("id").getAsString());
         assertEquals("0AmMq5qZbfM", videos.getAsJsonArray("내연산").get(0).getAsJsonObject().get("id").getAsString());
+        // 2026-11-27 북한산 · 도봉산 · 소백산 · 월악산(Azure 목소리)
+        assertEquals("rFFbcMN-rTA", videos.getAsJsonArray("북한산").get(0).getAsJsonObject().get("id").getAsString());
+        assertEquals("hQxSOqGOG38", videos.getAsJsonArray("도봉산").get(0).getAsJsonObject().get("id").getAsString());
+        assertEquals("V9vdfNPxiwo", videos.getAsJsonArray("소백산").get(0).getAsJsonObject().get("id").getAsString());
+        assertEquals("KHz6joAWjdE", videos.getAsJsonArray("월악산").get(0).getAsJsonObject().get("id").getAsString());
+        JsonObject bh = new JsonObject();
+        bh.add("shorts", videos.getAsJsonArray("북한산"));
+        assertTrue(MountainServlet.shortsBlock(bh, false).contains("<p class=\"hook\">백제를 세운 형제가 올랐다?</p><p>백운대 · 북한산성 · 진흥왕 순수비 - 그 이야기를 2분 32초 영상에 담았습니다.</p>"));
         JsonObject ds = new JsonObject();
         ds.add("shorts", videos.getAsJsonArray("덕숭산"));
         assertTrue(MountainServlet.shortsBlock(ds, false).contains("<p class=\"hook\">지은 해가 적힌 가장 오래된 나무 건물?</p><p>수덕사 대웅전 · 만공탑 · 정혜사 돌계단 - 그 이야기를 2분 17초 영상에 담았습니다.</p>"));

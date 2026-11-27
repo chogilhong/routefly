@@ -1,6 +1,7 @@
 # 산에서 궁금한 것 1 - 정상석 높이와 내 GPS 가 다른 이유 - 쇼츠 대본(card 틀 · 해요체) (2026-11-27)
 
 홍TV님 "산 이야기는 현재처럼 하고, 산에서 궁금한 것 쇼츠는 이렇게 만들자"(2026-11-27 - 빵집 쇼츠 틀: 위 고정 제목 띠 · 가운데 그림 · 노란 칸 짧은 자막 · 맨 아래 빈칸).
+- 올린 영상(2026-11-27 홍TV님): https://youtube.com/shorts/LcpO9nK2EtM (76.8초 - 산 페이지 칸에는 넣지 않음, 산 하나의 이야기가 아니라서)
 - 그림: tools `video/slides/decks/gps-height/deck.js` - `node render.js decks/gps-height/deck.js --size card` → out/card/<id>.png(20장).
 - 영상: `python slides/slides_video.py slides/decks/gps-height 쇼츠 <wav> --size card`(노란 칸 검은 자막, 그림 바로 아래).
 - 제목 띠(덱 card.title): 「정상석 높이와 / 내 GPS가 다른 이유」(둘째 줄 노랑).
