@@ -52,6 +52,8 @@ public class MountainShortsTest {
         assertEquals("DV3NTznd8Zc", videos.getAsJsonArray("변산").get(0).getAsJsonObject().get("id").getAsString());   // 2026-11-27
         assertEquals("9lasPnRWgsc", videos.getAsJsonArray("남산").get(0).getAsJsonObject().get("id").getAsString());
         assertEquals("4bcpL5BTOTE", videos.getAsJsonArray("선운산").get(0).getAsJsonObject().get("id").getAsString());
+        assertEquals("IlX3AfLCS_A", videos.getAsJsonArray("대둔산").get(0).getAsJsonObject().get("id").getAsString());   // 2026-11-27
+        assertEquals("2gdCnHt8ebc", videos.getAsJsonArray("청량산").get(0).getAsJsonObject().get("id").getAsString());
         JsonObject tb = new JsonObject();
         tb.add("shorts", videos.getAsJsonArray("태백산"));
         String th = MountainServlet.shortsBlock(tb, false);
