@@ -28,6 +28,7 @@
 · IEEE Spectrum 2024-04-16 · TechCrunch 2024-04-17(유압 Atlas 은퇴 · 전기 Atlas)
 · Weihmann T 2013, PLoS ONE 8(6):e65788(거미 다리 관절) https://doi.org/10.1371/journal.pone.0065788
 · Science Museum Group - London Hydraulic Power Company
+· 런던 수력 회사 물 압력은 자료에 따라 700 ~ 800 psi(위키백과 · subbrit ↔ Grace's Guide · Fluid Power Journal)
 그림: routefly 가 직접 그림(선그림)
 해설: AI 음성(Azure)
 안내: 숫자는 2026-11 기준 공개 자료 · 셈(35 MPa → 1 cm² 에 약 357 kg, 지름 12cm 피스톤 약 40톤힘은 예로 든 셈)입니다.
