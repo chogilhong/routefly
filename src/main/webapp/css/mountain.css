@@ -170,7 +170,10 @@ ul { margin:0; padding:0; list-style:none; }
 /* 등산 칸 안으로 옮긴 가파른 산 순위(2026-11-27 홍TV님 "이 둘의 위치를 바꾸자") - 상자 없이 다른 칸(100대 · 이름난 산)과 같은 줄 모양 */
 .fold.kind #steep { background:none; border:0; border-radius:0; padding:0; margin:0; }
 .fold.kind #steep > .fold > summary { padding:10px 4px; }
-.fold.kind #steep > .fold:not([open]) > summary { border-bottom-color:var(--ln); }   /* 표가 넓게 - 접는 칸 들여쓰기 없이 */
+.fold.kind #steep > .fold:not([open]) > summary { border-bottom-color:var(--ln); }
+.fold.kind #steep > .fold > .fb { margin-left:8px; padding-left:10px; border-left:2px solid rgba(56,217,234,0.25); }
+.fold.kind #steep .stF > summary .ft { font-size:13.5px; font-weight:600; }   /* 하위 두 표는 순위 칸보다 작은 글씨 */
+.fold.kind #steep .stF > summary .ft::before { content:"└ "; color:var(--dim); font-weight:400; }   /* 두 표(평균 · 코스)는 들여 써서 순위 칸 아래인 줄 보이게(2026-11-27 홍TV님 "글자 들어가기 해서 구분") */   /* 표가 넓게 - 접는 칸 들여쓰기 없이 */
 .stF > .stWrap { padding:4px 0 10px; }   /* 표마다 접는 칸(2026-10-18 홍TV님) */
 .stWrap { overflow-x:auto; }
 .stT { width:100%; border-collapse:collapse; font-size:13.5px; }

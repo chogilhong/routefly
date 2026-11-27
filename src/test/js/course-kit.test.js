@@ -2058,6 +2058,15 @@ eq("islands 차도 3km 넘으면 뺌", (function (I) { return [!!I.rejectReason(
     a.open = true; fn({ target: a });
     eq("foldOne 숙소 칸(data-keep)만 펴 두고 나머지(나중에 붙인 주말 칸 포함)는 접음", [stay.open, a.open, b.open, wk.open], [true, true, false, false]);
 })();
+// 바깥 칸(가파른 산 순위 group)을 품은 채 안쪽 표(group)를 펴도 바깥 칸은 접히지 않음 - 옆 칸(100대 명산 group)은 접힘(2026-11-27 홍TV님 "닫혀버려")
+(function () {
+    var mk = function (open) { return { tagName: "DETAILS", open: open, kids: [], classList: { contains: function (c) { return c === "group"; } }, contains: function (x) { return x === this || this.kids.indexOf(x) >= 0; } }; };
+    var steep = mk(true), t1 = mk(false), t2 = mk(true), hundred = mk(true), all = [steep, t1, t2, hundred], fn = null;
+    steep.kids = [t1, t2];
+    RF.foldOne({ addEventListener: function (t, f) { if (t === "toggle") fn = f; }, querySelectorAll: function () { return all.filter(function (o) { return o.open; }); } });
+    t1.open = true; fn({ target: t1 });
+    eq("foldOne 안쪽 표를 펴면 바깥 순위 칸은 그대로 · 다른 표와 옆 칸은 접힘", [steep.open, t1.open, t2.open, hundred.open], [true, true, false, false]);
+})();
 // 산 페이지 칸(sec - 코스 · 문답 · 안전 팁 …, 2026-11-20 홍TV님 "서로 토글") - 하나를 펴면 다른 sec 은 접힘, kind 칸은 그대로. #trails 링크는 접힌 코스 칸을 폄
 (function () {
     var mk = function (cls, open) { return { tagName: "DETAILS", open: open, cls: cls, classList: { contains: function (c) { return c === cls; } } }; };
