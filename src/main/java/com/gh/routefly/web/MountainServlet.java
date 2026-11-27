@@ -1736,7 +1736,7 @@ public class MountainServlet extends HttpServlet {
      */
     /** 순수 함수 - 코스 모음 "⛰️ 이름난 산" 칸(100대 명산 밖, 2026-11-27 홍TV님) - 가나다 차례로 산 페이지(/m/산). */
     /** 이름난 산 칸의 시 · 도 차례(2026-11-27 - 130곳이 넘어 시 · 도별로 나눔). 이 밖(region 없음 등)은 맨 뒤 "그 밖". */
-    static final List<String> REGIONS = List.of("서울", "경기", "인천", "강원", "대전", "세종", "충북", "충남", "대구", "경북", "부산", "울산", "경남", "광주", "전북", "전남", "제주");
+    static final List<String> REGIONS = List.of("서울", "경기", "인천", "강원", "대전", "세종", "충북", "충남", "대구", "경북", "부산", "울산", "경남", "전북", "전남광주", "제주");   // 광주 · 전남은 전남광주로 합침(2026-11-27 홍TV님 "합쳐졌어. 합쳐줘")
 
     static String moreGroup(JsonArray more) {
         java.util.Map<String, List<String>> by = new java.util.LinkedHashMap<>();

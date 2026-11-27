@@ -79,6 +79,7 @@ public class MoreMountainsTest {
         String idx6 = MountainServlet.indexPage(six, groups, "https://r.kr", false, "", "", new com.google.gson.JsonArray());
         assertTrue("시 · 도별 - 서울 먼저", idx6.indexOf("<p class=\"rg\">서울 ") > 0 && idx6.indexOf("<p class=\"rg\">서울 ") < idx6.indexOf("<p class=\"rg\">경기 ")
                 && idx6.indexOf("<p class=\"rg\">경기 ") < idx6.indexOf("<p class=\"rg\">부산 "));
+        assertTrue("광주 · 전남은 전남광주 한 칸(2026-11-27 홍TV님)", idx6.contains("<p class=\"rg\">전남광주 <small>5</small></p>") && !idx6.contains("<p class=\"rg\">광주 ") && !idx6.contains("<p class=\"rg\">전남 "));
         for (com.google.gson.JsonElement e : f.getAsJsonArray("peaks")) assertTrue("시 · 도 있음 " + e, MountainServlet.REGIONS.contains(e.getAsJsonObject().get("region").getAsString()));
     }
 }

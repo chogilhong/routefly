@@ -54,9 +54,9 @@
    "id": "대봉산",
    "summit": "대봉산",
    "region": "경남",
-   "lat": 35.603361,
-   "lon": 127.710601,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 대봉산\" 로 끝나는 코스 42개(예 frst-488700301-d29aa7), 2km 안 코스 20개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 35.603682,
+   "lon": 127.695533,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 대봉산\" 로 끝나는 코스 42개(예 frst-488700301-d29aa7), 2km 안 코스 20개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 6037826177(ele 1254, 전 자리에서 1364m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "무학산(대구)",
@@ -86,9 +86,9 @@
    "id": "고덕산",
    "summit": "고덕산",
    "region": "전북",
-   "lat": 35.772071,
-   "lon": 127.157597,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 고덕산\" 로 끝나는 코스 40개(예 frst-451100501-cb7673), 2km 안 코스 16개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 35.772223,
+   "lon": 127.179207,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 고덕산\" 로 끝나는 코스 40개(예 frst-451100501-cb7673), 2km 안 코스 16개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 7051042285(ele 603.2, 전 자리에서 1952m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "불모산",
@@ -102,17 +102,17 @@
    "id": "가라산",
    "summit": "가라산",
    "region": "경남",
-   "lat": 34.75416,
-   "lon": 128.628346,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 가라산\" 로 끝나는 코스 39개(예 frst-900004-bc3893), 2km 안 코스 39개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 34.754108,
+   "lon": 128.621336,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 가라산\" 로 끝나는 코스 39개(예 frst-900004-bc3893), 2km 안 코스 39개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 5215365965(ele 580, 전 자리에서 641m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "신어산",
    "summit": "신어산",
    "region": "경남",
-   "lat": 35.249346,
-   "lon": 128.932021,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 신어산\" 로 끝나는 코스 39개(예 frst-482502701-aae40e), 2km 안 코스 9개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 35.270101,
+   "lon": 128.920406,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 신어산\" 로 끝나는 코스 39개(예 frst-482502701-aae40e), 2km 안 코스 9개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 1906091886(ele 631.1, 전 자리에서 2526m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "사룡산",
@@ -134,9 +134,9 @@
    "id": "망해산",
    "summit": "망해산",
    "region": "전북",
-   "lat": 36.025721,
-   "lon": 126.843006,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 망해산\" 로 끝나는 코스 34개(예 frst-451302101-68c420), 2km 안 코스 28개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 36.018781,
+   "lon": 126.841017,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 망해산\" 로 끝나는 코스 34개(예 frst-451302101-68c420), 2km 안 코스 28개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 10250614171(ele 230, 전 자리에서 788m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "금원산",
@@ -158,49 +158,49 @@
    "id": "사명산",
    "summit": "사명산",
    "region": "강원",
-   "lat": 38.075931,
-   "lon": 127.925688,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 사명산\" 로 끝나는 코스 34개(예 kmp-2322010339-4), 2km 안 코스 18개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 38.076064,
+   "lon": 127.905186,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 사명산\" 로 끝나는 코스 34개(예 kmp-2322010339-4), 2km 안 코스 18개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 7972724227(ele 1198, 전 자리에서 1797m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "계족산",
    "summit": "계족산",
    "region": "대전",
-   "lat": 36.395787,
-   "lon": 127.442312,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 계족산\" 로 끝나는 코스 33개(예 frst-302300101-bbdce9), 2km 안 코스 44개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 36.384718,
+   "lon": 127.439191,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 계족산\" 로 끝나는 코스 33개(예 frst-302300101-bbdce9), 2km 안 코스 44개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 8038332869(ele 424, 전 자리에서 1255m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "함라산",
    "summit": "함라산",
    "region": "전북",
-   "lat": 36.066247,
-   "lon": 126.905016,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 함라산\" 로 끝나는 코스 33개(예 frst-451400401-d20d34), 2km 안 코스 43개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 36.06635,
+   "lon": 126.900703,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 함라산\" 로 끝나는 코스 33개(예 frst-451400401-d20d34), 2km 안 코스 43개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 10213830520(ele 241, 전 자리에서 388m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "장산",
    "summit": "장산",
    "region": "부산",
-   "lat": 35.176526,
-   "lon": 129.14124,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 장산\" 로 끝나는 코스 33개(예 frst-263500501-1949a3), 2km 안 코스 37개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 35.194362,
+   "lon": 129.145007,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 장산\" 로 끝나는 코스 33개(예 frst-263500501-1949a3), 2km 안 코스 37개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 1328125444(ele 634, 전 자리에서 2001m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "봉화산(경북)",
    "summit": "봉화산",
    "region": "경북",
-   "lat": 36.187215,
-   "lon": 128.343815,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 봉화산\" 로 끝나는 코스 33개(예 frst-471903101-b3a754), 2km 안 코스 33개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 36.184176,
+   "lon": 128.327407,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 봉화산\" 로 끝나는 코스 33개(예 frst-471903101-b3a754), 2km 안 코스 33개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 10250650865(ele 377.5, 전 자리에서 1512m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "도락산(경기)",
    "summit": "도락산",
    "region": "경기",
-   "lat": 37.827672,
-   "lon": 127.045351,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 도락산\" 로 끝나는 코스 33개(예 frst-416300501-090236), 2km 안 코스 29개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 37.827851,
+   "lon": 127.021516,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 도락산\" 로 끝나는 코스 33개(예 frst-416300501-090236), 2km 안 코스 29개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 6690179386(ele 439.6, 전 자리에서 2096m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "삼성산",
@@ -214,25 +214,25 @@
    "id": "구룡산",
    "summit": "구룡산",
    "region": "서울",
-   "lat": 37.476329,
-   "lon": 127.064668,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 구룡산\" 로 끝나는 코스 31개(예 frst-116500101-afa15f), 2km 안 코스 34개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 37.468929,
+   "lon": 127.061218,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 구룡산\" 로 끝나는 코스 31개(예 frst-116500101-afa15f), 2km 안 코스 34개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 2668196921(ele 306, 전 자리에서 873m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "단석산",
    "summit": "단석산",
    "region": "경북",
-   "lat": 35.794586,
-   "lon": 129.100092,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 단석산\" 로 끝나는 코스 31개(예 frst-471301101-fc233d), 2km 안 코스 16개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 35.794619,
+   "lon": 129.088923,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 단석산\" 로 끝나는 코스 31개(예 frst-471301101-fc233d), 2km 안 코스 16개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 7395404174(ele 826, 전 자리에서 1008m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "대덕산",
    "summit": "대덕산",
    "region": "대구",
-   "lat": 35.830352,
-   "lon": 128.678086,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 대덕산\" 로 끝나는 코스 30개(예 frst-272600601-1cfe0c), 2km 안 코스 58개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 35.814245,
+   "lon": 128.67273,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 대덕산\" 로 끝나는 코스 30개(예 frst-272600601-1cfe0c), 2km 안 코스 58개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 5864541396(ele 600, 전 자리에서 1845m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "고봉산",
@@ -262,9 +262,9 @@
    "id": "예봉산",
    "summit": "예봉산",
    "region": "경기",
-   "lat": 37.55935,
-   "lon": 127.247298,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 예봉산\" 로 끝나는 코스 30개(예 frst-413601201-c3f2ee), 2km 안 코스 35개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 37.559152,
+   "lon": 127.261132,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 예봉산\" 로 끝나는 코스 30개(예 frst-413601201-c3f2ee), 2km 안 코스 35개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 852509472(ele 683, 전 자리에서 1221m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "가야산(충남)",
@@ -278,9 +278,9 @@
    "id": "남한산",
    "summit": "남한산",
    "region": "경기",
-   "lat": 37.503998,
-   "lon": 127.203213,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 남한산\" 로 끝나는 코스 30개(예 frst-416102804-22f4ca), 2km 안 코스 19개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 37.480594,
+   "lon": 127.204081,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 남한산\" 로 끝나는 코스 30개(예 frst-416102804-22f4ca), 2km 안 코스 19개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 5404330941(ele 522.1, 전 자리에서 2588m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "천생산",
@@ -302,30 +302,30 @@
    "id": "종남산",
    "summit": "종남산",
    "region": "경남",
-   "lat": 35.471709,
-   "lon": 128.722426,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 종남산\" 로 끝나는 코스 30개(예 frst-482704301-10026b), 2km 안 코스 9개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 35.448468,
+   "lon": 128.722084,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 종남산\" 로 끝나는 코스 30개(예 frst-482704301-10026b), 2km 안 코스 9개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 7647892761(ele 664, 전 자리에서 2569m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "토함산",
    "summit": "토함산",
    "region": "경북",
-   "lat": 35.801719,
-   "lon": 129.333741,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 토함산\" 로 끝나는 코스 29개(예 frst-471305401-55e60c), 2km 안 코스 28개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 35.801772,
+   "lon": 129.345213,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 토함산\" 로 끝나는 코스 29개(예 frst-471305401-55e60c), 2km 안 코스 28개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 1459592100(ele 745, 전 자리에서 1036m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "환성산",
    "summit": "환성산",
    "region": "대구",
-   "lat": 35.936809,
-   "lon": 128.707778,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 환성산\" 로 끝나는 코스 29개(예 frst-271401401-0fd756), 2km 안 코스 5개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 35.936817,
+   "lon": 128.740846,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 환성산\" 로 끝나는 코스 29개(예 frst-271401401-0fd756), 2km 안 코스 5개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 5865661244(ele 820, 전 자리에서 2980m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "금당산",
    "summit": "금당산",
-   "region": "광주",
+   "region": "전남광주",
    "lat": 35.118871,
    "lon": 126.887605,
    "_src": "우리 코스 정상 끝점 가운데값 - \"→ 금당산\" 로 끝나는 코스 28개(예 frst-291550301-528c95), 2km 안 코스 43개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
@@ -334,9 +334,9 @@
    "id": "황령산",
    "summit": "황령산",
    "region": "부산",
-   "lat": 35.14654,
-   "lon": 129.083166,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 황령산\" 로 끝나는 코스 27개(예 frst-262300501-e79ac8), 2km 안 코스 49개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 35.157335,
+   "lon": 129.081909,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 황령산\" 로 끝나는 코스 27개(예 frst-262300501-e79ac8), 2km 안 코스 49개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 1432293082(ele 427, 전 자리에서 1199m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "화봉산",
@@ -350,9 +350,9 @@
    "id": "미륵산(전북)",
    "summit": "미륵산",
    "region": "전북",
-   "lat": 36.025436,
-   "lon": 127.020058,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 미륵산\" 로 끝나는 코스 27개(예 frst-451400201-19beb6), 2km 안 코스 28개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 36.025265,
+   "lon": 127.039619,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 미륵산\" 로 끝나는 코스 27개(예 frst-451400201-19beb6), 2km 안 코스 28개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 8889383200(ele 430, 전 자리에서 1761m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "매봉산",
@@ -382,17 +382,17 @@
    "id": "화악산(경남)",
    "summit": "화악산",
    "region": "경남",
-   "lat": 35.574225,
-   "lon": 128.710974,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 화악산\" 로 끝나는 코스 27개(예 frst-482705801-9404d1), 2km 안 코스 4개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 35.59328,
+   "lon": 128.691586,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 화악산\" 로 끝나는 코스 27개(예 frst-482705801-9404d1), 2km 안 코스 4개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 6277880663(ele 930, 전 자리에서 2742m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "돌봉산",
    "summit": "돌봉산",
    "region": "경기",
-   "lat": 37.253109,
-   "lon": 127.207997,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 돌봉산\" 로 끝나는 코스 26개(예 frst-414603901-19c01d), 2km 안 코스 60개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 37.254344,
+   "lon": 127.199348,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 돌봉산\" 로 끝나는 코스 26개(예 frst-414603901-19c01d), 2km 안 코스 60개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 10125520491(ele -, 전 자리에서 778m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "봉화산(강원)",
@@ -414,9 +414,9 @@
    "id": "오봉산(경남)",
    "summit": "오봉산",
    "region": "경남",
-   "lat": 35.335328,
-   "lon": 128.985286,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 오봉산\" 로 끝나는 코스 25개(예 frst-483301501-86f31e), 2km 안 코스 28개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 35.331176,
+   "lon": 128.985208,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 오봉산\" 로 끝나는 코스 25개(예 frst-483301501-86f31e), 2km 안 코스 28개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 6175969264(ele 533, 전 자리에서 459m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "동대산(울산)",
@@ -470,9 +470,9 @@
    "id": "구름산",
    "summit": "구름산",
    "region": "경기",
-   "lat": 37.445221,
-   "lon": 126.868096,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 구름산\" 로 끝나는 코스 24개(예 frst-412100201-7e1926), 2km 안 코스 28개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 37.440683,
+   "lon": 126.866159,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 구름산\" 로 끝나는 코스 24개(예 frst-412100201-7e1926), 2km 안 코스 28개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 446001324(ele 251.99, 전 자리에서 530m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "문수산",
@@ -494,41 +494,41 @@
    "id": "향적산",
    "summit": "향적산",
    "region": "충남",
-   "lat": 36.279824,
-   "lon": 127.206547,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 향적산\" 로 끝나는 코스 24개(예 frst-442500501-96f1bb), 2km 안 코스 25개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 36.293015,
+   "lon": 127.201803,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 향적산\" 로 끝나는 코스 24개(예 frst-442500501-96f1bb), 2km 안 코스 25개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 8190314948(ele 575, 전 자리에서 1519m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "칠보산",
    "summit": "칠보산",
    "region": "전북",
-   "lat": 35.560766,
-   "lon": 126.881863,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 칠보산\" 로 끝나는 코스 24개(예 frst-451803101-b6c38d), 2km 안 코스 23개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 35.556772,
+   "lon": 126.90125,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 칠보산\" 로 끝나는 코스 24개(예 frst-451803101-b6c38d), 2km 안 코스 23개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 10250391818(ele 467.8, 전 자리에서 1810m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "새바지산",
    "summit": "새바지산",
    "region": "울산",
-   "lat": 35.557153,
-   "lon": 129.398869,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 새바지산\" 로 끝나는 코스 24개(예 frst-312000501-864513), 2km 안 코스 21개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 35.570983,
+   "lon": 129.419831,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 새바지산\" 로 끝나는 코스 24개(예 frst-312000501-864513), 2km 안 코스 21개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 10250391933(ele 260.9, 전 자리에서 2437m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "부아산",
    "summit": "부아산",
    "region": "경기",
-   "lat": 37.22082,
-   "lon": 127.169845,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 부아산\" 로 끝나는 코스 24개(예 frst-414600103-591c01), 2km 안 코스 20개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 37.227251,
+   "lon": 127.159986,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 부아산\" 로 끝나는 코스 24개(예 frst-414600103-591c01), 2km 안 코스 20개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 7272684526(ele 402, 전 자리에서 1127m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "구봉화산",
    "summit": "구봉화산",
-   "region": "전남",
-   "lat": 34.936656,
-   "lon": 127.672743,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 구봉화산\" 로 끝나는 코스 24개(예 frst-462300301-197e8a), 2km 안 코스 20개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "region": "전남광주",
+   "lat": 34.936724,
+   "lon": 127.642421,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 구봉화산\" 로 끝나는 코스 24개(예 frst-462300301-197e8a), 2km 안 코스 20개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 10208806016(ele 471.7, 전 자리에서 2767m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "대운산",
@@ -542,9 +542,9 @@
    "id": "영축산",
    "summit": "영축산",
    "region": "경남",
-   "lat": 35.515962,
-   "lon": 129.079942,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 영축산\" 로 끝나는 코스 24개(예 frst-483301301-c190e5), 2km 안 코스 18개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 35.516015,
+   "lon": 129.05275,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 영축산\" 로 끝나는 코스 24개(예 frst-483301301-c190e5), 2km 안 코스 18개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 5376575014(ele 1081, 전 자리에서 2464m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "무성산",
@@ -558,17 +558,17 @@
    "id": "최정산",
    "summit": "최정산",
    "region": "대구",
-   "lat": 35.776557,
-   "lon": 128.617121,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 최정산\" 로 끝나는 코스 24개(예 frst-277103301-a23e76), 2km 안 코스 9개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 35.762723,
+   "lon": 128.600619,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 최정산\" 로 끝나는 코스 24개(예 frst-277103301-a23e76), 2km 안 코스 9개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 7685101092(ele 905, 전 자리에서 2135m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "북배산",
    "summit": "북배산",
    "region": "경기",
-   "lat": 37.910188,
-   "lon": 127.614968,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 북배산\" 로 끝나는 코스 24개(예 frst-418202101-05f917), 2km 안 코스 8개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 37.920379,
+   "lon": 127.61266,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 북배산\" 로 끝나는 코스 24개(예 frst-418202101-05f917), 2km 안 코스 8개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 5579887527(ele 857, 전 자리에서 1145m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "해철이산",
@@ -582,9 +582,9 @@
    "id": "철마산(경기)",
    "summit": "철마산",
    "region": "경기",
-   "lat": 37.718829,
-   "lon": 127.213339,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 철마산\" 로 끝나는 코스 23개(예 frst-413602301-93e90c), 2km 안 코스 42개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 37.718495,
+   "lon": 127.246424,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 철마산\" 로 끝나는 코스 23개(예 frst-413602301-93e90c), 2km 안 코스 42개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 5384698841(ele 709.6, 전 자리에서 2914m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "원등산",
@@ -622,25 +622,25 @@
    "id": "아홉산(부산)",
    "summit": "아홉산",
    "region": "부산",
-   "lat": 35.262652,
-   "lon": 129.138958,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 아홉산\" 로 끝나는 코스 22개(예 frst-267101101-43fdfc), 2km 안 코스 42개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 35.251856,
+   "lon": 129.135589,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 아홉산\" 로 끝나는 코스 22개(예 frst-267101101-43fdfc), 2km 안 코스 42개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 344.1(PC \"그쪽이 맞을 듯\" - 가까운 점)"
   },
   {
    "id": "선학산",
    "summit": "선학산",
    "region": "경남",
-   "lat": 35.189849,
-   "lon": 128.10371,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 선학산\" 로 끝나는 코스 22개(예 frst-481703501-1f1124), 2km 안 코스 34개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 35.190858,
+   "lon": 128.096778,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 선학산\" 로 끝나는 코스 22개(예 frst-481703501-1f1124), 2km 안 코스 34개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 10250289243(ele 137.4, 전 자리에서 640m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "철마산(부산)",
    "summit": "철마산",
    "region": "부산",
-   "lat": 35.312563,
-   "lon": 129.116132,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 철마산\" 로 끝나는 코스 22개(예 frst-267101601-3b9523), 2km 안 코스 31개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 35.309678,
+   "lon": 129.135915,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 철마산\" 로 끝나는 코스 22개(예 frst-267101601-3b9523), 2km 안 코스 31개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 7611408891(ele 605.4, 전 자리에서 1825m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "광려산",
@@ -662,17 +662,17 @@
    "id": "오봉산(전북)",
    "summit": "오봉산",
    "region": "전북",
-   "lat": 35.650783,
-   "lon": 127.132631,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 오봉산\" 로 끝나는 코스 22개(예 frst-451103201-3c9130), 2km 안 코스 17개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 35.644187,
+   "lon": 127.132415,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 오봉산\" 로 끝나는 코스 22개(예 frst-451103201-3c9130), 2km 안 코스 17개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 10097184192(ele 513.2, 전 자리에서 729m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "경운산",
    "summit": "경운산",
    "region": "경남",
-   "lat": 35.245803,
-   "lon": 128.841227,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 경운산\" 로 끝나는 코스 21개(예 frst-482500201-00d5fc), 2km 안 코스 45개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 35.256861,
+   "lon": 128.85525,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 경운산\" 로 끝나는 코스 21개(예 frst-482500201-00d5fc), 2km 안 코스 45개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 10250308566(ele 377.2, 전 자리에서 1766m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "구봉산(경남)",
@@ -710,9 +710,9 @@
    "id": "정병산",
    "summit": "정병산",
    "region": "경남",
-   "lat": 35.263244,
-   "lon": 128.685021,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 정병산\" 로 끝나는 코스 21개(예 frst-481100701-cdc649), 2km 안 코스 27개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 35.263242,
+   "lon": 128.692297,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 정병산\" 로 끝나는 코스 21개(예 frst-481100701-cdc649), 2km 안 코스 27개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 1906091871(ele 566.5, 전 자리에서 661m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "문학산",
@@ -741,10 +741,10 @@
   {
    "id": "제석산",
    "summit": "제석산",
-   "region": "전남",
-   "lat": 34.853163,
-   "lon": 127.360005,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 제석산\" 로 끝나는 코스 21개(예 frst-461502701-5dcc6b), 2km 안 코스 23개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "region": "전남광주",
+   "lat": 34.869966,
+   "lon": 127.368254,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 제석산\" 로 끝나는 코스 21개(예 frst-461502701-5dcc6b), 2km 안 코스 23개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 5215550279(ele 560.5, 전 자리에서 2004m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "봉화산(부산)",
@@ -766,9 +766,9 @@
    "id": "동대산(경북)",
    "summit": "동대산",
    "region": "경북",
-   "lat": 36.321409,
-   "lon": 129.308858,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 동대산\" 로 끝나는 코스 21개(예 frst-477701201-7dc743), 2km 안 코스 22개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 36.30615,
+   "lon": 129.292005,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 동대산\" 로 끝나는 코스 21개(예 frst-477701201-7dc743), 2km 안 코스 22개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 10076247522(ele 792.4, 전 자리에서 2265m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "임호산",
@@ -782,41 +782,41 @@
    "id": "봉수산",
    "summit": "봉수산",
    "region": "충남",
-   "lat": 36.59396,
-   "lon": 126.766631,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 봉수산\" 로 끝나는 코스 21개(예 frst-448101101-292770), 2km 안 코스 19개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 36.596425,
+   "lon": 126.770612,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 봉수산\" 로 끝나는 코스 21개(예 frst-448101101-292770), 2km 안 코스 19개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 10127492711(ele 483, 전 자리에서 448m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "계명산",
    "summit": "계명산",
    "region": "충북",
-   "lat": 36.993699,
-   "lon": 127.976304,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 계명산\" 로 끝나는 코스 21개(예 frst-431300101-e2886b), 2km 안 코스 17개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 36.990773,
+   "lon": 127.97628,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 계명산\" 로 끝나는 코스 21개(예 frst-431300101-e2886b), 2km 안 코스 17개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 10116997564(ele 774, 전 자리에서 323m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "계룡산(경남)",
    "summit": "계룡산",
    "region": "경남",
-   "lat": 34.871373,
-   "lon": 128.597345,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 계룡산\" 로 끝나는 코스 21개(예 frst-483100401-7637bc), 2km 안 코스 16개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 34.871094,
+   "lon": 128.60759,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 계룡산\" 로 끝나는 코스 21개(예 frst-483100401-7637bc), 2km 안 코스 16개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 4828298705(ele 570, 전 자리에서 936m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "상은적산",
    "summit": "상은적산",
-   "region": "전남",
-   "lat": 34.756458,
-   "lon": 126.5367,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 상은적산\" 로 끝나는 코스 21개(예 frst-468300801-37126e), 2km 안 코스 13개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "region": "전남광주",
+   "lat": 34.7561,
+   "lon": 126.55098,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 상은적산\" 로 끝나는 코스 21개(예 frst-468300801-37126e), 2km 안 코스 13개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 10250149347(ele 395, 전 자리에서 1307m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "연비산",
    "summit": "연비산",
    "region": "전북",
-   "lat": 35.515919,
-   "lon": 127.652729,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 연비산\" 로 끝나는 코스 21개(예 frst-457401201-3d9adc), 2km 안 코스 13개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 35.498087,
+   "lon": 127.64638,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 연비산\" 로 끝나는 코스 21개(예 frst-457401201-3d9adc), 2km 안 코스 13개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 7972716200(ele 843, 전 자리에서 2053m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "와룡산",
@@ -830,9 +830,9 @@
    "id": "좌구산",
    "summit": "좌구산",
    "region": "충북",
-   "lat": 36.711628,
-   "lon": 127.662401,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 좌구산\" 로 끝나는 코스 20개(예 frst-431104701-c1ab51), 2km 안 코스 28개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 36.71623,
+   "lon": 127.663075,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 좌구산\" 로 끝나는 코스 20개(예 frst-431104701-c1ab51), 2km 안 코스 28개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 10126044541(ele 657.7, 전 자리에서 512m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "청량산(경남)",
@@ -846,9 +846,9 @@
    "id": "덕암산",
    "summit": "덕암산",
    "region": "경기",
-   "lat": 37.066421,
-   "lon": 127.125505,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 덕암산\" 로 끝나는 코스 20개(예 frst-415500801-08042e), 2km 안 코스 26개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 37.063758,
+   "lon": 127.117033,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 덕암산\" 로 끝나는 코스 20개(예 frst-415500801-08042e), 2km 안 코스 26개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 10252771074(ele 163.9, 전 자리에서 808m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "호명산",
@@ -886,17 +886,17 @@
    "id": "민둥산",
    "summit": "민둥산",
    "region": "강원",
-   "lat": 37.27096,
-   "lon": 128.780233,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 민둥산\" 로 끝나는 코스 20개(예 frst-427707201-8305a7), 2km 안 코스 20개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 37.270936,
+   "lon": 128.774789,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 민둥산\" 로 끝나는 코스 20개(예 frst-427707201-8305a7), 2km 안 코스 20개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 7972724247(ele 1119, 전 자리에서 482m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "견두산",
    "summit": "견두산",
-   "region": "전남",
-   "lat": 35.331028,
-   "lon": 127.408154,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 견두산\" 로 끝나는 코스 20개(예 frst-467300201-cefc25), 2km 안 코스 14개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "region": "전남광주",
+   "lat": 35.338692,
+   "lon": 127.415589,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 견두산\" 로 끝나는 코스 20개(예 frst-467300201-cefc25), 2km 안 코스 14개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 1037209044(ele 774.7, 전 자리에서 1083m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "문복산",
@@ -918,17 +918,17 @@
    "id": "감악산(경남)",
    "summit": "감악산",
    "region": "경남",
-   "lat": 35.594855,
-   "lon": 127.934069,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 감악산\" 로 끝나는 코스 20개(예 frst-488800101-db5c1c), 2km 안 코스 8개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 35.595605,
+   "lon": 127.928123,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 감악산\" 로 끝나는 코스 20개(예 frst-488800101-db5c1c), 2km 안 코스 8개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 5750035645(ele 952, 전 자리에서 545m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "검단산",
    "summit": "검단산",
    "region": "경기",
-   "lat": 37.517594,
-   "lon": 127.271639,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 검단산\" 로 끝나는 코스 15개(예 frst-414500201-1488c0), 2km 안 코스 19개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 37.517655,
+   "lon": 127.249354,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 검단산\" 로 끝나는 코스 15개(예 frst-414500201-1488c0), 2km 안 코스 19개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 446003587(ele 658, 전 자리에서 1968m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "소래산",
@@ -942,9 +942,9 @@
    "id": "연인산",
    "summit": "연인산",
    "region": "경기",
-   "lat": 37.898895,
-   "lon": 127.458041,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 연인산\" 로 끝나는 코스 17개(예 frst-418202901-3e25e5), 2km 안 코스 18개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 37.898766,
+   "lon": 127.414391,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 연인산\" 로 끝나는 코스 17개(예 frst-418202901-3e25e5), 2km 안 코스 18개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 5404583035(ele 1068 - PC \"1068 이 연인산 정상\")"
   },
   {
    "id": "고려산",
@@ -966,9 +966,9 @@
    "id": "우면산",
    "summit": "우면산",
    "region": "서울",
-   "lat": 37.473188,
-   "lon": 127.013488,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 우면산\" 로 끝나는 코스 11개(예 kmp-1111020027-6), 2km 안 코스 14개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 37.47048,
+   "lon": 127.00913,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 우면산\" 로 끝나는 코스 11개(예 kmp-1111020027-6), 2km 안 코스 14개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 2668326235(ele 293, 전 자리에서 488m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "화야산",
@@ -982,9 +982,9 @@
    "id": "검봉산",
    "summit": "검봉산",
    "region": "강원",
-   "lat": 37.81181,
-   "lon": 127.609296,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 검봉산\" 로 끝나는 코스 18개(예 frst-421100201-dc33f8), 2km 안 코스 30개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 37.80591,
+   "lon": 127.604519,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 검봉산\" 로 끝나는 코스 18개(예 frst-421100201-dc33f8), 2km 안 코스 30개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 10125517991(ele 529.6, 전 자리에서 776m) - docs/more-peaks-osm-check.md"
   },
   {
    "id": "계양산",
@@ -1038,9 +1038,9 @@
    "id": "대룡산",
    "summit": "대룡산",
    "region": "강원",
-   "lat": 37.845644,
-   "lon": 127.791155,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 대룡산\" 로 끝나는 코스 12개(예 frst-421101101-c0fc7c), 2km 안 코스 13개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 37.845036,
+   "lon": 127.82112,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 대룡산\" 로 끝나는 코스 12개(예 frst-421101101-c0fc7c), 2km 안 코스 13개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 OSM 정상 점 node 8150324948(ele 899, 전 자리에서 2635m) - docs/more-peaks-osm-check.md"
   }
  ]
 }
