@@ -1,0 +1,46 @@
+[제목]
+정상석은 1,708m, 내 폰은 1,734m? 산 정상에서 GPS 높이가 더 나오는 이유 #shorts
+
+[설명란]
+설악산 대청봉 정상석은 1,708m인데, 등산 기록에는 1,734m가 찍혀 있어요. 폰이 고장일까요?
+고장이 아니라 높이를 재는 기준이 달라서예요.
+· 해발은 바다(우리나라는 인천 앞바다 평균 해수면)를 0m로, GPS 는 지구를 감싼 매끈한 타원을 기준으로 재요.
+· 우리나라에선 바다 면이 그 타원보다 약 25m 위에 있어 GPS 높이가 25m쯤 높게 나와요.
+· 100대 명산 98곳을 routefly 데이터로 견줘 보니 GPS 높이가 가운데값 24.5m 높았어요.
+· GPS 는 위아래 높이에 약하고, 기압 고도계는 날씨에 흔들려요. 정상석도 다시 재서 바로잡히기도 해요(한라산 1,950m → 1,947m).
+
+💬 다음 정상에서 정상석과 폰 높이, 얼마나 차이 났나요? 댓글로 알려 주세요!
+
+▶ 100대 명산 코스 · 정상 높이: https://routefly.kr/routefly/m/
+📘 페이스북: https://www.facebook.com/routefly.kr
+자료: 한국민족문화대백과사전 「기본 수준원점 표석」 https://encykorea.aks.ac.kr/Article/E0008249
+· GPS 성능(미국 정부 gps.gov - 수평 8m · 수직 13m 은 95% 약속 기준) https://gps.gov/systems/gps/performance
+· Apple CLLocation altitude https://developer.apple.com/documentation/corelocation/cllocation/altitude
+· Android AltitudeConverter https://developer.android.com/reference/android/location/altitude/AltitudeConverter
+· 뉴스1 「'남한 최고봉' 한라산 높이 1947m 재확인」 https://www.news1.kr/local/jeju/2862371
+그림: routefly 가 직접 그림 · 98곳 견줌은 routefly 데이터(정상석 · 국토지리정보원 · 산림청 높이와 산림청 100대명산 GPX 높이)
+해설: AI 음성(Azure)
+안내: 폰 높이 차이는 기기 · 앱 · 날씨마다 다를 수 있어요. 숫자는 2026-11 기준 어림값이에요.
+
+#shorts #등산 #GPS #해발 #정상석 #100대명산 #routefly
+
+[태그]
+정상석 높이, GPS 높이, 등산 GPS, 해발, 해발고도, 지오이드, 수준원점, 고도계, 기압 고도계, 100대 명산, 설악산 대청봉, 한라산 높이, 등산앱, routefly
+
+[썸네일]
+- 쇼츠는 첫 장면이 썸네일이 되기 쉬움 - 고를 수 있으면 장면 3 gap26(26미터 차이 그림).
+- 글: 덱 제목 띠 「정상석 높이와 / 내 GPS가 다른 이유」 그대로(영상 위 띠와 같음).
+
+[페이스북 · 릴스 글]
+정상석은 1,708m, 내 폰은 1,734m? 산 정상에서 GPS 높이가 더 나오는 이유
+
+고장이 아니라 높이를 재는 기준이 달라서예요. 해발은 바다를, GPS 는 지구를 감싼 매끈한 타원을 기준으로 재요.
+우리나라에선 바다 면이 그 타원보다 약 25m 위에 있어 GPS 높이가 25m쯤 높게 나와요.
+100대 명산 98곳을 견줘 보니 GPS 높이가 가운데값 24.5m 높았어요(routefly 데이터).
+
+💬 다음 정상에서 정상석과 폰 높이를 견줘 보세요!
+
+#등산 #GPS #해발 #정상석 #100대명산
+
+[첫 댓글] (릴스 글 속 주소는 눌리지 않을 수 있음)
+▶ 100대 명산 코스 · 정상 높이: https://routefly.kr/routefly/m/
