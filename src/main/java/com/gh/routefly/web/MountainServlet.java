@@ -1620,11 +1620,12 @@ public class MountainServlet extends HttpServlet {
      */
     static String fixedItems(JsonObject sr, String rel, boolean en) {
         StringBuilder b = new StringBuilder();
-        JsonObject names = sr.has("names") ? sr.getAsJsonObject("names") : new JsonObject();
+        JsonObject names = sr.has("names") ? sr.getAsJsonObject("names") : new JsonObject(), routes = sr.has("routes") ? sr.getAsJsonObject("routes") : new JsonObject();
         for (JsonElement e : sr.getAsJsonArray("fixed")) {
-            String id = e.getAsString(), nm = str(names, id);
+            String id = e.getAsString(), nm = str(names, id), rt = str(routes, id);   // rt - 들머리 → 거치는 곳 → 날머리 · 거리(2026-11-27 홍TV님 "들머리 중간 날머리를 이 창에")
             if (nm == null || !CourseQueries.validId(id)) continue;
-            b.append("<li><a href=\"").append(rel).append("/c/").append(esc(id)).append("\"").append(en ? " lang=\"ko\"" : "").append(">").append(esc(nm)).append("</a></li>");
+            b.append("<li><a href=\"").append(rel).append("/c/").append(esc(id)).append("\"").append(en ? " lang=\"ko\"" : "").append(">").append(esc(nm))
+                    .append(rt != null ? " <small>" + esc(rt) + "</small>" : "").append("</a></li>");
         }
         return b.toString();
     }
