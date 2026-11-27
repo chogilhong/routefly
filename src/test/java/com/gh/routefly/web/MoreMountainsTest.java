@@ -56,6 +56,11 @@ public class MoreMountainsTest {
         assertTrue("경로 표시는 등산 코스", page.contains("\"name\":\"등산 코스\""));
         assertFalse(page.contains("산림청 100대 명산 선정 이유"));
         assertEquals("공유 그림 둘째 줄", "이름난 산 · 정상 매봉", OgServlet.korean(cg)[1]);
+        // 정상 높이가 없는 이름난 산은 코스 최고점을 안 보임(옆 산 종주가 섞여 정상보다 높게 나왔음 - 2026-11-27 PC 사패산 740)
+        JsonObject c = JsonParser.parseString("{\"course_id\":\"frst-1\",\"name\":\"옆 산까지\",\"kind\":\"hike\",\"distance_m\":5000,\"ascent_m\":600,\"ele_max_m\":740,\"start_lat\":37.43,\"start_lon\":127.05,\"end_lat\":37.45,\"end_lon\":127.06}").getAsJsonObject();
+        String withTop = MountainServlet.page(cg, List.of(c), List.of(), null, "https://routefly.kr/routefly", 11);
+        assertFalse(withTop.contains("코스 최고점"));
+        assertEquals("100대 명산 쪽 셈은 그대로", Integer.valueOf(740), MountainServlet.courseTop(List.of(c), null));
 
         String sm = SitemapServlet.sitemap("https://r.kr", List.of("가야산"), List.of("청계산"), List.of());
         assertTrue("사이트맵 - 한국어 산 페이지만", sm.contains("<url><loc>https://r.kr/m/%EC%B2%AD%EA%B3%84%EC%82%B0</loc></url>") && !sm.contains("/en/m/cheonggyesan"));

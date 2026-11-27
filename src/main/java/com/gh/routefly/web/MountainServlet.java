@@ -1516,7 +1516,8 @@ public class MountainServlet extends HttpServlet {
         courses = upward(courses, peak);   // 정상에서 시작하게 적힌 코스는 들머리부터(오르막 · 시간 · 문답 · 링크)
         String name = str(peak, "id") != null ? str(peak, "id") : str(peak, "name"), summit = str(peak, "summit");   // id = 지역 붙은 이름(백운산(광양))
         String url = base + "/m/" + enc(name);
-        Integer top = courseTop(courses, MountainServlet.elev(peak));
+        // 이름난 산(100대 밖)은 정상 높이가 아직 없으면 코스 최고점을 안 보임 - 옆 산으로 가는 종주를 거를 기준이 없어 정상보다 높게 나왔음(2026-11-27 PC: 사패산 740 · 불암산 610)
+        Integer top = isMore(peak) && MountainServlet.elev(peak) == null ? null : courseTop(courses, MountainServlet.elev(peak));
         String title = name + " 등산코스 · 날씨 · 일출 일몰";
         String desc = name + (summit != null && !summit.equals(name) ? "(" + summit + ")" : "") + " 등산코스 " + courses.size() + "개 - 거리 · 오르막 · 예상 시간, "
                 + "오늘 날씨와 일출 · 일몰. 3D 지형 위로 코스를 미리 날아 보고 핸드폰으로 따라 걷기.";
