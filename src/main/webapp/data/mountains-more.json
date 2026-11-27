@@ -62,9 +62,9 @@
    "id": "무학산(대구)",
    "summit": "무학산",
    "region": "대구",
-   "lat": 35.836175,
-   "lon": 128.652215,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 무학산\" 로 끝나는 코스 40개(예 frst-272601101-caf926), 2km 안 코스 47개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 35.83615,
+   "lon": 128.635725,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 무학산\" 로 끝나는 코스 40개(예 frst-272601101-caf926), 2km 안 코스 47개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 PC 고른 OSM 정상 점 node 10188051940(⚠ 12곳 표 - docs/more-peaks-osm-check.md)"
   },
   {
    "id": "구덕산",
@@ -118,17 +118,17 @@
    "id": "사룡산",
    "summit": "사룡산",
    "region": "경북",
-   "lat": 35.826982,
-   "lon": 129.058281,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 사룡산\" 로 끝나는 코스 36개(예 frst-472301601-c8171c), 2km 안 코스 26개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 35.845909,
+   "lon": 129.013247,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 사룡산\" 로 끝나는 코스 36개(예 frst-472301601-c8171c), 2km 안 코스 26개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 PC 고른 OSM 정상 점 node 6298944848(⚠ 12곳 표 - docs/more-peaks-osm-check.md)"
   },
   {
    "id": "방어산",
    "summit": "방어산",
    "region": "경남",
-   "lat": 35.266658,
-   "lon": 128.289426,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 방어산\" 로 끝나는 코스 35개(예 frst-481701101-edf6e2), 2km 안 코스 35개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 35.253493,
+   "lon": 128.29354,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 방어산\" 로 끝나는 코스 35개(예 frst-481701101-edf6e2), 2km 안 코스 35개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 PC 고른 OSM 정상 점 node 7750127298(⚠ 12곳 표 - docs/more-peaks-osm-check.md)"
   },
   {
    "id": "망해산",
@@ -206,9 +206,9 @@
    "id": "삼성산",
    "summit": "삼성산",
    "region": "경기",
-   "lat": 37.424366,
-   "lon": 126.92356,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 삼성산\" 로 끝나는 코스 31개(예 frst-411700101-088075), 2km 안 코스 48개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 37.435915,
+   "lon": 126.939371,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 삼성산\" 로 끝나는 코스 31개(예 frst-411700101-088075), 2km 안 코스 48개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 PC 고른 OSM 정상 점 node 2668273218(⚠ 12곳 표 - docs/more-peaks-osm-check.md)"
   },
   {
    "id": "구룡산",
@@ -246,9 +246,9 @@
    "id": "상당산",
    "summit": "상당산",
    "region": "충북",
-   "lat": 36.651452,
-   "lon": 127.514616,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 상당산\" 로 끝나는 코스 30개(예 kmp-4334010268-2), 2km 안 코스 45개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 36.66839,
+   "lon": 127.54303,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 상당산\" 로 끝나는 코스 30개(예 kmp-4334010268-2), 2km 안 코스 45개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 PC 고른 OSM 정상 점 node 10252750756(⚠ 12곳 표 - docs/more-peaks-osm-check.md)"
   },
   {
    "id": "석성산",
@@ -366,9 +366,9 @@
    "id": "망운산",
    "summit": "망운산",
    "region": "경남",
-   "lat": 34.850717,
-   "lon": 127.845326,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 망운산\" 로 끝나는 코스 27개(예 frst-488401901-fbb8bf), 2km 안 코스 12개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 34.85166,
+   "lon": 127.85548,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 망운산\" 로 끝나는 코스 27개(예 frst-488401901-fbb8bf), 2km 안 코스 12개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 PC 고른 OSM 정상 점 node 10250188589(⚠ 12곳 표 - docs/more-peaks-osm-check.md)"
   },
   {
    "id": "아홉산(경남)",
@@ -422,9 +422,9 @@
    "id": "동대산(울산)",
    "summit": "동대산",
    "region": "울산",
-   "lat": 35.646598,
-   "lon": 129.379495,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 동대산\" 로 끝나는 코스 25개(예 frst-312000101-0005a6), 2km 안 코스 27개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 35.637272,
+   "lon": 129.379281,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 동대산\" 로 끝나는 코스 25개(예 frst-312000101-0005a6), 2km 안 코스 27개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 PC 고른 OSM 정상 점 node 10250399223(⚠ 12곳 표 - docs/more-peaks-osm-check.md)"
   },
   {
    "id": "응해산",
@@ -598,9 +598,9 @@
    "id": "유학산",
    "summit": "유학산",
    "region": "경북",
-   "lat": 36.066673,
-   "lon": 128.498577,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 유학산\" 로 끝나는 코스 23개(예 frst-478502801-6b6eb3), 2km 안 코스 17개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 36.068924,
+   "lon": 128.484984,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 유학산\" 로 끝나는 코스 23개(예 frst-478502801-6b6eb3), 2km 안 코스 17개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 PC 고른 OSM 정상 점 node 6212374477(⚠ 12곳 표 - docs/more-peaks-osm-check.md)"
   },
   {
    "id": "망덕산",
@@ -646,9 +646,9 @@
    "id": "광려산",
    "summit": "광려산",
    "region": "경남",
-   "lat": 35.1868,
-   "lon": 128.462244,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 광려산\" 로 끝나는 코스 22개(예 frst-481500301-020344), 2km 안 코스 28개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 35.183052,
+   "lon": 128.483946,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 광려산\" 로 끝나는 코스 22개(예 frst-481500301-020344), 2km 안 코스 28개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 PC 고른 OSM 정상 점 node 1892301847(⚠ 12곳 표 - docs/more-peaks-osm-check.md)"
   },
   {
    "id": "아미산",
@@ -758,9 +758,9 @@
    "id": "홍복산",
    "summit": "홍복산",
    "region": "경기",
-   "lat": 37.763983,
-   "lon": 127.020235,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 홍복산\" 로 끝나는 코스 21개(예 frst-416302201-6adb57), 2km 안 코스 22개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 37.762842,
+   "lon": 127.002235,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 홍복산\" 로 끝나는 코스 21개(예 frst-416302201-6adb57), 2km 안 코스 22개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 PC 고른 OSM 정상 점 node 10125389938(⚠ 12곳 표 - docs/more-peaks-osm-check.md)"
   },
   {
    "id": "동대산(경북)",
@@ -822,9 +822,9 @@
    "id": "와룡산",
    "summit": "와룡산",
    "region": "경남",
-   "lat": 34.986523,
-   "lon": 128.06927,
-   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 와룡산\" 로 끝나는 코스 21개(예 frst-482401401-de935d), 2km 안 코스 12개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md)"
+   "lat": 34.986548,
+   "lon": 128.113897,
+   "_src": "우리 코스 정상 끝점 가운데값 - \"→ 와룡산\" 로 끝나는 코스 21개(예 frst-482401401-de935d), 2km 안 코스 12개 (2026-11-27 웹 Claude, docs/more-peaks-candidates.md) / 2026-11-27 PC 고른 OSM 정상 점 node 5244287260(⚠ 12곳 표 - docs/more-peaks-osm-check.md)"
   },
   {
    "id": "좌구산",
