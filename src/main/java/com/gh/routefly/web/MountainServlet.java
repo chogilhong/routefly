@@ -862,7 +862,10 @@ public class MountainServlet extends HttpServlet {
         return out;
     }
 
-    /** 순수 함수 - 코스 모음(/m/) "▶ 산에서 궁금한 것" 칸(영상이 없으면 ""). 유튜브로 가는 링크만(새 창). 영상이 한국어라 /en/m/ 에는 넣지 않음. */
+    /**
+     * 순수 함수 - 코스 모음(/m/) "▶ 산에서 궁금한 것" 칸(영상이 없으면 ""). 유튜브로 가는 링크만(새 창). 영상이 한국어라 /en/m/ 에는 넣지 않음.
+     * 2026-11-27 홍TV님 "이 둘의 위치를 바꾸자" - 등산 칸 안(100대 · 이름난 산 아래)에서 산 · 길 목록 아래(전에 🧗 가파른 산 순위가 있던 자리)의 따로 접는 칸으로.
+     */
     static String curiousGroup(JsonArray videos) {
         StringBuilder li = new StringBuilder();
         int n = 0;
@@ -876,8 +879,8 @@ public class MountainServlet extends HttpServlet {
             n++;
         }
         if (n == 0) return "";
-        return "<details class=\"fold group\" name=\"group\"><summary><span class=\"ft\">▶ 산에서 궁금한 것 <small>짧은 영상</small></span><span class=\"fs\">" + n
-                + "편</span><span class=\"fa\">▾</span></summary><ul class=\"ms\">" + li + "</ul></details>";
+        return "<section id=\"curious\"><details class=\"fold kind\" name=\"kind\"><summary><span class=\"ft\">▶ 산에서 궁금한 것</span><span class=\"fs\">짧은 영상 " + n
+                + "편</span><span class=\"fa\">▾</span></summary><div class=\"fb\"><ul class=\"ms\">" + li + "</ul></div></details></section>";
     }
 
     /** data/flights.json 처럼 {videos: {산 id: [...]}} 모양 파일의 videos - 없거나 못 읽으면 빈 것. */
@@ -1797,6 +1800,8 @@ public class MountainServlet extends HttpServlet {
         JsonArray more = new JsonArray();   // 이름난 산(100대 밖, 2026-11-27) - 100대 명산 칸 바로 아래 따로 칸, 설명 · 100곳 수는 100대만
         for (JsonElement e : peaks) if (isMore(e.getAsJsonObject())) more.add(e);
         peaks = hundred(peaks);
+        boolean steepOpen = steep.contains("name=\"kind\" open");
+        String steepGroup = steep.replace("<details class=\"fold kind\" name=\"kind\"", "<details class=\"fold group\" name=\"group\"");   // 등산 칸 안의 한 칸(SteepRank.html 은 영어 /en/m/ 와 같이 씀)
         StringBuilder b = new StringBuilder(head("루트플라이 100대 명산 · 둘레길 · 자전거길 코스", "routefly(루트플라이) - 산림청 100대 명산 " + peaks.size()
                 + "곳의 등산코스 · 날씨 · 일출 일몰과 백두대간 · 국가숲길 · 코리아둘레길 · 국토종주 자전거길 노선. 3D 지형 위로 미리 날아 보고 핸드폰으로 따라 걷기.", base + "/m/", base, base + "/en/m/"));
         b.append(orgLd(base));   // 공식 계정(페이스북) - 검색 엔진용(2026-11-24)
@@ -1837,13 +1842,15 @@ public class MountainServlet extends HttpServlet {
             List<String> titles = new ArrayList<>();
             for (JsonObject g : gs) titles.add(str(g, "title").replaceFirst(" · .*$", ""));
             if (k[0].equals("hike") && more.size() > 0 && !titles.isEmpty()) titles.add(1, "이름난 산");   // 접힌 줄은 짧게("백두대간 · 정맥" → "백두대간" - 2026-11-03 홍TV님 점검: 폰에서 잘렸음)
-            boolean openKind = openPeaks && k[0].equals("hike");
+            // 🧗 가파른 산 순위는 등산 칸 안(100대 · 이름난 산 아래)에 접는 칸으로(2026-11-27 홍TV님 "이 둘의 위치를 바꾸자" - 전에는 목록 아래 따로).
+            // 산 페이지 "‹ 코스 모음"(?open=steep1 · steep2)으로 돌아오면 순위 칸이 펴져 있으니 등산 칸도 폄
+            boolean openKind = (openPeaks || steepOpen) && k[0].equals("hike");
             b.append("<details class=\"fold kind\" name=\"kind\"").append(openKind ? " open" : "").append("><summary><span class=\"ft\">").append(esc(k[1])).append("</span><span class=\"fs\">")
                     .append(esc(String.join(" · ", titles))).append("</span><span class=\"fa\">▾</span></summary><div class=\"fb\">");
             for (JsonObject g : gs) {
                 boolean peaksGroup = g.getAsJsonArray("series").get(0).getAsJsonObject().has("summits");
                 int n = peaksGroup ? peaks.size() : seriesCount(g);
-                b.append("<details class=\"fold group\" name=\"group\"").append(openKind && peaksGroup ? " open" : "").append("><summary><span class=\"ft\">").append(esc(str(g, "icon") + " " + str(g, "title")))
+                b.append("<details class=\"fold group\" name=\"group\"").append(openPeaks && openKind && peaksGroup ? " open" : "").append("><summary><span class=\"ft\">").append(esc(str(g, "icon") + " " + str(g, "title")))
                         .append("</span><span class=\"fs\">").append(n).append(peaksGroup ? "곳" : "개").append("</span><span class=\"fa\">▾</span></summary><ul class=\"ms\">");
                 if (peaksGroup) {
                     List<String> names = new ArrayList<>();
@@ -1862,14 +1869,14 @@ public class MountainServlet extends HttpServlet {
                 }
                 b.append("</ul></details>");
                 if (peaksGroup && more.size() > 0) b.append(moreGroup(more));
-                if (peaksGroup) b.append(curiousGroup(curious));   // ▶ 산에서 궁금한 것(data/curious.json, 2026-11-27 홍TV님 "그래 그렇게 하자") - 100대 · 이름난 산 바로 아래
+                if (peaksGroup) b.append(steepGroup);   // 🧗 가파른 산 순위 - 100대 · 이름난 산 바로 아래(2026-11-27, 전에는 ▶ 산에서 궁금한 것 자리)
             }
             b.append("</div></details>");
         }
         b.append(tideflyRow(false)).append(droneflyRow(false));
         // 🏨 근처 숙소 찾기(2026-10-29 홍TV님 "산청군청 근처 숙소" - 펴 둔 채, js/mountain.js · course-kit staySearch) · ☀️ 이번 주말 날씨 좋은 산(/api/weekend - 2026-10-15)은
         // 산 · 길 목록 아래로(2026-11-03 홍TV님 점검: 위에 있어 목록이 첫 화면 밖으로 밀렸고, 주말 칸은 불러온 뒤 나타나 목록을 밀었음 - CLS)
-        b.append("</div>").append(staySearchBox(null, false)).append("<section id=\"weekend\" hidden></section>").append(steep)
+        b.append("</div>").append(staySearchBox(null, false)).append("<section id=\"weekend\" hidden></section>").append(curiousGroup(curious))   // ▶ 산에서 궁금한 것 - 전에 가파른 산 순위가 있던 자리(2026-11-27)
                 .append("<section id=\"gearIdx\" hidden></section>")   // 🎒 산행 시 챙길 것(js/mountain.js - 계절 기준, 산 페이지는 그 산 오르막까지 - 2026-10-18 홍TV님)
                 .append(tips()).append("<section id=\"fun\" class=\"fun\" hidden></section>")
                 // 📂 GPX 열기(2026-11-22 홍TV님 "GPX 열기를 GPX 편집 위에, trip.html 연결") - 기록 보기: 지도 · 사진 카드 · 고도 그래프, 파일은 이 기기 안에서만

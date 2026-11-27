@@ -149,9 +149,10 @@ ul { margin:0; padding:0; list-style:none; }
 #recent .fb { padding:4px 0 10px; }
 /* 접는 칸끼리 사이 · 위아래를 좁게(2026-11-18 홍TV님 "각 사이, 그리고 위아래 폭을 조금 좁혀줘") - 🍁 철 · 📍 내 근처 · 🕘 최근 본 산 · 주말 · 숙소 찾기 · 🧗 가파른 산 순위 · 🎒 추천 상품(같은 날 "이 그림의 것도 동일하게").
    줄 높이는 손가락 44px(10 + 글 24 + 10), 접혀 있을 때는 아래 줄(경계선)을 감춤 - 칸 아래에 빈 줄처럼 보였음 */
-#season, #near, #recent, #weekend, #staySearch, #steep, #gearIdx { margin-bottom:8px; padding-top:0; padding-bottom:0; }
-#season > .fold > summary, #near > .fold > summary, #recent > .fold > summary, #weekend > .fold > summary, #staySearch > .fold > summary, #steep > .fold > summary, #gearIdx > .fold > summary { padding-top:10px; padding-bottom:10px; }
-#season > .fold:not([open]) > summary, #near > .fold:not([open]) > summary, #recent > .fold:not([open]) > summary, #weekend > .fold:not([open]) > summary, #staySearch > .fold:not([open]) > summary, #steep > .fold:not([open]) > summary, #gearIdx > .fold:not([open]) > summary { border-bottom-color:transparent; }
+#season, #near, #recent, #weekend, #staySearch, #steep, #curious, #gearIdx { margin-bottom:8px; padding-top:0; padding-bottom:0; }
+#season > .fold > summary, #near > .fold > summary, #recent > .fold > summary, #weekend > .fold > summary, #staySearch > .fold > summary, #steep > .fold > summary, #curious > .fold > summary, #gearIdx > .fold > summary { padding-top:10px; padding-bottom:10px; }
+#season > .fold:not([open]) > summary, #near > .fold:not([open]) > summary, #recent > .fold:not([open]) > summary, #weekend > .fold:not([open]) > summary, #staySearch > .fold:not([open]) > summary, #steep > .fold:not([open]) > summary, #curious > .fold:not([open]) > summary, #gearIdx > .fold:not([open]) > summary { border-bottom-color:transparent; }
+#curious .fb { padding:4px 0 10px; }   /* ▶ 산에서 궁금한 것 - 목록 아래 따로 칸(2026-11-27) */
 .cs .go button.cmpBtn { min-height:44px; font-size:14.5px; padding:0 12px; border:1px solid var(--ln); border-radius:22px; background:none; color:var(--tx); cursor:pointer; }
 .cs .go button.cmpBtn.on { border-color:#ffb703; background:rgba(255,183,3,0.15); }
 .cmp { margin:8px 0 12px; padding:10px; border:1px solid #ffb703; border-radius:12px; background:rgba(255,183,3,0.06); }
@@ -165,7 +166,11 @@ ul { margin:0; padding:0; list-style:none; }
 .cmpT th.a, .cmpT th.b { color:var(--tx); font-weight:bold; width:auto; }
 .cmpCap { margin:10px 0 4px; font-weight:bold; font-size:13.5px; }
 /* 🧗 가파른 산 순위(SteepRank - 2026-10-18 홍TV님): 3칸(# · 산 · 수치) - 360px · 가++ · 영어에서도 안 잘리게, 높이 · 코스는 이름 아래 · 경사 · 1km 는 각도 아래 */
-#steep .fb { padding:4px 0 10px; margin-left:0; padding-left:0; border-left:0; }   /* 표가 넓게 - 접는 칸 들여쓰기 없이 */
+#steep .fb { padding:4px 0 10px; margin-left:0; padding-left:0; border-left:0; }
+/* 등산 칸 안으로 옮긴 가파른 산 순위(2026-11-27 홍TV님 "이 둘의 위치를 바꾸자") - 상자 없이 다른 칸(100대 · 이름난 산)과 같은 줄 모양 */
+.fold.kind #steep { background:none; border:0; border-radius:0; padding:0; margin:0; }
+.fold.kind #steep > .fold > summary { padding:10px 4px; }
+.fold.kind #steep > .fold:not([open]) > summary { border-bottom-color:var(--ln); }   /* 표가 넓게 - 접는 칸 들여쓰기 없이 */
 .stF > .stWrap { padding:4px 0 10px; }   /* 표마다 접는 칸(2026-10-18 홍TV님) */
 .stWrap { overflow-x:auto; }
 .stT { width:100%; border-collapse:collapse; font-size:13.5px; }

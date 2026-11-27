@@ -129,7 +129,12 @@ public class SteepRankTest {
         assertTrue("영어 이름 · slug 링크", en.contains("href=\"" + Roman.slug("백운산(정선)") + "?from=steep1\">" + MountainEn.name(peaks.get(0).getAsJsonObject()) + "</a>"));
         assertTrue(en.contains("884m · 1 trail"));
         assertFalse("영어판에 한국어 설명 없음", en.contains("정상 해발"));
-        assertTrue("목록에 끼움", MountainServlet.indexPage(peaks, new JsonArray(), "", false, ko, "", new com.google.gson.JsonArray()).contains(ko + "<section id=\"gearIdx\" hidden></section><section><h2>⚠ 산행 안전 팁"));
+        // 2026-11-27 홍TV님 "이 둘의 위치를 바꾸자" - 등산 칸 안(100대 명산 아래 · 출조 줄 위)에 한 칸으로, 전에는 목록 아래 따로(지금 그 자리는 ▶ 산에서 궁금한 것)
+        String idxK = MountainServlet.indexPage(peaks, new JsonArray(), "", false, ko, "", new com.google.gson.JsonArray()), grp = ko.replace("<details class=\"fold kind\" name=\"kind\"", "<details class=\"fold group\" name=\"group\"");
+        assertTrue("등산 칸 안에 끼움", idxK.contains("</ul></details>" + grp + "</div></details>") && idxK.indexOf(grp) < idxK.indexOf("class=\"kindLink\""));
+        assertFalse("목록 아래에는 없음", idxK.contains("<section id=\"weekend\" hidden></section><section id=\"steep\">"));
+        String backIdx = MountainServlet.indexPage(peaks, new JsonArray(), "", false, SteepRank.html(SteepRank.rank(peaks, m), false, 2), "", new com.google.gson.JsonArray());
+        assertTrue("‹ 코스 모음으로 돌아오면 등산 칸도 펴짐", backIdx.contains("<details class=\"fold kind\" name=\"kind\" open><summary><span class=\"ft\">⛰️ 등산") && backIdx.contains("<details class=\"fold group\" name=\"group\" open><summary><span class=\"ft\">🧗"));
         assertTrue(MountainEn.indexPage(peaks, new JsonArray(), "", en).contains(en));
     }
 
