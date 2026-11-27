@@ -35,6 +35,8 @@ public class CuriousShortsTest {
         assertEquals("LcpO9nK2EtM", v.get(0).getAsJsonObject().get("id").getAsString());   // 2026-11-27 홍TV님이 올린 영상(76.8초)
         assertEquals(76.8, v.get(0).getAsJsonObject().get("sec").getAsDouble(), 0.01);
         assertEquals("height", v.get(0).getAsJsonObject().getAsJsonObject("faq").get("at").getAsString());
+        assertEquals("VJTyvKGq-xc", v.get(1).getAsJsonObject().get("id").getAsString());   // 2편 하산 무릎(2026-11-27, 114.2초) - 등산 시간 문답 아래
+        assertEquals("time", v.get(1).getAsJsonObject().getAsJsonObject("faq").get("at").getAsString());
     }
 
     @Test
@@ -80,7 +82,7 @@ public class CuriousShortsTest {
     public void 코스_모음_칸() throws Exception {
         JsonArray peaks = JsonParser.parseString("[{\"id\":\"설악산\",\"lat\":38.1,\"lon\":128.4}]").getAsJsonArray();
         String idx = MountainServlet.indexPage(peaks, new JsonArray(), "https://r.kr", false, "", "", videos());
-        assertTrue(idx, idx.contains("<span class=\"ft\">▶ 산에서 궁금한 것 <small>짧은 영상</small></span><span class=\"fs\">1편</span>"));
+        assertTrue(idx, idx.contains("<span class=\"ft\">▶ 산에서 궁금한 것 <small>짧은 영상</small></span><span class=\"fs\">2편</span>"));
         assertTrue(idx.contains("<li><a href=\"https://www.youtube.com/shorts/LcpO9nK2EtM\" target=\"_blank\" rel=\"noopener\">정상석 높이와 내 GPS가 다른 이유 <small>1분 17초</small> ›</a></li>"));
         assertTrue("100대 명산 칸 다음", idx.indexOf("산에서 궁금한 것") > idx.indexOf(">설악산</a>"));
         assertFalse("영상이 없으면 칸도 없음", MountainServlet.indexPage(peaks, new JsonArray(), "https://r.kr", false, "", "", new JsonArray()).contains("산에서 궁금한 것"));
