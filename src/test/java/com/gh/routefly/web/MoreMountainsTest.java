@@ -74,6 +74,12 @@ public class MoreMountainsTest {
         assertEquals("망경대", MountainServlet.find(six, "청계산").get("summit").getAsString());
         // 2026-11-27 홍TV님 "다 찾아봐" → 후보 A 109 + B 15(docs/more-peaks-candidates.md) - 100대와 이름이 같은 산은 시 · 도를 붙임
         assertTrue(f.getAsJsonArray("peaks").size() >= 130);
+        java.util.Map<String, String> rg = new java.util.HashMap<>();   // 2026-11-27 홍TV님 "북악산 · 백양산 · 혈구산을 이름난 산에 넣어" · 삼성산 "서울로 옮겨야겠네"
+        for (com.google.gson.JsonElement e : f.getAsJsonArray("peaks")) rg.put(e.getAsJsonObject().get("id").getAsString(), e.getAsJsonObject().get("region").getAsString());
+        assertEquals("서울", rg.get("북악산"));
+        assertEquals("부산", rg.get("백양산"));
+        assertEquals("인천", rg.get("혈구산"));
+        assertEquals("서울", rg.get("삼성산"));
         assertTrue(MountainServlet.isMore(MountainServlet.find(six, "가야산(충남)")) && !MountainServlet.isMore(MountainServlet.find(six, "가야산")));
         assertTrue(MountainServlet.isMore(MountainServlet.find(six, "보문산")) && MountainServlet.isMore(MountainServlet.find(six, "검단산")));
         String idx6 = MountainServlet.indexPage(six, groups, "https://r.kr", false, "", "", new com.google.gson.JsonArray());
