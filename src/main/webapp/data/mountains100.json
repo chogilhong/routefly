@@ -54,7 +54,7 @@
     {"id": "선운산", "name": "선운산", "region": null, "summit": "선운산(도솔산) 수리봉", "height": 361, "lat": 35.498672, "lon": 126.568932},
     {"id": "설악산", "name": "설악산", "region": null, "summit": "대청봉", "height": 1734, "lat": 38.119102, "lon": 128.465347},
     {"id": "성인봉", "name": "성인봉", "region": null, "summit": "성인봉", "height": 1003, "lat": 37.498058, "lon": 130.867004},
-    {"id": "소백산", "name": "소백산", "region": null, "summit": "소백산", "height": 1458, "lat": 36.957868, "lon": 128.478866},
+    {"id": "소백산", "name": "소백산", "region": null, "summit": "소백산", "height": 1458, "lat": 36.957868, "lon": 128.478866, "alt": [{"name": "비로봉", "lat": 36.957530, "lon": 128.484896}]},
     {"id": "소요산", "name": "소요산", "region": null, "summit": "소요산", "height": 674, "lat": 37.915914, "lon": 127.132813, "alt": [{"name": "소요산 정상", "lat": 37.914391, "lon": 127.134408}]},
     {"id": "속리산", "name": "속리산", "region": null, "summit": "천왕봉", "height": 1083, "lat": 36.543209, "lon": 127.870796},
     {"id": "신불산", "name": "신불산", "region": null, "summit": "신불산", "height": 1203, "lat": 35.539345, "lon": 129.053955, "alt": [{"name": "신불산 정상", "lat": 35.540091, "lon": 129.048580}]},

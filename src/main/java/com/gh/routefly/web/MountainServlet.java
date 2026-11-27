@@ -1063,6 +1063,25 @@ public class MountainServlet extends HttpServlet {
      * 순수 함수 - 화면에 보일 정상 높이(m): mountains100.json 의 elev(공식 높이 - 산림청 100대 명산 · 국토지리정보원, 홍TV님 PC 가 자료에서 넣음)만.
      * height 는 GPX 의 GPS 높이라 20~35m 높게 나와(설악산 1,734 ↔ 1,708 - 2026-10-15 PC) 도장 자리 맞추기에만 씀. 없으면 null(높이를 안 보임).
      */
+    /** 코스 최고점에서 뺄 만큼 이 산 정상보다 높은 코스(m) - 다른 산 정상까지 가는 종주. */
+    static final int TOP_OVER_M = 30;
+
+    /**
+     * 순수 함수 - 산 페이지 첫 줄 "코스 최고점": 코스 ele_max_m 가운데 가장 높은 것. 이 산 정상 높이(height)보다 {@link #TOP_OVER_M} 넘게 높은 코스는 뺌 -
+     * 다른 산 정상을 지나는 종주라 이 산의 최고점이 아님(2026-11-27 PC: /m/도봉산 740m 인데 불수사도북 종주 u-20261115-225753 이 북한산 백운대 836m 를 지나 "코스 최고점 약 836m").
+     * height 를 모르면 모두 봄. 남는 코스가 없으면 null(첫 줄에 안 씀).
+     */
+    static Integer courseTop(List<JsonObject> courses, Integer height) {
+        Integer top = null;
+        for (JsonObject c : courses) {
+            if (!c.has("ele_max_m") || c.get("ele_max_m").isJsonNull()) continue;
+            int e = (int) Math.round(c.get("ele_max_m").getAsDouble());
+            if (height != null && e > height + TOP_OVER_M) continue;
+            top = top == null ? e : Math.max(top, e);
+        }
+        return top;
+    }
+
     static Integer elev(JsonObject peak) {
         JsonElement e = peak == null ? null : peak.get("elev");
         if (e == null || e.isJsonNull()) return null;
@@ -1422,13 +1441,7 @@ public class MountainServlet extends HttpServlet {
         courses = upward(courses, peak);   // 정상에서 시작하게 적힌 코스는 들머리부터(오르막 · 시간 · 문답 · 링크)
         String name = str(peak, "id") != null ? str(peak, "id") : str(peak, "name"), summit = str(peak, "summit");   // id = 지역 붙은 이름(백운산(광양))
         String url = base + "/m/" + enc(name);
-        Integer top = null;
-        for (JsonObject c : courses) {
-            if (c.has("ele_max_m") && !c.get("ele_max_m").isJsonNull()) {
-                int e = (int) Math.round(c.get("ele_max_m").getAsDouble());
-                top = top == null ? e : Math.max(top, e);
-            }
-        }
+        Integer top = courseTop(courses, MountainServlet.elev(peak));
         String title = name + " 등산코스 · 날씨 · 일출 일몰";
         String desc = name + (summit != null && !summit.equals(name) ? "(" + summit + ")" : "") + " 등산코스 " + courses.size() + "개 - 거리 · 오르막 · 예상 시간, "
                 + "오늘 날씨와 일출 · 일몰. 3D 지형 위로 코스를 미리 날아 보고 핸드폰으로 따라 걷기.";
