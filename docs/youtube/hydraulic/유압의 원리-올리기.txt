@@ -1,0 +1,45 @@
+[제목]
+굴착기 힘의 비밀은 엔진이 아니다? 유압 실린더부터 로봇 · 거미 다리까지
+
+[설명란]
+20톤 넘는 굴착기가 바위를 번쩍 드는 힘은 어디서 나올까요? 엔진은 출발점일 뿐, 진짜 힘은 꽉 막힌 통 속의 기름 - 유압입니다.
+파스칼의 원리부터 유압 실린더 속, 굴착기의 기름 길, 거대한 광산 굴착기 · 8만 톤 프레스, 에어버스 A380, 유압 로봇 아틀라스, 그리고 거미 다리까지 차례로 풀었습니다.
+
+차례
+· 파스칼의 원리 - 누른 압력은 모든 곳에 똑같이
+· 유압 실린더 속 - 두 방 · 실 · 와이퍼, 단동과 복동, 들어갈 땐 빠르고 약하게
+· 굴착기 - 펌프 · 메인 컨트롤 밸브 · 실린더 · 릴리프 밸브, 35 MPa = 1 cm² 에 약 357 kg
+· 브라마 프레스(1795) · 런던 수력 회사(1883 ~ 1977) · 물 대신 기름
+· 거인들 - 리브헤르 R 9800 · 코마츠 PC8000 · 8만 톤 단조 프레스
+· 비행기 - A380 5,000 psi
+· 로봇 - 유압 아틀라스(2013 ~ 2024) · 전기 유압 구동기
+· 자연 속 유압 - 거미 다리
+
+💬 공사 현장에서 굴착기 실린더, 눈여겨보신 적 있나요? 댓글로 알려 주세요!
+
+▶ routefly(루트플라이) - 산 · 둘레길 · 자전거길 코스: https://routefly.kr
+📘 페이스북: https://www.facebook.com/routefly.kr
+자료:
+· Cat 320 사양(07 세대) - 작업 최대 압력 35,000 kPa(5,075 psi) · 펌프 최대 유량 429 L/min(Cat 판매점 사양)
+· Liebherr R 9800 제품 페이지 https://www.liebherr.com/en-in/p/r9800-4198823
+· China Daily 2026-08-26 "Man masters legendary machine to produce aircraft parts for country"(80,000-metric-ton die-forging press)
+· Eaton A380 사례 · Power & Motion 2005-06-04 "Hydraulics onboard the A380" https://www.powermotiontech.com/hydraulics/hydraulic-pumps-motors/article/21884283/hydraulics-onboard-the-a380
+· DARPA 2013-07-11 "DARPA's ATLAS Robot Unveiled" https://www.darpa.mil/news/2013/atlas-robot-unveiled
+· IEEE Spectrum 2024-04-16 · TechCrunch 2024-04-17(유압 Atlas 은퇴 · 전기 Atlas)
+· Weihmann T 2013, PLoS ONE 8(6):e65788(거미 다리 관절) https://doi.org/10.1371/journal.pone.0065788
+· Science Museum Group - London Hydraulic Power Company
+그림: routefly 가 직접 그림(선그림)
+해설: AI 음성(Azure)
+안내: 숫자는 2026-11 기준 공개 자료 · 셈(35 MPa → 1 cm² 에 약 357 kg, 지름 12cm 피스톤 약 40톤힘은 예로 든 셈)입니다.
+
+#유압 #굴착기 #파스칼의원리 #유압실린더 #중장비 #A380 #아틀라스 #routefly
+
+[태그]
+유압, 유압의 원리, 파스칼의 원리, 유압 실린더, 굴착기, 굴착기 유압, 포크레인, 중장비, 유압 프레스, 브라마, 리브헤르 R9800, 코마츠 PC8000, A380 유압, 아틀라스 로봇, 보스턴 다이내믹스, 거미 다리, routefly
+
+[썸네일]
+유압의 원리-썸네일.jpg (1280x720 - 「굴착기 힘의 비밀은 / 엔진이 아니다?」 · 바탕 not-engine 장면)
+
+[올릴 파일(PC)]
+영상: C:\GH\workspace\tools\video\slides\decks\hydraulic\vrew\유압의 원리.mp4 (474.4초)
+썸네일: C:\GH\workspace\tools\video\slides\decks\hydraulic\vrew\유압의 원리-썸네일.jpg
