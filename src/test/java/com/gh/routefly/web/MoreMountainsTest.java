@@ -47,6 +47,7 @@ public class MoreMountainsTest {
         assertTrue("100대 칸 수는 100곳 그대로", idx.contains("<span class=\"ft\">⛰️ 100대 명산</span><span class=\"fs\">" + hundred.size() + "곳</span>"));
         assertTrue("100대 칸 바로 아래 이름난 산 칸", idx.contains("</ul></details><details class=\"fold group\" name=\"group\"><summary><span class=\"ft\">⛰️ 이름난 산 <small>100대 명산 밖</small></span><span class=\"fs\">1곳</span>"));
         assertTrue(idx.contains("<li><a href=\"../m/%EC%B2%AD%EA%B3%84%EC%82%B0\">청계산</a></li>"));
+        assertTrue("시 · 도가 없으면 그 밖 칸", idx.contains("<p class=\"rg\">그 밖 <small>1</small></p><ul class=\"ms\">"));
         assertTrue("접힌 줄에도", idx.contains("<span class=\"fs\">100대 명산 · 이름난 산 · 백두대간 · 종주</span>"));
         assertFalse("영어 코스 모음 산 목록에는 없음", MountainEn.indexPage(MountainServlet.hundred(all), groups, "https://r.kr").contains("<small lang=\"ko\">청계산</small>"));
         assertEquals("이름난 산이 없으면 칸도 없음", -1, MountainServlet.indexPage(hundred, groups, "https://r.kr", false, "", "").indexOf("이름난 산"));
@@ -68,8 +69,16 @@ public class MoreMountainsTest {
         assertTrue("자료 파일 - peaks · wanted", f.has("peaks") && f.has("wanted"));
         // 2026-11-27 PC 확인 6곳(docs/more-peaks-check.md) - 모두 자리 규칙을 지나 화면에 나옴
         JsonArray six = MountainServlet.plusMore(hundred, f.getAsJsonArray("peaks"));
-        assertEquals(hundred.size() + 6, six.size());
+        assertEquals("자료 파일의 산은 모두 자리 규칙을 지남(빠지는 산 없음)", hundred.size() + f.getAsJsonArray("peaks").size(), six.size());
         for (String id : new String[] {"불암산", "수락산", "사패산", "청계산", "광교산", "인왕산"}) assertTrue(id, MountainServlet.isMore(MountainServlet.find(six, id)));
         assertEquals("망경대", MountainServlet.find(six, "청계산").get("summit").getAsString());
+        // 2026-11-27 홍TV님 "다 찾아봐" → 후보 A 109 + B 15(docs/more-peaks-candidates.md) - 100대와 이름이 같은 산은 시 · 도를 붙임
+        assertTrue(f.getAsJsonArray("peaks").size() >= 130);
+        assertTrue(MountainServlet.isMore(MountainServlet.find(six, "가야산(충남)")) && !MountainServlet.isMore(MountainServlet.find(six, "가야산")));
+        assertTrue(MountainServlet.isMore(MountainServlet.find(six, "보문산")) && MountainServlet.isMore(MountainServlet.find(six, "검단산")));
+        String idx6 = MountainServlet.indexPage(six, groups, "https://r.kr", false, "", "");
+        assertTrue("시 · 도별 - 서울 먼저", idx6.indexOf("<p class=\"rg\">서울 ") > 0 && idx6.indexOf("<p class=\"rg\">서울 ") < idx6.indexOf("<p class=\"rg\">경기 ")
+                && idx6.indexOf("<p class=\"rg\">경기 ") < idx6.indexOf("<p class=\"rg\">부산 "));
+        for (com.google.gson.JsonElement e : f.getAsJsonArray("peaks")) assertTrue("시 · 도 있음 " + e, MountainServlet.REGIONS.contains(e.getAsJsonObject().get("region").getAsString()));
     }
 }

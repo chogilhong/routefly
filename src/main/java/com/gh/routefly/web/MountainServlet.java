@@ -1669,14 +1669,28 @@ public class MountainServlet extends HttpServlet {
      * (인자가 적은 겹 메서드는 테스트만 불러 지움 - 점검 10차 G1)
      */
     /** 순수 함수 - 코스 모음 "⛰️ 이름난 산" 칸(100대 명산 밖, 2026-11-27 홍TV님) - 가나다 차례로 산 페이지(/m/산). */
+    /** 이름난 산 칸의 시 · 도 차례(2026-11-27 - 130곳이 넘어 시 · 도별로 나눔). 이 밖(region 없음 등)은 맨 뒤 "그 밖". */
+    static final List<String> REGIONS = List.of("서울", "경기", "인천", "강원", "대전", "세종", "충북", "충남", "대구", "경북", "부산", "울산", "경남", "광주", "전북", "전남", "제주");
+
     static String moreGroup(JsonArray more) {
-        List<String> names = new ArrayList<>();
-        for (JsonElement e : more) names.add(str(e.getAsJsonObject(), "id"));
-        names.sort(Comparator.naturalOrder());
+        java.util.Map<String, List<String>> by = new java.util.LinkedHashMap<>();
+        for (String r : REGIONS) by.put(r, new ArrayList<>());
+        for (JsonElement e : more) {
+            JsonObject o = e.getAsJsonObject();
+            String r = str(o, "region");
+            by.computeIfAbsent(r != null && REGIONS.contains(r) ? r : "그 밖", k -> new ArrayList<>()).add(str(o, "id"));
+        }
         StringBuilder b = new StringBuilder("<details class=\"fold group\" name=\"group\"><summary><span class=\"ft\">⛰️ 이름난 산 <small>100대 명산 밖</small></span><span class=\"fs\">")
-                .append(names.size()).append("곳</span><span class=\"fa\">▾</span></summary><ul class=\"ms\">");
-        for (String n : names) b.append("<li><a href=\"").append(REL).append("/m/").append(esc(enc(n))).append("\">").append(esc(n)).append("</a></li>");
-        return b.append("</ul></details>").toString();
+                .append(more.size()).append("곳</span><span class=\"fa\">▾</span></summary>");
+        for (java.util.Map.Entry<String, List<String>> en : by.entrySet()) {
+            if (en.getValue().isEmpty()) continue;
+            List<String> names = en.getValue();
+            names.sort(Comparator.naturalOrder());
+            b.append("<p class=\"rg\">").append(esc(en.getKey())).append(" <small>").append(names.size()).append("</small></p><ul class=\"ms\">");
+            for (String n : names) b.append("<li><a href=\"").append(REL).append("/m/").append(esc(enc(n))).append("\">").append(esc(n)).append("</a></li>");
+            b.append("</ul>");
+        }
+        return b.append("</details>").toString();
     }
 
     /** 묶음 줄 수 - 손으로 고른 코스 묶음(fixed, 종주)은 코스 수, 그 밖은 노선 수(코스 모음 접는 칸의 "n개"). */

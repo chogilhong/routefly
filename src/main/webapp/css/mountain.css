@@ -29,6 +29,8 @@ ul { margin:0; padding:0; list-style:none; }
 .ms { display:flex; flex-wrap:wrap; gap:8px; }
 .ms a { display:inline-block; text-decoration:none; color:var(--tx); font-size:14px; padding:6px 11px; border:1px solid var(--ln); border-radius:16px; }
 .ms a.yt { font-size:13px; padding:4px 9px; color:#ff8787; border-color:rgba(255,135,135,.45); }   /* 종주 줄 옆 ▶ 3D 영상(2026-11-27) */
+.fold .rg { margin:10px 0 4px; font-size:13px; font-weight:700; color:var(--dim); }   /* 이름난 산 시 · 도 이름(2026-11-27) */
+.fold .rg small { font-weight:400; }
 .brand { margin-top:18px; font-size:15px; font-weight:bold; }
 .copy { margin:10px 0 0; font-size:11.5px; color:var(--dim); }   /* © 2026 홍TV · routefly */
 .support { margin:14px 0 0; }
