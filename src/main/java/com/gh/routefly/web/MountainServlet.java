@@ -647,10 +647,16 @@ public class MountainServlet extends HttpServlet {
     static void withElev(JsonArray peaks, JsonObject file) {
         JsonObject elev = file.has("elev") && file.get("elev").isJsonObject() ? file.getAsJsonObject("elev") : file;
         JsonObject src = file.has("src") && file.get("src").isJsonObject() ? file.getAsJsonObject("src") : new JsonObject();
+        JsonObject top = file.has("top") && file.get("top").isJsonObject() ? file.getAsJsonObject("top") : new JsonObject();
         for (JsonElement e : peaks) {
             JsonObject o = e.getAsJsonObject();
             String id = str(o, "id") != null ? str(o, "id") : str(o, "name");
             if (id == null || !elev.has(id) || !elev.get(id).isJsonPrimitive()) continue;
+            if (top.has(id) && top.get(id).isJsonObject()) {   // 높이가 GPX 정상이 아닌 최고봉 것(도봉산 자운봉 - 2026-11-27)
+                JsonObject t = top.getAsJsonObject(id);
+                if (str(t, "name") != null) o.addProperty("top_name", str(t, "name"));
+                if (str(t, "climb") != null) o.addProperty("climb_name", str(t, "climb"));
+            }
             o.add("elev", elev.get(id));
             o.addProperty("elev_src", src.has(id) && src.get(id).isJsonPrimitive() ? src.get(id).getAsString() : "ebook");
         }
@@ -1059,10 +1065,6 @@ public class MountainServlet extends HttpServlet {
         return en ? "Korea Forest Service, 100 Famous Mountains" : "산림청 100대 명산";
     }
 
-    /**
-     * 순수 함수 - 화면에 보일 정상 높이(m): mountains100.json 의 elev(공식 높이 - 산림청 100대 명산 · 국토지리정보원, 홍TV님 PC 가 자료에서 넣음)만.
-     * height 는 GPX 의 GPS 높이라 20~35m 높게 나와(설악산 1,734 ↔ 1,708 - 2026-10-15 PC) 도장 자리 맞추기에만 씀. 없으면 null(높이를 안 보임).
-     */
     /** 코스 최고점에서 뺄 만큼 이 산 정상보다 높은 코스(m) - 다른 산 정상까지 가는 종주. */
     static final int TOP_OVER_M = 30;
 
@@ -1082,6 +1084,10 @@ public class MountainServlet extends HttpServlet {
         return top;
     }
 
+    /**
+     * 순수 함수 - 화면에 보일 정상 높이(m): mountains100.json 의 elev(공식 높이 - 산림청 100대 명산 · 국토지리정보원, 홍TV님 PC 가 자료에서 넣음)만.
+     * height 는 GPX 의 GPS 높이라 20~35m 높게 나와(설악산 1,734 ↔ 1,708 - 2026-10-15 PC) 도장 자리 맞추기에만 씀. 없으면 null(높이를 안 보임).
+     */
     static Integer elev(JsonObject peak) {
         JsonElement e = peak == null ? null : peak.get("elev");
         if (e == null || e.isJsonNull()) return null;
@@ -1178,7 +1184,13 @@ public class MountainServlet extends HttpServlet {
 
     /** 순수 함수 - 높이와 함께 쓸 정상 이름(정상 자리가 꼭대기일 때만, 아니면 null). */
     static String topName(JsonObject peak) {
+        if (str(peak, "top_name") != null) return str(peak, "top_name");   // 높이가 이 봉우리 것(peak-elev.json top - 도봉산 자운봉)
         return summitOk(peak) ? str(peak, "summit") : null;
+    }
+
+    /** 순수 함수 - 최고봉과 따로 적을 "오를 수 있는 정상"(peak-elev.json top.climb - 도봉산 신선대), 없으면 null. */
+    static String climbName(JsonObject peak) {
+        return str(peak, "climb_name");
     }
 
     /** 순수 함수 - 두 점 거리(m, 하버사인). */
@@ -1452,8 +1464,10 @@ public class MountainServlet extends HttpServlet {
         Integer height = MountainServlet.elev(peak);
         b.append(jsonLd(peak, name, url));
         String topNm = topName(peak);   // 정상 자리가 꼭대기가 아니면(점봉산 곰배령 등) 높이와 이름을 붙이지 않음(2026-10-16)
-        b.append("<p class=\"lead\">산림청 100대 명산").append(topNm != null ? " · 정상 " + esc(topNm) : height != null ? " · 해발" : "")
+        String climb = climbName(peak);   // 최고봉과 오를 수 있는 정상이 다른 산(도봉산 자운봉 · 신선대 - 2026-11-27 홍TV님 "가 로 해")
+        b.append("<p class=\"lead\">산림청 100대 명산").append(topNm != null ? (climb != null ? " · 최고봉 " : " · 정상 ") + esc(topNm) : height != null ? " · 해발" : "")
                 .append(height != null ? String.format(Locale.KOREA, " %,dm", height) : "")
+                .append(climb != null ? " · 오를 수 있는 정상 " + esc(climb) : "")
                 .append(topNm == null && summit != null && !summit.equals(str(peak, "name")) ? " · 도장 자리 " + esc(summit) : "")
                 .append(top != null ? String.format(Locale.KOREA, " · 코스 최고점 약 %,dm", top) : "").append("</p>");
         if (closed(peak) != null) b.append("<p class=\"closedNote\">⛔ ").append(esc(closed(peak))).append("</p>");

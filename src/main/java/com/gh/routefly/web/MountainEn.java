@@ -141,9 +141,11 @@ final class MountainEn {
         b.append(MountainServlet.jsonLd(peak, name, url));
         b.append("<p class=\"lead\">One of Korea's 100 Famous Mountains (Korea Forest Service)");
         String topNm = MountainServlet.topName(peak);   // 정상 자리가 꼭대기가 아니면(점봉산 곰배령 등) 높이와 이름을 붙이지 않음
-        if (topNm != null) b.append(" · Summit ").append(esc(summitName(topNm, str(peak, "name")))).append(" <span lang=\"ko\">(").append(esc(topNm)).append(")</span>");
+        String climb = MountainServlet.climbName(peak);   // 한국어 "최고봉 · 오를 수 있는 정상" 과 같게(도봉산 - 2026-11-27)
+        if (topNm != null) b.append(climb != null ? " · Highest peak " : " · Summit ").append(esc(summitName(topNm, str(peak, "name")))).append(" <span lang=\"ko\">(").append(esc(topNm)).append(")</span>");
         else if (height != null) b.append(" · Elevation");
         if (height != null) b.append(String.format(Locale.US, " %,d m", height));
+        if (climb != null) b.append(" · Accessible summit ").append(esc(summitName(climb, str(peak, "name")))).append(" <span lang=\"ko\">(").append(esc(climb)).append(")</span>");
         b.append("</p>");
         if (MountainServlet.closed(peak) != null)   // 대암산 - 한국어 페이지의 ⛔ 와 같은 뜻(2026-10-18)
             b.append("<p class=\"closedNote\">⛔ The summit area is a restricted zone. Trails go only as far as the marked point below the summit (Korea Forest Service).</p>");
