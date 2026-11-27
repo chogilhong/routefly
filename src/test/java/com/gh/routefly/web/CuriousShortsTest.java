@@ -37,7 +37,7 @@ public class CuriousShortsTest {
         assertEquals("height", v.get(0).getAsJsonObject().getAsJsonObject("faq").get("at").getAsString());
         assertEquals("VJTyvKGq-xc", v.get(1).getAsJsonObject().get("id").getAsString());   // 2편 하산 무릎(2026-11-27, 114.2초) - 등산 시간 문답 아래
         assertEquals("time", v.get(1).getAsJsonObject().getAsJsonObject("faq").get("at").getAsString());
-        assertEquals("GxT9gYoGipE", v.get(2).getAsJsonObject().get("id").getAsString());   // 3편 100대 명산(2026-11-27, 90.6초) - 문답 자리 없이 코스 모음 칸만
+        assertEquals("TlZLRjHOfzk", v.get(2).getAsJsonObject().get("id").getAsString());   // 3편 100대 명산(2026-11-27, 90.6초) - 문답 자리 없이 코스 모음 칸만
         assertFalse(v.get(2).getAsJsonObject().has("faq"));
     }
 
