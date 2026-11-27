@@ -127,9 +127,9 @@ public class SeasonTest {
         assertEquals("1월 · 7월은 칸 없음", "", MountainServlet.seasonFold(all, sea, java.time.LocalDate.of(2026, 1, 1)));
         assertEquals("", MountainServlet.seasonFold(all, sea, java.time.LocalDate.of(2026, 7, 1)));
 
-        String idx = MountainServlet.indexPage(all, new JsonArray(), BASE, false, "", nov);
+        String idx = MountainServlet.indexPage(all, new JsonArray(), BASE, false, "", nov, new com.google.gson.JsonArray());
         assertTrue("검색칸 아래 · 내 근처 위", idx.indexOf("<section id=\"season\">") > idx.indexOf("class=\"mSearch\"") && idx.indexOf("<section id=\"season\">") < idx.indexOf("<section id=\"near\">"));
-        assertFalse(MountainServlet.indexPage(all, new JsonArray(), BASE, false, "", "").contains("id=\"season\""));
+        assertFalse(MountainServlet.indexPage(all, new JsonArray(), BASE, false, "", "", new com.google.gson.JsonArray()).contains("id=\"season\""));
 
         JsonArray bare = peaks();
         assertEquals("season.json 이 없으면 칸도 없음", "", MountainServlet.seasonFold(bare, new JsonObject(), java.time.LocalDate.of(2026, 10, 1)));

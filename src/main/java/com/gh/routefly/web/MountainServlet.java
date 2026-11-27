@@ -53,6 +53,7 @@ public class MountainServlet extends HttpServlet {
     private volatile JsonObject season = new JsonObject();   // data/season.json(벚꽃 13곳 목록 - peaks() 가 함께 읽음)
     private volatile JsonObject parks;
     private volatile JsonArray groups;
+    private volatile JsonArray curious = new JsonArray();   // data/curious.json videos(산에서 궁금한 것 쇼츠 - peaks() 가 함께 읽음)
 
     /** 순수 함수 - 주소 조각 풀기(산 이름 · 그림 이름 - 손님이 %EC%84%A4 처럼 두 번 감싼 것도). 잘못된 % 꼴이면 null(2026-11-01 점검: IllegalArgumentException 으로 500 이었음). */
     static String decode(String s) {
@@ -93,7 +94,7 @@ public class MountainServlet extends HttpServlet {
             resp.setHeader("Cache-Control", "public, max-age=600");   // 10분 - 1시간이면 배포한 문구가 늦게 보였음(2026-10-17 PC)
             // ?open=peaks - 예전 산 페이지 "‹ 코스 모음" 링크(2026-10-15, 검색 · 북마크에 남은 주소)는 100대 명산을 펼친 채. 지금 링크는 /m/ - 펼친 칸은 RF.foldMemory 가 되살림(2026-11-24)
             resp.getWriter().print(withFire(indexPage(all, seriesGroups(), base, "peaks".equals(req.getParameter("open")), SteepRank.html(steepRank(hundred(all)), false, SteepRank.openOf(req.getParameter("open"))),
-                    seasonFold(hundred(all), season, java.time.LocalDate.now(WeatherServlet.KST))), System.currentTimeMillis()));
+                    seasonFold(hundred(all), season, java.time.LocalDate.now(WeatherServlet.KST)), curious), System.currentTimeMillis()));
             return;
         }
         List<JsonObject> same = byName(all, name);
@@ -362,6 +363,9 @@ public class MountainServlet extends HttpServlet {
         withInfo(p, readInfo(getServletContext()));
         withShorts(p, readShorts(getServletContext()));
         withFlights(p, readJsonVideos(getServletContext(), "/data/flights.json"));   // 🛩 3D 종주 영상(2026-11-23)
+        JsonArray cu = readCurious(getServletContext());   // ▶ 산에서 궁금한 것(2026-11-27) - 코스 모음 칸 · 산 페이지 문답 한 목록
+        withCurious(p, cu);
+        curious = cu;
         withHero(p, readHero(getServletContext()));   // 맨 위 대표 사진(data/hero.json - 2026-11-21 "고급지게" 1번)
         JsonObject sea = readSeason(getServletContext());
         withSeason(p, sea);
@@ -816,6 +820,64 @@ public class MountainServlet extends HttpServlet {
         } catch (Exception e) {
             return new JsonObject();
         }
+    }
+
+    /** data/curious.json 의 videos [{id, title, sec, faq?}](산에서 궁금한 것 쇼츠, 2026-11-27) - 없거나 못 읽으면 빈 것. */
+    static JsonArray readCurious(jakarta.servlet.ServletContext ctx) {
+        try (InputStream in = ctx.getResourceAsStream("/data/curious.json")) {
+            JsonElement e = in == null ? null : JsonParser.parseReader(new InputStreamReader(in, StandardCharsets.UTF_8));
+            return e != null && e.isJsonObject() && e.getAsJsonObject().has("videos") ? e.getAsJsonObject().getAsJsonArray("videos") : new JsonArray();
+        } catch (Exception e) {
+            return new JsonArray();
+        }
+    }
+
+    /** 순수 함수 - 산마다 궁금한 것 목록(curious)을 붙임 - 산 페이지 문답(faq)이 at 자리에 한 줄씩 넣음(목록이 비면 안 붙임). */
+    static void withCurious(JsonArray peaks, JsonArray videos) {
+        if (videos.size() == 0) return;
+        for (JsonElement e : peaks) e.getAsJsonObject().add("curious", videos);
+    }
+
+    /** 순수 함수 - 궁금한 것 영상 하나의 유튜브 쇼츠 주소(ID 가 규칙에 맞지 않으면 null). */
+    static String curiousUrl(JsonObject v) {
+        String vid = str(v, "id");
+        return vid != null && vid.matches("[A-Za-z0-9_-]{11}") ? "https://www.youtube.com/shorts/" + vid : null;
+    }
+
+    /**
+     * 순수 함수 - 산 페이지 문답에 넣을 궁금한 것 줄들(at 자리가 맞는 것만): {물음, 답, 영상 주소, 영상 길이}. 2026-11-27 홍TV님 "그래 그렇게 하자" -
+     * 쇼츠가 늘면 data/curious.json 에 한 줄씩만 더함. 물음의 {산} 은 산 이름.
+     */
+    static List<String[]> curiousQa(JsonObject peak, String name, String at) {
+        List<String[]> out = new ArrayList<>();
+        if (!peak.has("curious") || !peak.get("curious").isJsonArray()) return out;
+        for (JsonElement e : peak.getAsJsonArray("curious")) {
+            if (!e.isJsonObject() || !e.getAsJsonObject().has("faq") || !e.getAsJsonObject().get("faq").isJsonObject()) continue;
+            JsonObject v = e.getAsJsonObject(), f = v.getAsJsonObject("faq");
+            String q = str(f, "q"), a = str(f, "a"), url = curiousUrl(v);
+            if (!at.equals(str(f, "at")) || q == null || a == null || url == null) continue;
+            String len = v.has("sec") && v.get("sec").isJsonPrimitive() ? clock(v.get("sec").getAsDouble()) : null;
+            out.add(new String[] {q.replace("{산}", name), a, url, len});
+        }
+        return out;
+    }
+
+    /** 순수 함수 - 코스 모음(/m/) "▶ 산에서 궁금한 것" 칸(영상이 없으면 ""). 유튜브로 가는 링크만(새 창). 영상이 한국어라 /en/m/ 에는 넣지 않음. */
+    static String curiousGroup(JsonArray videos) {
+        StringBuilder li = new StringBuilder();
+        int n = 0;
+        for (JsonElement e : videos) {
+            if (!e.isJsonObject()) continue;
+            JsonObject v = e.getAsJsonObject();
+            String url = curiousUrl(v), title = str(v, "title");
+            if (url == null || title == null) continue;
+            String len = v.has("sec") && v.get("sec").isJsonPrimitive() ? clock(v.get("sec").getAsDouble()) : null;
+            li.append("<li><a href=\"").append(url).append("\" target=\"_blank\" rel=\"noopener\">").append(esc(title)).append(len != null ? " <small>" + len + "</small>" : "").append(" ›</a></li>");
+            n++;
+        }
+        if (n == 0) return "";
+        return "<details class=\"fold group\" name=\"group\"><summary><span class=\"ft\">▶ 산에서 궁금한 것 <small>짧은 영상</small></span><span class=\"fs\">" + n
+                + "편</span><span class=\"fa\">▾</span></summary><ul class=\"ms\">" + li + "</ul></details>";
     }
 
     /** data/flights.json 처럼 {videos: {산 id: [...]}} 모양 파일의 videos - 없거나 못 읽으면 빈 것. */
@@ -1408,9 +1470,11 @@ public class MountainServlet extends HttpServlet {
             out.add(new String[] {name + " 등산은 몇 시간 걸리나요?", "정상까지 편도 약 " + timeOf(lo, false)
                     + (courses.size() > 1 ? " ~ " + timeOf(hi, false) : "") + ", 같은 길로 내려오면 왕복 약 " + roundTrip(lo, false)
                     + (courses.size() > 1 ? " ~ " + roundTrip(hi, false) : "") + "입니다(" + RULE_KO + ")."});
+            out.addAll(curiousQa(peak, name, "time"));   // ▶ 산에서 궁금한 것 - 등산 시간 아래 자리(data/curious.json at: time)
         }
         if (MountainServlet.elev(peak) != null)
             out.add(new String[] {name + " 높이는 얼마인가요?", (topName(peak) != null ? "정상 " + topName(peak) + "은" : name + "은") + " 해발 약 " + String.format(Locale.KOREA, "%,d", MountainServlet.elev(peak)) + "m 입니다(" + elevSource(peak, false) + ")."});
+        if (MountainServlet.elev(peak) != null) out.addAll(curiousQa(peak, name, "height"));   // ▶ 정상석 · GPS 높이(2026-11-27) - 높이가 있는 산만
         if (parking != null)
             out.add(new String[] {name + " 주차장이 있나요?", parking > 0 ? "가장 가까운 코스 들머리 3km 안에 주차장 " + parking + "곳이 있습니다(전국주차장정보표준데이터). 요금 · 운영 시간은 현지에서 확인하세요."
                     : "가장 가까운 코스 들머리 3km 안에 등록된 주차장이 없습니다. 대중교통이나 더 먼 주차장을 알아보세요."});
@@ -1608,7 +1672,9 @@ public class MountainServlet extends HttpServlet {
         List<String[]> qa = faq(peak, name, courses, parking);   // 자주 묻는 질문(2026-10-15 홍TV님 - 검색 결과에 문답으로)
         if (!qa.isEmpty()) {
             StringBuilder f = new StringBuilder("<section class=\"faq\"><h2>").append(esc(name)).append(" 자주 묻는 질문</h2><dl>");
-            for (String[] x : qa) f.append("<dt>").append(esc(x[0])).append("</dt><dd>").append(esc(x[1])).append("</dd>");
+            for (String[] x : qa) f.append("<dt>").append(esc(x[0])).append("</dt><dd>").append(esc(x[1]))
+                    .append(x.length > 2 && x[2] != null ? " <a class=\"yt\" href=\"" + esc(x[2]) + "\" target=\"_blank\" rel=\"noopener\">▶ " + (x[3] != null ? x[3] + " 영상" : "영상") + "</a>" : "")   // 궁금한 것 쇼츠(curiousQa)
+                    .append("</dd>");
             b.append(foldSec(f.append("</dl></section>").toString())).append(faqLd(qa));
         }
         b.append(foldSec(tips()));
@@ -1727,7 +1793,7 @@ public class MountainServlet extends HttpServlet {
             + "<a href=\"https://youtu.be/K1oKGDTY5t0\" target=\"_blank\" rel=\"noopener\">▶ 사용자 매뉴얼 영상</a>"
             + "<a href=\"https://youtu.be/AoQexAxZ-58\" target=\"_blank\" rel=\"noopener\">▶ 산악회 방 매뉴얼 영상</a></nav>";
 
-    static String indexPage(JsonArray peaks, JsonArray groups, String base, boolean openPeaks, String steep, String seasonHtml) {
+    static String indexPage(JsonArray peaks, JsonArray groups, String base, boolean openPeaks, String steep, String seasonHtml, JsonArray curious) {
         JsonArray more = new JsonArray();   // 이름난 산(100대 밖, 2026-11-27) - 100대 명산 칸 바로 아래 따로 칸, 설명 · 100곳 수는 100대만
         for (JsonElement e : peaks) if (isMore(e.getAsJsonObject())) more.add(e);
         peaks = hundred(peaks);
@@ -1796,6 +1862,7 @@ public class MountainServlet extends HttpServlet {
                 }
                 b.append("</ul></details>");
                 if (peaksGroup && more.size() > 0) b.append(moreGroup(more));
+                if (peaksGroup) b.append(curiousGroup(curious));   // ▶ 산에서 궁금한 것(data/curious.json, 2026-11-27 홍TV님 "그래 그렇게 하자") - 100대 · 이름난 산 바로 아래
             }
             b.append("</div></details>");
         }

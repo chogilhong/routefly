@@ -107,7 +107,7 @@ public class ReviewRound8Test {
     public void indexListsFirstAndGamesPickOpen() throws Exception {
         com.google.gson.JsonArray peaks = JsonParser.parseString("[{\"id\":\"가산\",\"name\":\"가산\",\"lat\":37.5,\"lon\":127.0}]").getAsJsonArray();
         com.google.gson.JsonArray gs = JsonParser.parseString("[{\"kind\":\"hike\",\"title\":\"백두대간 · 정맥\",\"icon\":\"⛰️\",\"series\":[{\"name\":\"설악\",\"prefix\":\"osmh-1-\"}]}]").getAsJsonArray();
-        String idx = MountainServlet.indexPage(peaks, gs, "", false, "", "");
+        String idx = MountainServlet.indexPage(peaks, gs, "", false, "", "", new com.google.gson.JsonArray());
         int folds = idx.indexOf("<div class=\"folds\">"), stay = idx.indexOf("<section id=\"staySearch\">"), wk = idx.indexOf("<section id=\"weekend\" hidden>");
         assertTrue(folds > 0 && stay > folds && wk > stay);
         assertTrue("접힌 줄 짧게", idx.contains("<span class=\"fs\">100대 명산 · 백두대간</span>"));

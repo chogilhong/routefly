@@ -16,7 +16,7 @@ public class TideflyEntryTest {
 
     @Test
     public void 한국어_코스_모음_자전거_아래() {
-        String h = MountainServlet.indexPage(new JsonArray(), GROUPS, "https://r.kr/routefly", false, "", "");
+        String h = MountainServlet.indexPage(new JsonArray(), GROUPS, "https://r.kr/routefly", false, "", "", new com.google.gson.JsonArray());
         int bike = h.indexOf("🚴 자전거"), tf = h.indexOf("🎣 tide<span class=\"fly\">fly</span>(출조)"), stay = h.indexOf("</div>", tf);
         assertTrue(h, bike > 0 && tf > bike);
         assertTrue("자전거 칸이 닫힌 바로 뒤", h.contains("</div></details>" + MountainServlet.tideflyRow(false)));

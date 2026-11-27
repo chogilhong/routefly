@@ -19,7 +19,7 @@ public class FacebookLinkTest {
         String ld = MountainServlet.orgLd("https://r.kr");
         assertTrue(ld.startsWith("<script type=\"application/ld+json\">") && ld.contains("\"@type\":\"Organization\"") && ld.contains("\"sameAs\":[\"https://www.facebook.com/routefly.kr\"]")
                 && ld.contains("\"url\":\"https://r.kr/m/\""));
-        assertTrue("코스 모음 한국어", MountainServlet.indexPage(new JsonArray(), new JsonArray(), "https://r.kr", false, "", "").contains(ld));
+        assertTrue("코스 모음 한국어", MountainServlet.indexPage(new JsonArray(), new JsonArray(), "https://r.kr", false, "", "", new com.google.gson.JsonArray()).contains(ld));
         assertTrue("코스 모음 영어", MountainEn.indexPage(new JsonArray(), new JsonArray(), "https://r.kr").contains(ld));
         for (String p : new String[] {"about.html", "about-en.html"})
             assertTrue(p, new String(Files.readAllBytes(Paths.get("src/main/webapp/" + p)), StandardCharsets.UTF_8).contains("<p class=\"dim\" id=\"social\">") );

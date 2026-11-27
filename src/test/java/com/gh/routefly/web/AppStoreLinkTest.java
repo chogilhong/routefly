@@ -36,7 +36,7 @@ public class AppStoreLinkTest {
         assertTrue(slot > hike.indexOf("id=\"nearMe\"") && slot < hike.indexOf("<div id=\"pickList\">") && slot < hike.indexOf("id=\"pickFoot\""));
         assertTrue("신호 없을 때도", read("src/main/webapp/sw.js").contains("\"js/app-store.js\""));
         // 코스 모음 · 산 페이지는 첫 화면 쪽 칸이 맨 앞(2026-11-10 홍TV님 "제일 아래에 있네") - js 는 맨 앞 칸 하나만 채움
-        String idx = MountainServlet.indexPage(new com.google.gson.JsonArray(), new com.google.gson.JsonArray(), "https://routefly.kr/routefly", false, "", "");
+        String idx = MountainServlet.indexPage(new com.google.gson.JsonArray(), new com.google.gson.JsonArray(), "https://routefly.kr/routefly", false, "", "", new com.google.gson.JsonArray());
         assertTrue("검색 칸 바로 아래", idx.indexOf("data-app-store") > idx.indexOf("class=\"mSearch\"") && idx.indexOf("data-app-store") < idx.indexOf("id=\"near\""));
         String mp = read("src/main/java/com/gh/routefly/web/MountainServlet.java");
         assertTrue("산 페이지 - 코스 바로 보기 아래", mp.contains("개 바로 보기 ↓</a></p>\");\n        b.append(APP_SLOT);"));
@@ -46,7 +46,7 @@ public class AppStoreLinkTest {
 
     @Test
     public void koreanNameAndStartTip() throws Exception {
-        assertTrue(MountainServlet.indexPage(new com.google.gson.JsonArray(), new com.google.gson.JsonArray(), "https://routefly.kr/routefly", false, "", "")
+        assertTrue(MountainServlet.indexPage(new com.google.gson.JsonArray(), new com.google.gson.JsonArray(), "https://routefly.kr/routefly", false, "", "", new com.google.gson.JsonArray())
                 .contains("<title>루트플라이 100대 명산 · 둘레길 · 자전거길 코스 - routefly</title>"));
         assertTrue(read("src/main/webapp/hike.html").contains("<title>routefly(루트플라이) 따라가기</title>"));
         assertTrue(read("src/main/webapp/index.html").contains("<title>routefly(루트플라이) 코스 미리보기</title>"));

@@ -27,7 +27,7 @@ public class TraverseListTest {
     public void 이름난_종주는_코스마다() throws Exception {
         JsonArray peaks = JsonParser.parseString(read("src/main/webapp/data/mountains100.json")).getAsJsonObject().getAsJsonArray("peaks");
         JsonArray groups = JsonParser.parseString(read("src/main/webapp/data/series.json")).getAsJsonObject().getAsJsonArray("groups");
-        String ko = MountainServlet.indexPage(peaks, groups, "https://routefly.kr/routefly", false, "", "");
+        String ko = MountainServlet.indexPage(peaks, groups, "https://routefly.kr/routefly", false, "", "", new com.google.gson.JsonArray());
         String en = MountainEn.indexPage(peaks, groups, "https://routefly.kr/routefly");
         assertTrue(ko, ko.contains("<span class=\"ft\">🥾 종주</span><span class=\"fs\">8개</span>"));
         assertTrue(ko.contains("<li><a href=\"../c/u-20261116-003325\">지리산 성중종주 <small>성삼재 → 천왕봉 → 중산리 · 35.9km</small></a> <a class=\"yt\" href=\"https://youtu.be/RlOjuH9X8R4\" target=\"_blank\" rel=\"noopener\">▶ 3D 영상</a></li>")

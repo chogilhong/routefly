@@ -15,7 +15,7 @@ public class GuideVideoLinkTest {
 
     @Test
     public void 첫_화면_설명_아래_영상() throws Exception {
-        String ko = MountainServlet.indexPage(new JsonArray(), new JsonArray(), "https://r.kr", false, "", "");
+        String ko = MountainServlet.indexPage(new JsonArray(), new JsonArray(), "https://r.kr", false, "", "", new com.google.gson.JsonArray());
         int lead = ko.indexOf("<p class=\"lead\">"), vids = ko.indexOf("<nav class=\"vids\""), form = ko.indexOf("<form");
         assertTrue("설명 아래 · 찾기 칸 위", lead >= 0 && vids > lead && form > vids);
         assertTrue(ko.contains("href=\"https://youtu.be/K1oKGDTY5t0\" target=\"_blank\" rel=\"noopener\">▶ 사용자 매뉴얼 영상</a>"));
