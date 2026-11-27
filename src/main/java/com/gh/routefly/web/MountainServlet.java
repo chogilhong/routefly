@@ -1604,6 +1604,31 @@ public class MountainServlet extends HttpServlet {
      * seasonHtml - 지금 철 칸(seasonFold, 철이 아니면 ""). 검색칸 바로 아래 - 철에만 나와 첫 화면에(2026-11-14).
      * (인자가 적은 겹 메서드는 테스트만 불러 지움 - 점검 10차 G1)
      */
+    /** 묶음 줄 수 - 손으로 고른 코스 묶음(fixed, 종주)은 코스 수, 그 밖은 노선 수(코스 모음 접는 칸의 "n개"). */
+    static int seriesCount(JsonObject g) {
+        int n = 0;
+        for (JsonElement e : g.getAsJsonArray("series")) {
+            JsonObject sr = e.getAsJsonObject();
+            n += sr.has("fixed") ? sr.getAsJsonArray("fixed").size() : 1;
+        }
+        return n;
+    }
+
+    /**
+     * 순수 함수 - 손으로 고른 코스 묶음(series.json fixed · names, 종주 - 2026-11-27 홍TV님 "종주 > 이름난 종주 여기에 자료 넣어 줘")의 줄들 - 코스마다 코스 화면(rel/c/코스).
+     * 전에는 묶음 이름 하나가 노선 안내도(route.html?trail=이름난 종주)로 가 빈 화면이었음. 이름이 없거나 규칙에 안 맞는 ID 는 뺌. en - 영어 화면(이름은 한국어 그대로 lang="ko").
+     */
+    static String fixedItems(JsonObject sr, String rel, boolean en) {
+        StringBuilder b = new StringBuilder();
+        JsonObject names = sr.has("names") ? sr.getAsJsonObject("names") : new JsonObject();
+        for (JsonElement e : sr.getAsJsonArray("fixed")) {
+            String id = e.getAsString(), nm = str(names, id);
+            if (nm == null || !CourseQueries.validId(id)) continue;
+            b.append("<li><a href=\"").append(rel).append("/c/").append(esc(id)).append("\"").append(en ? " lang=\"ko\"" : "").append(">").append(esc(nm)).append("</a></li>");
+        }
+        return b.toString();
+    }
+
     /** 코스 모음(/m/) 첫 화면의 설명 영상 단추 - 홍TV님이 올린 유튜브(2026-11-25 홍TV님 "첫 화면에 올려서 볼 수 있게 해"). 영상이 한국어라 /en/m/ 에는 넣지 않음. */
     static final String GUIDE_VIDEOS = "<nav class=\"vids\" aria-label=\"설명 영상\">"
             + "<a href=\"https://youtu.be/K1oKGDTY5t0\" target=\"_blank\" rel=\"noopener\">▶ 사용자 매뉴얼 영상</a>"
@@ -1654,7 +1679,7 @@ public class MountainServlet extends HttpServlet {
                     .append(esc(String.join(" · ", titles))).append("</span><span class=\"fa\">▾</span></summary><div class=\"fb\">");
             for (JsonObject g : gs) {
                 boolean peaksGroup = g.getAsJsonArray("series").get(0).getAsJsonObject().has("summits");
-                int n = peaksGroup ? peaks.size() : g.getAsJsonArray("series").size();
+                int n = peaksGroup ? peaks.size() : seriesCount(g);
                 b.append("<details class=\"fold group\" name=\"group\"").append(openKind && peaksGroup ? " open" : "").append("><summary><span class=\"ft\">").append(esc(str(g, "icon") + " " + str(g, "title")))
                         .append("</span><span class=\"fs\">").append(n).append(peaksGroup ? "곳" : "개").append("</span><span class=\"fa\">▾</span></summary><ul class=\"ms\">");
                 if (peaksGroup) {
@@ -1665,6 +1690,7 @@ public class MountainServlet extends HttpServlet {
                 } else {
                     for (JsonElement e : g.getAsJsonArray("series")) {
                         JsonObject sr = e.getAsJsonObject();
+                        if (sr.has("fixed")) { b.append(fixedItems(sr, REL, false)); continue; }   // 손으로 고른 종주 - 코스마다 코스 화면으로(2026-11-27)
                         String q = str(sr, "prefix") != null ? "prefix=" + enc(str(sr, "prefix")) : "trail=" + enc(str(sr, "match") != null ? str(sr, "match") : str(sr, "name"));
                         b.append("<li><a href=\"").append(REL).append("/route.html?").append(esc(q)).append("&amp;name=").append(esc(enc(str(sr, "name"))))
                                 .append("&amp;back=m&amp;lang=ko\">").append(esc(str(sr, "name")))

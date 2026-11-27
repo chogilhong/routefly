@@ -304,6 +304,11 @@ final class MountainEn {
                 for (JsonElement se : g.getAsJsonArray("series")) {
                     JsonObject sr = se.getAsJsonObject();
                     if (sr.has("summits") || str(sr, "name") == null) continue;   // 100대 명산은 위 목록
+                    if (sr.has("fixed")) {   // 손으로 고른 종주 - 코스마다 코스 화면으로(한국어 /m/ 과 같은 MountainServlet.fixedItems, 2026-11-27)
+                        ul.append(MountainServlet.fixedItems(sr, REL, true));
+                        n += sr.getAsJsonArray("fixed").size();
+                        continue;
+                    }
                     String q = str(sr, "prefix") != null ? "prefix=" + MountainServlet.enc(str(sr, "prefix"))
                             : "trail=" + MountainServlet.enc(str(sr, "match") != null ? str(sr, "match") : str(sr, "name"));
                     String en = routeName(str(sr, "name"));
