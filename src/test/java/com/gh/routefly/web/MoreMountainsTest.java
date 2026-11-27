@@ -60,6 +60,11 @@ public class MoreMountainsTest {
         String sm = SitemapServlet.sitemap("https://r.kr", List.of("가야산"), List.of("청계산"), List.of());
         assertTrue("사이트맵 - 한국어 산 페이지만", sm.contains("<url><loc>https://r.kr/m/%EC%B2%AD%EA%B3%84%EC%82%B0</loc></url>") && !sm.contains("/en/m/cheonggyesan"));
         JsonObject f = JsonParser.parseString(read("src/main/webapp/data/mountains-more.json")).getAsJsonObject();
-        assertTrue("자료 파일 - peaks · wanted", f.has("peaks") && f.getAsJsonArray("wanted").toString().contains("청계산"));
+        assertTrue("자료 파일 - peaks · wanted", f.has("peaks") && f.has("wanted"));
+        // 2026-11-27 PC 확인 6곳(docs/more-peaks-check.md) - 모두 자리 규칙을 지나 화면에 나옴
+        JsonArray six = MountainServlet.plusMore(hundred, f.getAsJsonArray("peaks"));
+        assertEquals(hundred.size() + 6, six.size());
+        for (String id : new String[] {"불암산", "수락산", "사패산", "청계산", "광교산", "인왕산"}) assertTrue(id, MountainServlet.isMore(MountainServlet.find(six, id)));
+        assertEquals("망경대", MountainServlet.find(six, "청계산").get("summit").getAsString());
     }
 }
