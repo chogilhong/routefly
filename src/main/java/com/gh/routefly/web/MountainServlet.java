@@ -86,14 +86,14 @@ public class MountainServlet extends HttpServlet {
         resp.setCharacterEncoding(StandardCharsets.UTF_8.name());
         JsonArray all = peaks();
         if (en) {
-            english(name, all, base, resp, req.getParameter("open"));
+            english(name, hundred(all), base, resp, req.getParameter("open"));   // 이름난 산은 한국어 페이지만
             return;
         }
         if (name.isEmpty()) {
             resp.setHeader("Cache-Control", "public, max-age=600");   // 10분 - 1시간이면 배포한 문구가 늦게 보였음(2026-10-17 PC)
             // ?open=peaks - 예전 산 페이지 "‹ 코스 모음" 링크(2026-10-15, 검색 · 북마크에 남은 주소)는 100대 명산을 펼친 채. 지금 링크는 /m/ - 펼친 칸은 RF.foldMemory 가 되살림(2026-11-24)
-            resp.getWriter().print(withFire(indexPage(all, seriesGroups(), base, "peaks".equals(req.getParameter("open")), SteepRank.html(steepRank(all), false, SteepRank.openOf(req.getParameter("open"))),
-                    seasonFold(all, season, java.time.LocalDate.now(WeatherServlet.KST))), System.currentTimeMillis()));
+            resp.getWriter().print(withFire(indexPage(all, seriesGroups(), base, "peaks".equals(req.getParameter("open")), SteepRank.html(steepRank(hundred(all)), false, SteepRank.openOf(req.getParameter("open"))),
+                    seasonFold(hundred(all), season, java.time.LocalDate.now(WeatherServlet.KST))), System.currentTimeMillis()));
             return;
         }
         List<JsonObject> same = byName(all, name);
@@ -113,7 +113,7 @@ public class MountainServlet extends HttpServlet {
         if (failed) courses = new ArrayList<>();
         Shelters.load(getServletContext());   // 🏠 대피소 칸(page 가 Shelters.current 로)
         resp.setHeader("Cache-Control", failed ? "no-store" : "public, max-age=600");
-        resp.getWriter().print(withFire(page(peak, courses, nearby(all, peak, NEARBY_MAX, NEARBY_M), parking(courses), base,
+        resp.getWriter().print(withFire(page(peak, courses, nearby(hundred(all), peak, NEARBY_MAX, NEARBY_M), parking(courses), base,
                 seasonMonth(all, season, java.time.LocalDate.now(WeatherServlet.KST))), System.currentTimeMillis()));
     }
 
@@ -285,6 +285,68 @@ public class MountainServlet extends HttpServlet {
         return n >= 0 ? n : null;
     }
 
+    /**
+     * 100대 명산 밖 이름난 산(2026-11-27 홍TV님 "사람들에게는 유명한 산인데 100대 명산에 안 들었다고 산 페이지에 없다는게 말이 돼? 만들어야지") -
+     * data/mountains-more.json 의 peaks({id, name, summit, lat, lon}). mountains100.json 은 배치가 산림청 GPX 로 만드는 파일이라 따로 둠.
+     * 높이는 100대와 같이 peak-elev.json(정상석 · 국토지리정보원 - 원문으로 확인한 것만). 정상 자리(lat · lon)가 없거나 우리나라 밖이면 뺌(지어내지 않음).
+     */
+    static final String MORE_FILE = "/data/mountains-more.json";
+
+    static JsonArray readMore(jakarta.servlet.ServletContext ctx) {
+        try (InputStream in = ctx.getResourceAsStream(MORE_FILE)) {
+            JsonElement e = in == null ? null : JsonParser.parseReader(new InputStreamReader(in, StandardCharsets.UTF_8));
+            return e != null && e.isJsonObject() && e.getAsJsonObject().has("peaks") ? e.getAsJsonObject().getAsJsonArray("peaks") : new JsonArray();
+        } catch (Exception e) {
+            log.warn("[MOUNTAIN] mountains-more.json 못 읽음 - {}", e.toString());
+            return new JsonArray();
+        }
+    }
+
+    /** 순수 함수 - 100대 명산(hundred) 뒤에 이름난 산(more)을 붙인 새 목록. more 는 id · 정상 자리(우리나라 안)가 있고 100대와 id 가 겹치지 않는 것만, "more": true 를 붙임. */
+    static JsonArray plusMore(JsonArray hundred, JsonArray more) {
+        JsonArray out = new JsonArray();
+        java.util.Set<String> ids = new java.util.HashSet<>();
+        for (JsonElement e : hundred) {
+            out.add(e);
+            if (e.isJsonObject() && str(e.getAsJsonObject(), "id") != null) ids.add(str(e.getAsJsonObject(), "id"));
+        }
+        for (JsonElement e : more == null ? new JsonArray() : more) {
+            if (!e.isJsonObject()) continue;
+            JsonObject o = e.getAsJsonObject().deepCopy();
+            String id = str(o, "id");
+            if (id == null || !id.matches("[가-힣0-9()]{2,12}") || ids.contains(id)) continue;
+            Double lat = num(o, "lat"), lon = num(o, "lon");
+            if (lat == null || lon == null || lat < 33 || lat > 38.7 || lon < 124.5 || lon > 131) continue;
+            if (str(o, "name") == null) o.addProperty("name", id);
+            o.remove("height");   // GPS 높이는 100대(산림청 GPX)만 - 정상 자리 점검(summitOk)을 건너뜀
+            o.addProperty("more", true);
+            ids.add(id);
+            out.add(o);
+        }
+        return out;
+    }
+
+    private static Double num(JsonObject o, String k) {
+        JsonElement e = o.get(k);
+        try {
+            return e == null || e.isJsonNull() ? null : e.getAsDouble();
+        } catch (RuntimeException x) {
+            return null;
+        }
+    }
+
+    /** 이름난 산(100대 밖)인가. */
+    static boolean isMore(JsonObject peak) {
+        return peak != null && peak.has("more") && peak.get("more").getAsBoolean();
+    }
+
+    /** 순수 함수 - 100대 명산만(영어 페이지 · 가까운 100대 명산 · 가파른 산 순위 · 철 칸은 100대만 - 이름난 산은 영어 이름 · 산림청 자료가 없음). */
+    static JsonArray hundred(JsonArray all) {
+        JsonArray out = new JsonArray();
+        for (JsonElement e : all) if (!isMore(e.getAsJsonObject())) out.add(e);
+        return out;
+    }
+
     private JsonArray peaks() {
         JsonArray p = peaks;
         if (p != null) return p;
@@ -295,6 +357,7 @@ public class MountainServlet extends HttpServlet {
             log.warn("[MOUNTAIN] mountains100.json 못 읽음 - {}", e.toString());
             p = new JsonArray();
         }
+        p = plusMore(p, readMore(getServletContext()));   // 100대 명산 밖 이름난 산(data/mountains-more.json, 2026-11-27 홍TV님 "만들어야지")
         withElev(p, readElev(getServletContext()));
         withInfo(p, readInfo(getServletContext()));
         withShorts(p, readShorts(getServletContext()));
@@ -1300,7 +1363,7 @@ public class MountainServlet extends HttpServlet {
         // 경로 표시(BreadcrumbList) - 검색 결과에 "routefly › 100대 명산 코스 › 산" 으로(2026-10-29 점검)
         boolean en = url.contains("/en/m/");
         return "<script type=\"application/ld+json\">" + new Gson().toJson(o) + "</script>"
-                + breadcrumb(new String[][] {{en ? "100 famous mountains" : "100대 명산 코스", url.substring(0, url.lastIndexOf('/') + 1)}, {name, url}});
+                + breadcrumb(new String[][] {{en ? "100 famous mountains" : isMore(peak) ? "등산 코스" : "100대 명산 코스", url.substring(0, url.lastIndexOf('/') + 1)}, {name, url}});
     }
 
     /** 순수 함수 - 경로 표시(schema.org BreadcrumbList, JSON-LD) - steps {이름, 주소} 차례대로. 산 페이지 · 코스 페이지(2026-11-07 전체 점검 4단계)가 함께 씀. */
@@ -1465,7 +1528,7 @@ public class MountainServlet extends HttpServlet {
         b.append(jsonLd(peak, name, url));
         String topNm = topName(peak);   // 정상 자리가 꼭대기가 아니면(점봉산 곰배령 등) 높이와 이름을 붙이지 않음(2026-10-16)
         String climb = climbName(peak);   // 최고봉과 오를 수 있는 정상이 다른 산(도봉산 자운봉 · 신선대 - 2026-11-27 홍TV님 "가 로 해")
-        b.append("<p class=\"lead\">산림청 100대 명산").append(topNm != null ? (climb != null ? " · 최고봉 " : " · 정상 ") + esc(topNm) : height != null ? " · 해발" : "")
+        b.append("<p class=\"lead\">").append(isMore(peak) ? "이름난 산(100대 명산 밖)" : "산림청 100대 명산").append(topNm != null ? (climb != null ? " · 최고봉 " : " · 정상 ") + esc(topNm) : height != null ? " · 해발" : "")
                 .append(height != null ? String.format(Locale.KOREA, " %,dm", height) : "")
                 .append(climb != null ? " · 오를 수 있는 정상 " + esc(climb) : "")
                 .append(topNm == null && summit != null && !summit.equals(str(peak, "name")) ? " · 도장 자리 " + esc(summit) : "")
@@ -1604,6 +1667,17 @@ public class MountainServlet extends HttpServlet {
      * seasonHtml - 지금 철 칸(seasonFold, 철이 아니면 ""). 검색칸 바로 아래 - 철에만 나와 첫 화면에(2026-11-14).
      * (인자가 적은 겹 메서드는 테스트만 불러 지움 - 점검 10차 G1)
      */
+    /** 순수 함수 - 코스 모음 "⛰️ 이름난 산" 칸(100대 명산 밖, 2026-11-27 홍TV님) - 가나다 차례로 산 페이지(/m/산). */
+    static String moreGroup(JsonArray more) {
+        List<String> names = new ArrayList<>();
+        for (JsonElement e : more) names.add(str(e.getAsJsonObject(), "id"));
+        names.sort(Comparator.naturalOrder());
+        StringBuilder b = new StringBuilder("<details class=\"fold group\" name=\"group\"><summary><span class=\"ft\">⛰️ 이름난 산 <small>100대 명산 밖</small></span><span class=\"fs\">")
+                .append(names.size()).append("곳</span><span class=\"fa\">▾</span></summary><ul class=\"ms\">");
+        for (String n : names) b.append("<li><a href=\"").append(REL).append("/m/").append(esc(enc(n))).append("\">").append(esc(n)).append("</a></li>");
+        return b.append("</ul></details>").toString();
+    }
+
     /** 묶음 줄 수 - 손으로 고른 코스 묶음(fixed, 종주)은 코스 수, 그 밖은 노선 수(코스 모음 접는 칸의 "n개"). */
     static int seriesCount(JsonObject g) {
         int n = 0;
@@ -1639,6 +1713,9 @@ public class MountainServlet extends HttpServlet {
             + "<a href=\"https://youtu.be/AoQexAxZ-58\" target=\"_blank\" rel=\"noopener\">▶ 산악회 방 매뉴얼 영상</a></nav>";
 
     static String indexPage(JsonArray peaks, JsonArray groups, String base, boolean openPeaks, String steep, String seasonHtml) {
+        JsonArray more = new JsonArray();   // 이름난 산(100대 밖, 2026-11-27) - 100대 명산 칸 바로 아래 따로 칸, 설명 · 100곳 수는 100대만
+        for (JsonElement e : peaks) if (isMore(e.getAsJsonObject())) more.add(e);
+        peaks = hundred(peaks);
         StringBuilder b = new StringBuilder(head("루트플라이 100대 명산 · 둘레길 · 자전거길 코스", "routefly(루트플라이) - 산림청 100대 명산 " + peaks.size()
                 + "곳의 등산코스 · 날씨 · 일출 일몰과 백두대간 · 국가숲길 · 코리아둘레길 · 국토종주 자전거길 노선. 3D 지형 위로 미리 날아 보고 핸드폰으로 따라 걷기.", base + "/m/", base, base + "/en/m/"));
         b.append(orgLd(base));   // 공식 계정(페이스북) - 검색 엔진용(2026-11-24)
@@ -1677,7 +1754,8 @@ public class MountainServlet extends HttpServlet {
             }
             if (gs.isEmpty()) continue;
             List<String> titles = new ArrayList<>();
-            for (JsonObject g : gs) titles.add(str(g, "title").replaceFirst(" · .*$", ""));   // 접힌 줄은 짧게("백두대간 · 정맥" → "백두대간" - 2026-11-03 홍TV님 점검: 폰에서 잘렸음)
+            for (JsonObject g : gs) titles.add(str(g, "title").replaceFirst(" · .*$", ""));
+            if (k[0].equals("hike") && more.size() > 0 && !titles.isEmpty()) titles.add(1, "이름난 산");   // 접힌 줄은 짧게("백두대간 · 정맥" → "백두대간" - 2026-11-03 홍TV님 점검: 폰에서 잘렸음)
             boolean openKind = openPeaks && k[0].equals("hike");
             b.append("<details class=\"fold kind\" name=\"kind\"").append(openKind ? " open" : "").append("><summary><span class=\"ft\">").append(esc(k[1])).append("</span><span class=\"fs\">")
                     .append(esc(String.join(" · ", titles))).append("</span><span class=\"fa\">▾</span></summary><div class=\"fb\">");
@@ -1702,6 +1780,7 @@ public class MountainServlet extends HttpServlet {
                     }
                 }
                 b.append("</ul></details>");
+                if (peaksGroup && more.size() > 0) b.append(moreGroup(more));
             }
             b.append("</div></details>");
         }

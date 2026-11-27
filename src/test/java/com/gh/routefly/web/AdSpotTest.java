@@ -30,7 +30,7 @@ public class AdSpotTest {
 
     @Test
     public void sitemapHasToolsGamesAnbu() {
-        String sm = SitemapServlet.sitemap("https://r.kr", List.of(), List.of());
+        String sm = SitemapServlet.sitemap("https://r.kr", List.of(), java.util.List.of(), List.of());
         assertTrue(sm.contains("<loc>https://r.kr/tools.html</loc>"));
         // 2026-11-18 홍TV님 "새로 만든 것도 넣었어?" - tidefly · dronefly 는 사이트맵에 넣고 noindex 없음
         for (String p : new String[] {"tidefly.html", "dronefly.html", "series.html", "games.html", "anbu.html"}) {   // 도장 · 게임 · 안부도 2026-11-18 "넣어줘"

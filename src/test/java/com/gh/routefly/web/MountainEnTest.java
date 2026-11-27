@@ -98,7 +98,7 @@ public class MountainEnTest {
         String html = MountainServlet.page(gaya, new ArrayList<>(), new ArrayList<>(), null, "https://routefly.kr/routefly", java.time.LocalDate.now(WeatherServlet.KST).getMonthValue());
         assertTrue(html.contains("<link rel=\"alternate\" hreflang=\"en\" href=\"https://routefly.kr/routefly/en/m/gayasan\">"));
         assertTrue(html.contains("<a href=\"../en/m/gayasan\" hreflang=\"en\" lang=\"en\">English</a>"));
-        assertTrue(SitemapServlet.sitemap("https://r.kr", List.of("가야산"), List.of()).contains("<loc>https://r.kr/en/m/gayasan</loc>"));
+        assertTrue(SitemapServlet.sitemap("https://r.kr", List.of("가야산"), java.util.List.of(), List.of()).contains("<loc>https://r.kr/en/m/gayasan</loc>"));
         assertEquals("/en/m/seoraksan", Stats.pageKey("/en/m/Seoraksan"));
         assertEquals("/en/m/", Stats.pageKey("/en/m/"));
         assertNull(Stats.pageKey("/en/m/<x>"));

@@ -21,7 +21,7 @@ public class DroneQuizPageTest {
 
     @Test
     public void 문항_페이지와_사이트맵() throws Exception {
-        String sm = SitemapServlet.sitemap("https://r.kr/routefly", List.of(), List.of());
+        String sm = SitemapServlet.sitemap("https://r.kr/routefly", List.of(), java.util.List.of(), List.of());
         for (String id : new String[] {"c4", "c1", "inst"}) assertTrue(id, sm.contains("<loc>https://r.kr/routefly/drone-quiz/" + id + "</loc>"));
         JsonObject d = data();
         assertNull(DroneQuizServlet.set(d, "x"));

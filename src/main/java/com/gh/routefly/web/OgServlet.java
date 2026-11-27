@@ -70,7 +70,7 @@ public class OgServlet extends HttpServlet {
             return;
         }
         String key = path.substring(en ? 4 : 3, path.length() - 4);
-        JsonObject peak = en ? MountainEn.find(peaks(), key) : MountainServlet.find(peaks(), key);
+        JsonObject peak = en ? MountainEn.find(MountainServlet.hundred(peaks()), key) : MountainServlet.find(peaks(), key);
         if (peak == null) {
             resp.sendError(HttpServletResponse.SC_NOT_FOUND);
             return;
@@ -102,7 +102,7 @@ public class OgServlet extends HttpServlet {
     static String[] korean(JsonObject peak) {
         String id = MountainEn.id(peak), summit = MountainServlet.topName(peak);   // 정상 자리가 꼭대기일 때만 이름(2026-10-16)
         Integer h = MountainServlet.elev(peak);
-        String second = "산림청 100대 명산" + (summit != null && !summit.equals(str(peak, "name")) ? " · 정상 " + summit : "")
+        String second = (MountainServlet.isMore(peak) ? "이름난 산" : "산림청 100대 명산") + (summit != null && !summit.equals(str(peak, "name")) ? " · 정상 " + summit : "")
                 + (h != null ? String.format(Locale.KOREA, " · %,dm", h) : "");
         return new String[] {id, second, "등산코스 · 날씨 · 일출 일몰 · 3D 미리보기"};
     }
@@ -288,6 +288,7 @@ public class OgServlet extends HttpServlet {
         } catch (Exception e) {
             p = new JsonArray();
         }
+        p = MountainServlet.plusMore(p, MountainServlet.readMore(getServletContext()));   // 이름난 산(100대 밖, 2026-11-27) 공유 그림도
         MountainServlet.withElev(p, MountainServlet.readElev(getServletContext()));   // 공식 높이(data/peak-elev.json)
         MountainServlet.withHero(p, MountainServlet.readHero(getServletContext()));   // 대표 사진(data/hero.json)
         peaks = p;

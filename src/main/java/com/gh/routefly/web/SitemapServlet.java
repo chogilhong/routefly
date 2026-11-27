@@ -41,10 +41,10 @@ public class SitemapServlet extends HttpServlet {
             return;
         }
         JsonArray peaks = CoursePageServlet.readPeaks(getServletContext());   // 못 읽으면 빈 것 - 산 목록 없이 기본 화면만
-        List<String> names = new ArrayList<>();
+        List<String> names = new ArrayList<>(), more = new ArrayList<>();
         for (JsonElement p : peaks) {
             JsonObject o = p.getAsJsonObject();
-            if (o.has("id") && !o.get("id").isJsonNull()) names.add(o.get("id").getAsString());   // 지역 붙은 id(백운산(광양))
+            if (o.has("id") && !o.get("id").isJsonNull()) (MountainServlet.isMore(o) ? more : names).add(o.get("id").getAsString());   // 지역 붙은 id(백운산(광양)), 이름난 산은 한국어만
         }
         List<String[]> courses = courses(peaks);
         if (courses == null) resp.setHeader("Cache-Control", "no-store");   // DB 가 안 되면 코스 없이 - 담아 두지 않음
@@ -54,7 +54,7 @@ public class SitemapServlet extends HttpServlet {
         String xml;
         if (courses != null && pg != null && cs != null && pg[0] == cs[0] && base.equals(pg[1])) xml = (String) pg[2];
         else {
-            xml = sitemap(base, names, courses == null ? List.of() : courses);
+            xml = sitemap(base, names, more, courses == null ? List.of() : courses);
             if (courses != null && cs != null) page = new Object[] {cs[0], base, xml};
         }
         resp.getWriter().print(xml);
@@ -119,7 +119,7 @@ public class SitemapServlet extends HttpServlet {
     static final String PAGE_CHANGED = "2026-11-04";
 
     /** 순수 함수 - 사이트맵(첫 화면 · 안내 · 도구 · 게임 · 안부(2026-11-01) · 100대 명산 목록 · 산마다, 영어 산 페이지도, 검색에 내는 코스 [ID, 넣은 날]). */
-    static String sitemap(String base, List<String> mountains, List<String[]> courses) {
+    static String sitemap(String base, List<String> mountains, List<String> more, List<String[]> courses) {
         StringBuilder b = new StringBuilder("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\" xmlns:xhtml=\"http://www.w3.org/1999/xhtml\">\n");
         // 2026-11-07 애드센스 "가치가 별로 없는 콘텐츠": 내용이 화면 스크립트로만 생기는 도장(series) · 게임 · 안부는 빼고(noindex), 첫 주소는 코스 모음(m/)으로 넘기기만 해 뺌
         for (String p : new String[] {"/hike.html", "/tools.html", "/about.html", "/about-en.html", "/terms.html", "/privacy.html", "/lbs-terms.html", "/terms-en.html", "/privacy-en.html", "/lbs-terms-en.html", "/m/", "/en/m/",
@@ -132,6 +132,7 @@ public class SitemapServlet extends HttpServlet {
             pair(b, ko, ko, en);
             pair(b, en, ko, en);
         }
+        for (String m : more) url(b, base + "/m/" + URLEncoder.encode(m, StandardCharsets.UTF_8).replace("+", "%20"));   // 이름난 산(100대 밖, 2026-11-27) - 영어 페이지 없음
         for (String[] c : courses) {   // 코스 소개 페이지(2026-10-19 CoursePageServlet) - 넣은 날 · 페이지를 바꾼 날 가운데 늦은 날을 lastmod 로
             b.append("  <url><loc>").append(ShareServlet.esc(base + "/c/" + c[0])).append("</loc>");
             b.append("<lastmod>").append(c[1] != null && c[1].compareTo(PAGE_CHANGED) > 0 ? c[1] : PAGE_CHANGED).append("</lastmod>");

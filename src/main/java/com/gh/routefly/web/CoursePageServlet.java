@@ -384,12 +384,12 @@ public class CoursePageServlet extends HttpServlet {
         StringBuilder b = new StringBuilder(MountainServlet.head(title, metaDesc, url, base, null, peakId != null ? base + "/og/m/" + MountainServlet.enc(peakId) + ".png" : null, index));
         // 경로 표시(검색 결과에 "routefly › 100대 명산 코스 › 산 › 코스", 2026-11-07 전체 점검 4단계) - 위 ‹ 링크와 같은 길
         b.append(peakId != null
-                ? MountainServlet.breadcrumb(new String[][] {{"100대 명산 코스", base + "/m/"}, {peakId, base + "/m/" + MountainServlet.enc(peakId)}, {name, url}})
+                ? MountainServlet.breadcrumb(new String[][] {{MountainServlet.isMore(peak) ? "등산 코스" : "100대 명산 코스", base + "/m/"}, {peakId, base + "/m/" + MountainServlet.enc(peakId)}, {name, url}})
                 : MountainServlet.breadcrumb(new String[][] {{"코스 모음", base + "/m/"}, {name, url}}));
         b.append("<main class=\"cp\"><p class=\"crumb\"><a href=\"").append(REL)
                 .append(peakId != null ? "/m/" + esc(MountainServlet.enc(peakId)) + "\">‹ " + esc(peakId) : "/m/\">‹ 코스 모음").append("</a></p>");
         b.append("<h1>").append(esc(name)).append("</h1>");
-        b.append("<p class=\"lead\">").append(kl).append(" 코스").append(peakId != null ? " · 100대 명산 " + esc(peakId) : "").append("</p>");
+        b.append("<p class=\"lead\">").append(kl).append(" 코스").append(peakId != null ? (MountainServlet.isMore(peak) ? " · " : " · 100대 명산 ") + esc(peakId) : "").append("</p>");
         String made = CourseSource.line(CourseSource.of(id), false);   // 출처 · 만든 이(2026-11-01 홍TV님 - 이름에 넣지 않고 따로 한 줄)
         if (!made.isEmpty()) b.append("<p class=\"dim made\">").append(esc(made)).append("</p>");
 
@@ -521,7 +521,8 @@ public class CoursePageServlet extends HttpServlet {
     static JsonArray readPeaks(ServletContext ctx) {
         try (InputStream in = ctx.getResourceAsStream("/data/mountains100.json")) {
             JsonElement e = in == null ? null : JsonParser.parseReader(new InputStreamReader(in, StandardCharsets.UTF_8));
-            return e != null && e.isJsonObject() && e.getAsJsonObject().has("peaks") ? e.getAsJsonObject().getAsJsonArray("peaks") : new JsonArray();
+            JsonArray hundred = e != null && e.isJsonObject() && e.getAsJsonObject().has("peaks") ? e.getAsJsonObject().getAsJsonArray("peaks") : new JsonArray();
+            return MountainServlet.plusMore(hundred, MountainServlet.readMore(ctx));   // 이름난 산(100대 밖, 2026-11-27)도 - 코스 화면 ‹ 산 · 공유 그림 · 사이트맵
         } catch (Exception e) {
             log.warn("[COURSE-PAGE] mountains100.json 못 읽음 - {}", e.toString());
             return new JsonArray();
