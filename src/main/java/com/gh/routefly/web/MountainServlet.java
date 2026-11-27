@@ -1620,12 +1620,15 @@ public class MountainServlet extends HttpServlet {
      */
     static String fixedItems(JsonObject sr, String rel, boolean en) {
         StringBuilder b = new StringBuilder();
-        JsonObject names = sr.has("names") ? sr.getAsJsonObject("names") : new JsonObject(), routes = sr.has("routes") ? sr.getAsJsonObject("routes") : new JsonObject();
+        JsonObject names = sr.has("names") ? sr.getAsJsonObject("names") : new JsonObject(), routes = sr.has("routes") ? sr.getAsJsonObject("routes") : new JsonObject(), videos = sr.has("videos") ? sr.getAsJsonObject("videos") : new JsonObject();
         for (JsonElement e : sr.getAsJsonArray("fixed")) {
             String id = e.getAsString(), nm = str(names, id), rt = str(routes, id);   // rt - 들머리 → 거치는 곳 → 날머리 · 거리(2026-11-27 홍TV님 "들머리 중간 날머리를 이 창에")
             if (nm == null || !CourseQueries.validId(id)) continue;
+            String vid = videos.has(id) ? str(videos, id) : null;   // 🛩 3D 영상(2026-11-27 홍TV님 청광종주) - 코스 줄 옆 따로 단추(a 안에 a 를 넣을 수 없음)
             b.append("<li><a href=\"").append(rel).append("/c/").append(esc(id)).append("\"").append(en ? " lang=\"ko\"" : "").append(">").append(esc(nm))
-                    .append(rt != null ? " <small>" + esc(rt) + "</small>" : "").append("</a></li>");
+                    .append(rt != null ? " <small>" + esc(rt) + "</small>" : "").append("</a>");
+            if (vid != null && vid.matches("[A-Za-z0-9_-]{11}")) b.append(" <a class=\"yt\" href=\"https://youtu.be/").append(vid).append("\" target=\"_blank\" rel=\"noopener\">").append(en ? "▶ 3D video" : "▶ 3D 영상").append("</a>");
+            b.append("</li>");
         }
         return b.toString();
     }
