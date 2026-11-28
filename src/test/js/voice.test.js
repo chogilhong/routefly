@@ -52,6 +52,9 @@ assert.strictEqual(V.resumeFrom(tm, 9, [[0, 6.5], [7, 16.6], [17, 25]]), 7);
 assert.strictEqual(V.resumeFrom(tm, 3, [[0, 6.5], [7, 16.6]]), 0);
 assert.strictEqual(V.resumeFrom(tm, 30, [[0, 6.5], [7, 16.6]]), 7);   // 줄이 줄었으면 마지막 줄
 assert.strictEqual(V.resumeFrom(null, 5, [[0, 1]]), 0);
+// 목소리 고르기 글 - 여러 언어 목소리는 🌐 · 여러 언어(2026-11-28)
+assert.strictEqual(V.voiceLabel({ name: 'ko-KR-SunHiNeural', local: '선희', gender: 'Female' }), '선희 · 여 (ko-KR-SunHiNeural)');
+assert.strictEqual(V.voiceLabel({ name: 'en-US-JennyMultilingualNeural', local: 'Jenny Multilingual', gender: 'Female', multi: true }), '🌐 Jenny Multilingual · 여 · 여러 언어 (en-US-JennyMultilingualNeural)');
 // ▶ 이어 듣기 [n]번(2026-11-28 홍TV님) - n 번 줄 시작 초, 줄 밖 · 빈칸 · 소수는 -1
 assert.strictEqual(V.lineStart(tm, 1), 0);
 assert.strictEqual(V.lineStart(tm, 2), tm[1][0]);

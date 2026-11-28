@@ -145,32 +145,50 @@ public class VoiceServlet extends HttpServlet {
         return null;
     }
 
-    /** 순수 함수 - Azure 에 보낼 SSML. 글은 XML 이스케이프, 목소리는 {@link #VOICE} 모양만(check 를 지난 값), 빠르기는 +n% · -n%. */
+    /**
+     * 순수 함수 - Azure 에 보낼 SSML. 글은 XML 이스케이프, 목소리는 {@link #VOICE} 모양만(check 를 지난 값), 빠르기는 +n% · -n%.
+     * 한국어 목소리가 아니면(여러 언어 목소리) &lt;lang xml:lang="ko-KR"&gt; 로 감싸 한국어로 읽게 함(Microsoft SSML 문서 "Adjust speaking languages").
+     */
     static String ssml(String text, String voice, int rate) {
         String lang = voice.substring(0, voice.indexOf('-', voice.indexOf('-') + 1));
-        return "<speak version=\"1.0\" xmlns=\"http://www.w3.org/2001/10/synthesis\" xml:lang=\"" + lang + "\"><voice name=\"" + voice + "\"><prosody rate=\""
-                + (rate >= 0 ? "+" : "") + rate + "%\">" + xml(text) + "</prosody></voice></speak>";
+        String body = "<prosody rate=\"" + (rate >= 0 ? "+" : "") + rate + "%\">" + xml(text) + "</prosody>";
+        if (!"ko-KR".equals(lang)) body = "<lang xml:lang=\"ko-KR\">" + body + "</lang>";
+        return "<speak version=\"1.0\" xmlns=\"http://www.w3.org/2001/10/synthesis\" xml:lang=\"" + lang + "\"><voice name=\"" + voice + "\">" + body + "</voice></speak>";
     }
 
     static String xml(String s) {
         return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;").replace("'", "&apos;");
     }
 
-    /** 순수 함수 - Azure voices/list 응답 → 한국어 목소리만 [{name(ShortName), local(LocalName), gender}]. */
+    /**
+     * 순수 함수 - Azure voices/list 응답 → 한국어를 읽는 목소리 [{name(ShortName), local(LocalName), gender, multi}].
+     * 한국어(ko-KR) 목소리를 앞에, 그 뒤에 여러 언어 목소리(2026-11-28 홍TV님 "목소리 더 추가" - 다른 언어 목소리인데 SecondaryLocaleList 에 ko-KR 이 있거나
+     * 이름에 Multilingual 이 든 것, multi: true). 여러 언어 목소리가 한국어를 못 읽으면 Azure 가 소리를 안 줌(그 줄 "실패").
+     */
     static JsonArray koVoices(String body) {
-        JsonArray out = new JsonArray();
+        JsonArray ko = new JsonArray(), multi = new JsonArray();
         for (JsonElement e : JsonParser.parseString(body).getAsJsonArray()) {
             JsonObject v = e.getAsJsonObject();
-            if (!"ko-KR".equals(str(v, "Locale"))) continue;
             String name = str(v, "ShortName");
             if (name == null || !VOICE.matcher(name).matches()) continue;
+            boolean isKo = "ko-KR".equals(str(v, "Locale"));
+            if (!isKo && !secondaryKo(v) && !name.contains("Multilingual")) continue;
             JsonObject o = new JsonObject();
             o.addProperty("name", name);
             o.addProperty("local", str(v, "LocalName"));
             o.addProperty("gender", str(v, "Gender"));
-            out.add(o);
+            if (!isKo) o.addProperty("multi", true);
+            (isKo ? ko : multi).add(o);
         }
-        return out;
+        ko.addAll(multi);
+        return ko;
+    }
+
+    private static boolean secondaryKo(JsonObject v) {
+        JsonElement l = v.get("SecondaryLocaleList");
+        if (l == null || !l.isJsonArray()) return false;
+        for (JsonElement x : l.getAsJsonArray()) if (x.isJsonPrimitive() && "ko-KR".equals(x.getAsString())) return true;
+        return false;
     }
 
     /** 이번 달 보낸 글자 수(n 을 더하고 돌려줌). 달이 바뀌면 0부터. 처음 부를 때 파일에서 읽고, 더하면 파일에 씀(못 쓰면 메모리로만). */

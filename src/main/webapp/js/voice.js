@@ -128,6 +128,11 @@
     return newTimes[Math.min(lineAt(oldTimes, t), newTimes.length - 1)][0];
   }
 
+  /** 순수 함수 - 목소리 고르기 글 "선희 · 여 (ko-KR-SunHiNeural)", 여러 언어 목소리는 "🌐 Ava Multilingual · 여 · 여러 언어 (en-US-…)"(2026-11-28 홍TV님 "목소리 더 추가"). */
+  function voiceLabel(x) {
+    var g = x.gender === 'Female' ? '여' : x.gender === 'Male' ? '남' : x.gender || '';
+    return (x.multi ? '🌐 ' : '') + (x.local || x.name) + ' · ' + g + (x.multi ? ' · 여러 언어' : '') + ' (' + x.name + ')';
+  }
   /**
    * 순수 함수 - "이어 듣기 [17]번"(2026-11-28 홍TV님 "17을 적고 클릭 시 그 항목부터 이어 듣게"): 줄 번호 n(1부터)의 시작 초.
    * 번호가 없거나 줄 밖이면 -1.
@@ -218,7 +223,7 @@
     return { name: String(j.name || ''), text: j.text, voice: String(j.voice || ''), rate: +j.rate || 0, gap: +j.gap || 0, t: +j.t || 0, snd: snd };
   }
   var LIMIT = 500000;
-  var api = { usageText: usageText, lineNumbers: lineNumbers, lines: lines, spoken: spoken, shown: shown, playSig: playSig, clock: clock, cacheKey: cacheKey, parseWav: parseWav, joinWav: joinWav, srtTime: srtTime, srt: srt, lineAt: lineAt, lineStart: lineStart, resumeFrom: resumeFrom, fromFile: fromFile, savedNames: savedNames, projKeys: projKeys, projFile: projFile, readProj: readProj };
+  var api = { usageText: usageText, lineNumbers: lineNumbers, lines: lines, spoken: spoken, shown: shown, playSig: playSig, clock: clock, cacheKey: cacheKey, parseWav: parseWav, joinWav: joinWav, srtTime: srtTime, srt: srt, lineAt: lineAt, lineStart: lineStart, voiceLabel: voiceLabel, resumeFrom: resumeFrom, fromFile: fromFile, savedNames: savedNames, projKeys: projKeys, projFile: projFile, readProj: readProj };
   if (typeof module !== 'undefined' && module.exports) { module.exports = api; return; }
   root.RFV = api;
 
@@ -623,7 +628,7 @@
       tsel.innerHTML = '';
       tsel.appendChild(new Option('고르기', ''));
       if (j.error) { sel.appendChild(new Option('목소리 없음', '')); info(j.error); return; }
-      (j.voices || []).forEach(function (x) { tsel.appendChild(new Option((x.local || x.name) + ' · ' + (x.gender === 'Female' ? '여' : x.gender === 'Male' ? '남' : x.gender || '') + ' (' + x.name + ')', x.name)); sel.appendChild(new Option((x.local || x.name) + ' · ' + (x.gender === 'Female' ? '여' : x.gender === 'Male' ? '남' : x.gender || '') + ' (' + x.name + ')', x.name)); });
+      (j.voices || []).forEach(function (x) { var t = voiceLabel(x); tsel.appendChild(new Option(t, x.name)); sel.appendChild(new Option(t, x.name)); });
       var want = load('vcVoice');
       if (want && [].some.call(sel.options, function (op) { return op.value === want; })) sel.value = want;
       var tw = load('vcTry');
