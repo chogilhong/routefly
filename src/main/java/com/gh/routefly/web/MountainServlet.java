@@ -1846,17 +1846,15 @@ public class MountainServlet extends HttpServlet {
         return b.toString();
     }
 
-    /** 코스 모음(/m/) 첫 화면의 설명 영상 단추 - 홍TV님이 올린 유튜브(2026-11-25 홍TV님 "첫 화면에 올려서 볼 수 있게 해"). 영상이 한국어라 /en/m/ 에는 넣지 않음. */
-    static final String GUIDE_VIDEOS = "<nav class=\"vids\" aria-label=\"설명 영상\">"
-            + "<a href=\"https://youtu.be/K1oKGDTY5t0\" target=\"_blank\" rel=\"noopener\">▶ 사용자 매뉴얼 영상</a>"
-            + "<a href=\"https://youtu.be/AoQexAxZ-58\" target=\"_blank\" rel=\"noopener\">▶ 산악회 방 매뉴얼 영상</a>"
-            // 기능별 매뉴얼 5편(2026-11-28 홍TV님 "이거 해줘" - 올린 주소는 docs/youtube/guide/manual/올리기.md) - 눌러서 펼침
-            + "<details class=\"vidMore\"><summary>▶ 기능별 사용법 5편</summary><div>"
-            + "<a href=\"https://youtu.be/nHchQthrvvg\" target=\"_blank\" rel=\"noopener\">1 따라가기</a>"
-            + "<a href=\"https://youtu.be/btKasNynfJo\" target=\"_blank\" rel=\"noopener\">2 GPX 열기 · 기록 보기</a>"
-            + "<a href=\"https://youtu.be/ieeWYheGOJ8\" target=\"_blank\" rel=\"noopener\">3 3D 비행 영상</a>"
-            + "<a href=\"https://youtu.be/67xWxottGa4\" target=\"_blank\" rel=\"noopener\">4 산악회 회원</a>"
-            + "<a href=\"https://youtu.be/u-O9cRlnk1Y\" target=\"_blank\" rel=\"noopener\">5 GPX 편집</a></div></details></nav>";
+    /**
+     * 코스 모음(/m/) 첫 화면의 설명 영상 - 홍TV님이 올린 유튜브(2026-11-25 홍TV님 "첫 화면에 올려서 볼 수 있게 해"). 영상이 한국어라 /en/m/ 에는 넣지 않음.
+     * 2026-11-28 홍TV님 "이거 정리 좀 하게" → 1안: 단추 하나 "▶ 사용법 영상 7편" 을 누르면 처음이라면 · 기능별 · 산악회 줄로(빨간 단추 8개가 늘어섰던 것).
+     * 올린 주소는 docs/youtube/guide/manual/올리기.md · guide/사용법-올리기.txt(전체 사용법 13분 32초).
+     */
+    static final String GUIDE_VIDEOS = "<nav class=\"vids\" aria-label=\"설명 영상\"><details class=\"vidMore\"><summary>▶ 사용법 영상 7편</summary><dl>"
+            + "<dt>처음이라면</dt><dd><a href=\"https://youtu.be/K1oKGDTY5t0\" target=\"_blank\" rel=\"noopener\">▶ 전체 사용법(약 14분)</a></dd>"
+            + "<dt>기능별</dt><dd><a href=\"https://youtu.be/nHchQthrvvg\" target=\"_blank\" rel=\"noopener\">1 따라가기</a> · <a href=\"https://youtu.be/btKasNynfJo\" target=\"_blank\" rel=\"noopener\">2 GPX 열기</a> · <a href=\"https://youtu.be/ieeWYheGOJ8\" target=\"_blank\" rel=\"noopener\">3 3D 영상</a> · <a href=\"https://youtu.be/u-O9cRlnk1Y\" target=\"_blank\" rel=\"noopener\">5 GPX 편집</a></dd>"
+            + "<dt>산악회</dt><dd><a href=\"https://youtu.be/67xWxottGa4\" target=\"_blank\" rel=\"noopener\">▶ 회원용</a> · <a href=\"https://youtu.be/AoQexAxZ-58\" target=\"_blank\" rel=\"noopener\">▶ 인솔자용</a></dd></dl></details></nav>";
 
     static String indexPage(JsonArray peaks, JsonArray groups, String base, boolean openPeaks, String steep, String seasonHtml, JsonArray curious) {
         JsonArray more = new JsonArray();   // 이름난 산(100대 밖, 2026-11-27) - 100대 명산 칸 바로 아래 따로 칸, 설명 · 100곳 수는 100대만

@@ -26,18 +26,19 @@ public class ManualVideoLinksTest {
 
     @Test
     public void 코스_모음_다섯_편() throws Exception {
+        // 2026-11-28 홍TV님 "이거 정리 좀 하게" 1안: 단추 하나 → 처음이라면 · 기능별 · 산악회 세 줄(7편)
         String ko = MountainServlet.indexPage(new JsonArray(), new JsonArray(), "https://r.kr", false, "", "", new JsonArray());
-        int nav = ko.indexOf("<nav class=\"vids\""), more = ko.indexOf("<details class=\"vidMore\"><summary>▶ 기능별 사용법 5편</summary>"), end = ko.indexOf("</nav>", nav);
-        assertTrue("영상 단추 칸 안에 접힌 채", nav >= 0 && more > nav && end > more);
-        String[][] five = {{"nHchQthrvvg", "1 따라가기"}, {"btKasNynfJo", "2 GPX 열기 · 기록 보기"}, {"ieeWYheGOJ8", "3 3D 비행 영상"}, {"67xWxottGa4", "4 산악회 회원"}, {"u-O9cRlnk1Y", "5 GPX 편집"}};
-        int at = more;
-        for (String[] v : five) {
-            int i = ko.indexOf("<a " + a(v[0]) + ">" + v[1] + "</a>", at);
-            assertTrue(v[1] + " - 차례대로", i > at && i < end);
-            at = i;
-        }
+        int nav = ko.indexOf("<nav class=\"vids\""), more = ko.indexOf("<details class=\"vidMore\"><summary>▶ 사용법 영상 7편</summary><dl>"), end = ko.indexOf("</nav>", nav);
+        assertTrue("단추 하나만 - 그 안에 접힌 채", nav >= 0 && more == ko.indexOf(">", nav) + 1 && end > more);
+        String box = ko.substring(more, end);
+        assertEquals("빨간 단추가 늘어서지 않음 - 링크는 모두 접힌 칸 안", 7, box.split("https://youtu.be/", -1).length - 1);
+        assertTrue(box.contains("<dt>처음이라면</dt><dd><a " + a("K1oKGDTY5t0") + ">▶ 전체 사용법(약 14분)</a></dd>"));
+        assertTrue(box.contains("<dt>기능별</dt><dd><a " + a("nHchQthrvvg") + ">1 따라가기</a> · <a " + a("btKasNynfJo") + ">2 GPX 열기</a> · <a "
+                + a("ieeWYheGOJ8") + ">3 3D 영상</a> · <a " + a("u-O9cRlnk1Y") + ">5 GPX 편집</a></dd>"));
+        assertTrue(box.contains("<dt>산악회</dt><dd><a " + a("67xWxottGa4") + ">▶ 회원용</a> · <a " + a("AoQexAxZ-58") + ">▶ 인솔자용</a></dd>"));
         String css = read("css/mountain.css");
-        assertTrue(css.contains(".vidMore > summary {") && css.contains(":root[data-theme=\"light\"] .vidMore > summary {"));
+        assertTrue(css.contains(".vidMore > summary {") && css.contains(".vidMore > dl {") && css.contains(":root[data-theme=\"light\"] .vidMore dd a {"));
+        assertFalse("옛 빨간 단추 모양(.vids a)은 뺌", css.contains("\n.vids a {"));
     }
 
     @Test
