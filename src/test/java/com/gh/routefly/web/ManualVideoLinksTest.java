@@ -39,6 +39,7 @@ public class ManualVideoLinksTest {
         String css = read("css/mountain.css");
         assertTrue(css.contains(".vids { background:var(--panel); border:1px solid var(--ln); border-radius:12px;") && css.contains(".vidMore dl {"));
         assertFalse("빨간 알약 단추 모양은 뺌", css.contains(".vidMore > summary {"));
+        assertTrue("높이도 📍 내 근처 칸과 같게(10px)", css.contains("\n.vids > .fold > summary { padding-top:10px; padding-bottom:10px; }"));
         assertTrue("접힌 채일 때 밑줄 없음(📍 내 근처 칸과 같게)", css.contains("\n.vids > .fold:not([open]) > summary { border-bottom-color:transparent; }"));
         assertFalse("옛 빨간 단추 모양(.vids a)은 뺌", css.contains("\n.vids a {"));
     }
