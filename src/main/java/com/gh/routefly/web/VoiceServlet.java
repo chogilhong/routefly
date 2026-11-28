@@ -162,8 +162,8 @@ public class VoiceServlet extends HttpServlet {
 
     /**
      * 순수 함수 - Azure voices/list 응답 → 한국어를 읽는 목소리 [{name(ShortName), local(LocalName), gender, multi}].
-     * 한국어(ko-KR) 목소리를 앞에, 그 뒤에 여러 언어 목소리(2026-11-28 홍TV님 "목소리 더 추가" - 다른 언어 목소리인데 SecondaryLocaleList 에 ko-KR 이 있거나
-     * 이름에 Multilingual 이 든 것, multi: true). 여러 언어 목소리가 한국어를 못 읽으면 Azure 가 소리를 안 줌(그 줄 "실패").
+     * 한국어(ko-KR) 목소리를 앞에, 그 뒤에 여러 언어 목소리(2026-11-28 홍TV님 "목소리 더 추가" - 다른 언어 목소리인데 SecondaryLocaleList 에 ko-KR 이 있는 것, multi: true).
+     * Korea Central 실제 응답(2026-11-28, 556개)에서 한국어 10 · 여러 언어 56 - 56개 모두 한국어로 읽음(PC 확인). Multilingual 인데 ko-KR 이 없는 목소리는 0 이라 이름으로는 고르지 않음.
      */
     static JsonArray koVoices(String body) {
         JsonArray ko = new JsonArray(), multi = new JsonArray();
@@ -172,7 +172,7 @@ public class VoiceServlet extends HttpServlet {
             String name = str(v, "ShortName");
             if (name == null || !VOICE.matcher(name).matches()) continue;
             boolean isKo = "ko-KR".equals(str(v, "Locale"));
-            if (!isKo && !secondaryKo(v) && !name.contains("Multilingual")) continue;
+            if (!isKo && !secondaryKo(v)) continue;
             JsonObject o = new JsonObject();
             o.addProperty("name", name);
             o.addProperty("local", str(v, "LocalName"));
