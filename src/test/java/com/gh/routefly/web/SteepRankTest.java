@@ -156,4 +156,29 @@ public class SteepRankTest {
         assertTrue(en.contains("2.18 km · 485 m ascent · about ") && !en.contains("angle 12.5°"));
         assertTrue("난이도도 어려움", ko.contains("<i class=\"lv lv3\">어려움</i>"));
     }
+
+    /** 2026-11-28 홍TV님 "고정된 데이터인데 뭐하러 매번 새로 세지?" - 순위를 파일에 남겨 톰캣을 다시 띄우면 읽기만. */
+    @Test
+    public void 파일에_남기고_다시_읽기() {
+        JsonArray peaks = new JsonArray();
+        peaks.add(peak("가산", 1000));
+        peaks.add(peak("나산", 800));
+        Map<String, List<JsonObject>> m = new HashMap<>();
+        m.put("가산", List.of(course("A코스", 1000, 500, 45.5), course("B코스", 5000, 100, null)));   // 평균은 낮고(약 13.9°) 가장 가파른 코스는 높음(26.6°)
+        m.put("나산", List.of(course("C코스", 1000, 280, null)));   // 15.6°
+        SteepRank.Result r = SteepRank.rank(peaks, m);
+        String json = SteepRank.toJson(r, 1764300000000L);
+        SteepRank.Saved sv = SteepRank.fromJson(json);
+        assertEquals("셈한 시각", 1764300000000L, sv.at);
+        assertEquals("다시 읽은 순위로 만든 화면이 셈한 것과 같음(한 · 영)", SteepRank.html(r, false, 1), SteepRank.html(sv.result, false, 1));
+        assertEquals(SteepRank.html(r, true, 2), SteepRank.html(sv.result, true, 2));
+        assertEquals("평균 순서와 코스 순서가 다름 - 둘 다 그대로", "나산", sv.result.avg.get(0).id);
+        assertEquals("가산", sv.result.avg.get(1).id);
+        assertEquals("가산", sv.result.steepest.get(0).id);
+        assertNull("가파른 1km 가 없던 산은 null 그대로", sv.result.avg.get(0).steep1km);
+        assertEquals(45.5, sv.result.avg.get(1).steep1km, 1e-9);
+        assertNull("깨진 파일은 null(다시 셈)", SteepRank.fromJson("{\"at\":1,"));
+        assertNull("모양이 다른 파일", SteepRank.fromJson("{\"at\":1,\"avg\":[],\"steepest\":[\"없는산\"]}"));
+        assertTrue("통계와 같은 폴더(운영에서 톰캣이 쓸 수 있는 stats.dir)", MountainServlet.steepFile().equals(Stats.file().resolveSibling("steep-rank.json")));
+    }
 }

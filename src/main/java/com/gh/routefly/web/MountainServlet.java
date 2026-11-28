@@ -14,6 +14,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 
+import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
@@ -36,7 +37,7 @@ import com.google.gson.JsonParser;
  * 산 자료는 웹 앱의 data/mountains100.json, 코스는 정상(또는 두 번째 정상 alt)에서 2km 안에 끝나거나 시작하는 등산 코스
  * (course-kit.js peakCourses 와 같은 규칙).
  */
-@WebServlet(urlPatterns = {"/m/*", "/en/m/*"})   // /en/m/ - 영어(MountainEn, 2026-10-15)
+@WebServlet(urlPatterns = {"/m/*", "/en/m/*"}, loadOnStartup = 4)   // /en/m/ - 영어(MountainEn, 2026-10-15). loadOnStartup - 뜰 때 가파른 산 순위 파일을 읽음(2026-11-28)
 public class MountainServlet extends HttpServlet {
 
     private static final long serialVersionUID = 1L;
@@ -149,13 +150,51 @@ public class MountainServlet extends HttpServlet {
         resp.getWriter().print(withFire(MountainEn.page(peak, courses, nearby(all, peak, NEARBY_MAX, NEARBY_M), parking(courses), base), System.currentTimeMillis(), true));
     }
 
-    /** 🧗 가파른 산 순위(SteepRank) - 산 98곳의 코스가 필요해 뒤에서 셈하고 6시간 담아 둠. 처음 셈하는 동안은 표 없이 보냄. */
-    private static final long STEEP_TTL_MS = 6 * 60 * 60 * 1000L, STEEP_RETRY_MS = 10 * 60 * 1000L;
+    /**
+     * 🧗 가파른 산 순위(SteepRank) - 산 98곳의 코스가 필요해 뒤에서 셈함. 처음 셈하는 동안은 표 없이 보냄.
+     * 2026-11-28 홍TV님 "고정된 데이터인데 뭐하러 매번 새로 세지?": 셈한 결과를 파일(stats.dir 의 steep-rank.json)에 남기고,
+     * 톰캣이 다시 뜨면 그 파일부터 보여 줌. 다시 셈은 하루 한 번(코스는 배치 · 등록 요청으로 가끔만 바뀜). 기동 때(init) 바로 읽고, 하루 지났으면 바로 셈을 시작.
+     */
+    private static final long STEEP_TTL_MS = 24 * 60 * 60 * 1000L, STEEP_RETRY_MS = 10 * 60 * 1000L;
     private volatile SteepRank.Result steepRank;
     private volatile long steepNext;
+    private volatile boolean steepLoaded;
     private final java.util.concurrent.atomic.AtomicBoolean steepBusy = new java.util.concurrent.atomic.AtomicBoolean();
 
+    @Override
+    public void init() throws ServletException {
+        super.init();
+        try {
+            steepRank(hundred(peaks()));   // 첫 손님을 기다리지 않음 - 파일을 읽고, 없거나 하루 지났으면 뒤에서 셈
+        } catch (RuntimeException e) {
+            log.warn("[MOUNTAIN] 가파른 산 순위 기동 준비 실패 - {}", e.toString());
+        }
+    }
+
+    /** 순위 파일 - 통계(Stats)와 같은 폴더(운영에서 톰캣이 쓸 수 있는 stats.dir). */
+    static java.nio.file.Path steepFile() {
+        return Stats.file().resolveSibling("steep-rank.json");
+    }
+
     private SteepRank.Result steepRank(JsonArray all) {
+        if (!steepLoaded) {
+            synchronized (this) {
+                if (!steepLoaded) {
+                    try {
+                        java.nio.file.Path f = steepFile();
+                        SteepRank.Saved sv = java.nio.file.Files.exists(f) ? SteepRank.fromJson(java.nio.file.Files.readString(f, StandardCharsets.UTF_8)) : null;
+                        if (sv != null) {
+                            steepRank = sv.result;
+                            steepNext = sv.at + STEEP_TTL_MS;
+                            log.info("[MOUNTAIN] 가파른 산 순위 파일 읽음 - 산 {}", sv.result.avg.size());
+                        }
+                    } catch (IOException | RuntimeException e) {
+                        log.warn("[MOUNTAIN] 가파른 산 순위 파일 못 읽음 - {}", e.toString());
+                    }
+                    steepLoaded = true;
+                }
+            }
+        }
         if (System.currentTimeMillis() >= steepNext && steepBusy.compareAndSet(false, true)) {
             Thread t = new Thread(() -> {
                 try {
@@ -166,7 +205,11 @@ public class MountainServlet extends HttpServlet {
                         if (cs != null) map.put(MountainEn.id(p), cs);
                     }
                     boolean ok = !all.isEmpty() && map.size() * 10 >= all.size() * 8;   // 8할 넘게 읽혀야(DB 가 안 되면 다음에)
-                    if (ok) steepRank = SteepRank.rank(all, map);
+                    if (ok) {
+                        long at = System.currentTimeMillis();
+                        steepRank = SteepRank.rank(all, map);
+                        saveSteep(SteepRank.toJson(steepRank, at));
+                    }
                     steepNext = System.currentTimeMillis() + (ok ? STEEP_TTL_MS : STEEP_RETRY_MS);
                     log.info("[MOUNTAIN] 가파른 산 순위 {} - 코스 읽은 산 {}/{}", ok ? "셈함" : "미룸", map.size(), all.size());
                 } catch (Exception ex) {
@@ -180,6 +223,18 @@ public class MountainServlet extends HttpServlet {
             t.start();
         }
         return steepRank;
+    }
+
+    /** 순위 파일 쓰기(임시 파일에 쓰고 한 번에 옮김). 실패해도 화면은 메모리 값으로 - 다음 기동 때 다시 셈. */
+    private static void saveSteep(String json) {
+        try {
+            java.nio.file.Path f = steepFile(), tmp = f.resolveSibling("steep-rank.json.tmp");
+            java.nio.file.Files.createDirectories(f.getParent());
+            java.nio.file.Files.writeString(tmp, json, StandardCharsets.UTF_8);
+            java.nio.file.Files.move(tmp, f, java.nio.file.StandardCopyOption.REPLACE_EXISTING, java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+        } catch (IOException | RuntimeException e) {
+            log.warn("[MOUNTAIN] 가파른 산 순위 파일 못 씀 - {}", e.toString());
+        }
     }
 
     /** 산마다 코스 목록 10분 담아 둠(2026-10-16 속도 점검 - 검색 로봇이 산 페이지 196쪽을 훑을 때 DB · 경사 계산을 줄임). 산 id → [시각, 목록]. */

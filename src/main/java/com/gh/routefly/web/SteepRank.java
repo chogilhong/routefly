@@ -57,6 +57,67 @@ final class SteepRank {
         }
     }
 
+    /** 파일에 남긴 순위 - 셈한 시각(at, ms)과 결과. */
+    static final class Saved {
+        final long at;
+        final Result result;
+
+        Saved(long at, Result result) {
+            this.at = at;
+            this.result = result;
+        }
+    }
+
+    /**
+     * 순수 함수 - 순위를 파일에 남길 json(2026-11-28 홍TV님 "고정된 데이터인데 뭐하러 매번 새로 세지?" - 톰캣을 다시 띄울 때마다 산 100곳 코스를 다시 읽었음).
+     * avg 순서대로 산을 적고, steepest 는 id 차례만(같은 산 줄을 두 번 적지 않음).
+     */
+    static String toJson(Result r, long at) {
+        JsonObject o = new JsonObject();
+        o.addProperty("at", at);
+        JsonArray rows = new JsonArray(), st = new JsonArray();
+        for (Row x : r.avg) {
+            JsonObject j = new JsonObject();
+            j.addProperty("id", x.id);
+            j.addProperty("elev", x.elev);
+            j.addProperty("avgDeg", x.avgDeg);
+            j.addProperty("count", x.count);
+            j.addProperty("course", x.course);
+            j.addProperty("deg", x.deg);
+            if (x.steep1km != null) j.addProperty("steep1km", x.steep1km);
+            rows.add(j);
+        }
+        for (Row x : r.steepest) st.add(x.id);
+        o.add("avg", rows);
+        o.add("steepest", st);
+        return o.toString();
+    }
+
+    /** 순수 함수 - toJson 으로 남긴 글 → Saved. 모양이 다르거나 깨졌으면 null(그때는 다시 셈). */
+    static Saved fromJson(String s) {
+        try {
+            JsonObject o = com.google.gson.JsonParser.parseString(s).getAsJsonObject();
+            Map<String, Row> byId = new java.util.HashMap<>();
+            List<Row> avg = new ArrayList<>(), st = new ArrayList<>();
+            for (JsonElement e : o.getAsJsonArray("avg")) {
+                JsonObject j = e.getAsJsonObject();
+                Row x = new Row(j.get("id").getAsString(), j.get("elev").getAsInt(), j.get("avgDeg").getAsDouble(), j.get("count").getAsInt(),
+                        j.get("course").getAsString(), j.get("deg").getAsDouble(), j.has("steep1km") ? j.get("steep1km").getAsDouble() : null);
+                avg.add(x);
+                byId.put(x.id, x);
+            }
+            for (JsonElement e : o.getAsJsonArray("steepest")) {
+                Row x = byId.get(e.getAsString());
+                if (x == null) return null;
+                st.add(x);
+            }
+            if (st.size() != avg.size()) return null;
+            return new Saved(o.get("at").getAsLong(), new Result(avg, st));
+        } catch (RuntimeException e) {
+            return null;
+        }
+    }
+
     /** 순수 함수 - 코스 평균 각도(도) = atan(오르막 ÷ 거리). 순위와 같은 기준(1km 이상 · 오르막 있음)이 아니면 null. */
     static Double angle(int distM, Integer ascM) {
         return distM < MIN_DIST || ascM == null || ascM <= 0 ? null : Math.toDegrees(Math.atan((double) ascM / distM));
