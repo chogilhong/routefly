@@ -238,6 +238,7 @@ public class VoiceServlet extends HttpServlet {
                 + ".vc button.pri{background:var(--sky);border-color:var(--sky);color:#06222a;font-weight:700}"
                 + ".vc-bar{position:sticky;bottom:0;z-index:5;margin:0 -16px;padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:var(--panel);border-top:1px solid var(--ln);box-shadow:0 -6px 18px rgba(0,0,0,.18)}"
                 + ".vc-btns{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.vc-btns .sp{flex:1}"
+                + ".vc-from{display:inline-flex;gap:6px;align-items:center;color:var(--dim)}.vc-from input{width:64px;min-width:0}"   // ▶ 이어 듣기 [n]번(2026-11-28)
                 + ".vc-prog{height:4px;border-radius:2px;background:var(--ln);margin:8px 0 4px;overflow:hidden}.vc-prog i{display:block;height:100%;width:0;background:var(--sky);transition:width .2s}"
                 + "#vcInfo{display:block;font-size:12.5px}"
                 + ".vc-sum{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--dim);margin:0 0 8px}.vc-sum b{color:var(--tx)}"
@@ -273,7 +274,8 @@ public class VoiceServlet extends HttpServlet {
                 + "<div class=\"vc-card\"><h2>줄</h2><div class=\"vc-sum\" id=\"vcSum\"></div><ol id=\"vcLines\"></ol></div>"
                 + "<p class=\"dim\">글은 Microsoft Azure 음성 서비스로 보내 목소리를 만듭니다(운영자만). 같은 줄 · 같은 목소리 · 같은 빠르기는 다시 보내지 않습니다(이 창을 닫으면 처음부터 - 💾 저장하면 만든 소리까지 파일(.rfvoice)로 남아 📂 열기로 다시 넣음 - 이 브라우저의 📚 저장한 산에도).</p>"
                 + "<div class=\"vc-bar\"><div class=\"vc-btns\"><button id=\"vcMake\" class=\"pri\">▶ 바뀐 줄만 만들기</button><button id=\"vcPlay\">🔊 전체 듣기</button>"
-                + "<button id=\"vcRestart\" hidden title=\"처음부터 듣기\">⏮ 처음부터</button><span class=\"sp\"></span><button id=\"vcWav\">⬇ wav</button><button id=\"vcSrt\">⬇ srt</button></div>"
+                + "<button id=\"vcRestart\" hidden title=\"처음부터 듣기\">⏮ 처음부터</button>"
+                + "<span class=\"vc-from\"><button id=\"vcFrom\" title=\"적은 번호 줄부터 듣기\">▶ 이어 듣기</button><input id=\"vcFromNo\" type=\"number\" min=\"1\" step=\"1\" inputmode=\"numeric\" aria-label=\"몇 번 줄부터\" placeholder=\"17\">번</span><span class=\"sp\"></span><button id=\"vcWav\">⬇ wav</button><button id=\"vcSrt\">⬇ srt</button></div>"
                 + "<div class=\"vc-prog\"><i id=\"vcProg\"></i></div><span id=\"vcInfo\" class=\"dim\"></span></div>"
                 + "</main><script src=\"../" + AssetVersion.of("js/voice.js") + "\"></script></body></html>";
     }

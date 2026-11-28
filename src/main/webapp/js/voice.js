@@ -129,6 +129,15 @@
   }
 
   /**
+   * 순수 함수 - "이어 듣기 [17]번"(2026-11-28 홍TV님 "17을 적고 클릭 시 그 항목부터 이어 듣게"): 줄 번호 n(1부터)의 시작 초.
+   * 번호가 없거나 줄 밖이면 -1.
+   */
+  function lineStart(times, n) {
+    if (!times || !times.length || !(n >= 1 && n <= times.length) || n !== Math.floor(n)) return -1;
+    return times[n - 1][0];
+  }
+
+  /**
    * 순수 함수 - 한 달 무료 양 표시(2026-11-26 홍TV님 "50만자 중 기존 얼마를 사용했고 현재 작업은 얼마고").
    * before - 이번 작업 전까지 이번 달에 쓴 글자, job - 이번 작업에서 보낸 글자, jobTotal - 이번 작업 전체(만들 줄 글자 합), limit - 한 달 무료 양.
    */
@@ -209,7 +218,7 @@
     return { name: String(j.name || ''), text: j.text, voice: String(j.voice || ''), rate: +j.rate || 0, gap: +j.gap || 0, t: +j.t || 0, snd: snd };
   }
   var LIMIT = 500000;
-  var api = { usageText: usageText, lineNumbers: lineNumbers, lines: lines, spoken: spoken, shown: shown, playSig: playSig, clock: clock, cacheKey: cacheKey, parseWav: parseWav, joinWav: joinWav, srtTime: srtTime, srt: srt, lineAt: lineAt, resumeFrom: resumeFrom, fromFile: fromFile, savedNames: savedNames, projKeys: projKeys, projFile: projFile, readProj: readProj };
+  var api = { usageText: usageText, lineNumbers: lineNumbers, lines: lines, spoken: spoken, shown: shown, playSig: playSig, clock: clock, cacheKey: cacheKey, parseWav: parseWav, joinWav: joinWav, srtTime: srtTime, srt: srt, lineAt: lineAt, lineStart: lineStart, resumeFrom: resumeFrom, fromFile: fromFile, savedNames: savedNames, projKeys: projKeys, projFile: projFile, readProj: readProj };
   if (typeof module !== 'undefined' && module.exports) { module.exports = api; return; }
   root.RFV = api;
 
@@ -595,6 +604,17 @@
       info('전체 ' + j.times[j.times.length - 1][1].toFixed(1) + '초');
     };
     $('vcRestart').onclick = function () { stop(); $('vcPlay').onclick(); };
+    // ▶ 이어 듣기 [n]번 - 적은 번호 줄부터. 같은 글 · 목소리로 듣던(멈춘) 소리가 있으면 그 자리만 옮기고, 아니면 새로 이어 붙여 그 줄부터
+    $('vcFrom').onclick = function () {
+      var n = Number($('vcFromNo').value), o = opts(), sig = playSig(o.voice, o.rate, o.gap, lines($('vcText').value));
+      var same = audio && audioSig === sig, j = same ? null : joined();
+      if (!same && !j) return;
+      var times = same ? audioTimes : j.times, from = lineStart(times, n);
+      if (from < 0) { info('1 ~ ' + times.length + ' 사이 번호를 적으세요'); $('vcFromNo').focus(); return; }
+      if (same) { audio.currentTime = from; resume(); } else playAll(j.wav, sig, j.times, from);
+      info(n + '번 줄부터 들음');
+    };
+    $('vcFromNo').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); $('vcFrom').onclick(); } });
     $('vcWav').onclick = function () { var j = joined(); if (j) download(j.wav, 'audio/wav', fileName() + '.wav'); };
     $('vcSrt').onclick = function () { var j = joined(); if (j) download(srt(j.texts, j.times), 'application/x-subrip', fileName() + '.srt'); };
     fetch('voice?list=1', { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (j) {
