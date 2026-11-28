@@ -22,7 +22,7 @@ ul { margin:0; padding:0; list-style:none; }
 .cs li { border-top:1px solid var(--ln); padding:10px 0; display:flex; flex-wrap:wrap; gap:4px 10px; align-items:baseline; }
 .cs li:first-child { border-top:0; }
 .cs li.stHi { background:rgba(255,184,77,0.08); border-left:3px solid #ffb84d; padding-left:10px; border-radius:6px; }   /* 🧗 가파른 산 순위에서 온 코스(js/mountain.js, 2026-11-28) */
-.stTag { margin-left:6px; padding:1px 8px; border-radius:10px; background:#ffb84d; color:#1a1206; font-size:12px; font-weight:800; white-space:nowrap; }
+.cs .stTag { margin-left:6px; padding:1px 8px; border-radius:10px; background:#ffb84d; color:#1a1206; font-size:12px; font-weight:800; white-space:nowrap; }
 .cs b { flex:1 1 100%; font-size:15px; }
 .cs b, .cs span, .cs small { min-width:0; overflow-wrap:anywhere; }   /* 띄어쓰기 없는 긴 이름(Seoraksandaecheongbong…)도 줄바꿈 - 글자 140% 가로 넘침(2026-10-17 PC) */
 .cs span { font-size:13.5px; color:var(--dim); }

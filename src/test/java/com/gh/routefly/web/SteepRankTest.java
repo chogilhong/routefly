@@ -209,6 +209,6 @@ public class SteepRankTest {
                     && js.contains("[?&]c=([^&#]+)") && js.contains("stTag"));
         }
         String css = new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get("src/main/webapp/css/mountain.css")), java.nio.charset.StandardCharsets.UTF_8);
-        assertTrue("표시 모양", css.contains(".cs li.stHi {") && css.contains(".stTag {"));
+        assertTrue("표시 모양 - 글자색이 .cs span(--dim)에 덮이지 않게 .cs .stTag(2026-11-28 PC: 주황 바탕에 회색 글자)", css.contains(".cs li.stHi {") && css.contains("\n.cs .stTag {"));
     }
 }
