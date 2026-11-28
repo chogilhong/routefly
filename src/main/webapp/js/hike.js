@@ -1140,6 +1140,7 @@
             if (nc.lon.length < 2) throw new Error("경로 점이 없습니다.");   // 2026-10-11 점검: 확인한 뒤에 바꿈(깨진 코스로 공유 · SOS 가 돌지 않게)
             if (parts && r[0][0] && r[0][0].course && r[0][0].course.source && nc.course) nc.course.source = r[0][0].course.source;   // 이은 코스는 첫 구간의 출처 · 만든 이
             c = nc;
+            $("arrived").style.display = "none";   // 앞 코스의 "🎉 … 도착!" 띠를 다음 코스에 남기지 않음(2026-11-28 PC 매뉴얼 녹화: 시험 걷기 도착 → 끝내기 → 다른 코스를 열어도 남았음)
             var sv = loadSaved();
             // 되돌아가는 길로 바꿔 걷던 산행을 이어 갈 때, 노선 안내도에서 거꾸로 방향을 골랐을 때(#c=…&rev=1, 2026-10-12)
             if (sv ? sv.rev : /[#&]rev=1(&|$)/.test(location.hash)) c = RF.reverseCourse(c);
