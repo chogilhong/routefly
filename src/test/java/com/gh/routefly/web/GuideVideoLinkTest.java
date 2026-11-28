@@ -26,6 +26,6 @@ public class GuideVideoLinkTest {
         assertTrue("산불 안내 다음에 영상", fire.indexOf("<p class=\"fire\">") > lead && fire.indexOf("<nav class=\"vids\"") > fire.indexOf("<p class=\"fire\">"));
         assertFalse("영어 코스 모음에는 없음(영상이 한국어)", MountainEn.indexPage(new JsonArray(), new JsonArray(), "https://r.kr", "").contains("class=\"vids\""));
         String css = new String(Files.readAllBytes(Paths.get("src/main/webapp/css/mountain.css")), StandardCharsets.UTF_8);
-        assertTrue(css.contains(".vids { display:flex;") && css.contains(":root[data-theme=\"light\"] .vidMore dd a {"));
+        assertTrue("📍 내 근처 칸과 같은 상자(2026-11-28)", css.contains(".vids { background:var(--panel);"));
     }
 }
