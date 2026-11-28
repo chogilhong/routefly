@@ -28,7 +28,7 @@ public class ManualVideoLinksTest {
     public void 코스_모음_다섯_편() throws Exception {
         // 2026-11-28 홍TV님 "이거 정리 좀 하게" 1안: 단추 하나 → 처음이라면 · 기능별 · 산악회 세 줄(7편)
         String ko = MountainServlet.indexPage(new JsonArray(), new JsonArray(), "https://r.kr", false, "", "", new JsonArray());
-        int nav = ko.indexOf("<nav class=\"vids\""), more = ko.indexOf("<details class=\"fold kind vidMore\"><summary><span class=\"ft\">▶ 사용법 영상</span><span class=\"fs\">처음이라면 · 기능별 · 산악회 7편</span><span class=\"fa\">▾</span></summary><div class=\"fb\"><dl>"), end = ko.indexOf("</nav>", nav);
+        int nav = ko.indexOf("<nav class=\"vids\""), more = ko.indexOf("<details class=\"fold kind vidMore\"><summary><span class=\"ft\">▶ 사용자 매뉴얼</span><span class=\"fs\">영상 7편 · 처음이라면 · 기능별 · 산악회</span><span class=\"fa\">▾</span></summary><div class=\"fb\"><dl>"), end = ko.indexOf("</nav>", nav);
         assertTrue("접는 칸 하나(📍 내 근처 칸과 같은 모양 - 2026-11-28 홍TV님 \"평범한 것이 좋아\") - 그 안에 접힌 채", nav >= 0 && more == ko.indexOf(">", nav) + 1 && end > more);
         String box = ko.substring(more, end);
         assertEquals("링크는 모두 접힌 칸 안", 7, box.split("https://youtu.be/", -1).length - 1);

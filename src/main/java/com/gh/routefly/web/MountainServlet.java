@@ -1852,8 +1852,8 @@ public class MountainServlet extends HttpServlet {
      * 올린 주소는 docs/youtube/guide/manual/올리기.md · guide/사용법-올리기.txt(전체 사용법 13분 32초).
      */
     // 2026-11-28 홍TV님 "잘 보이게" → "평범한 것이 좋아": 빨간 알약 단추 대신 아래 "📍 내 근처 100대 명산" 과 같은 접는 칸(제목 · 설명 · ▾)
-    static final String GUIDE_VIDEOS = "<nav class=\"vids\" aria-label=\"설명 영상\"><details class=\"fold kind vidMore\"><summary><span class=\"ft\">▶ 사용법 영상</span>"
-            + "<span class=\"fs\">처음이라면 · 기능별 · 산악회 7편</span><span class=\"fa\">▾</span></summary><div class=\"fb\"><dl>"
+    static final String GUIDE_VIDEOS = "<nav class=\"vids\" aria-label=\"설명 영상\"><details class=\"fold kind vidMore\"><summary><span class=\"ft\">▶ 사용자 매뉴얼</span>"
+            + "<span class=\"fs\">영상 7편 · 처음이라면 · 기능별 · 산악회</span><span class=\"fa\">▾</span></summary><div class=\"fb\"><dl>"
             + "<dt>처음이라면</dt><dd><a href=\"https://youtu.be/K1oKGDTY5t0\" target=\"_blank\" rel=\"noopener\">▶ 전체 사용법(약 14분)</a></dd>"
             + "<dt>기능별</dt><dd><a href=\"https://youtu.be/nHchQthrvvg\" target=\"_blank\" rel=\"noopener\">1 따라가기</a> · <a href=\"https://youtu.be/btKasNynfJo\" target=\"_blank\" rel=\"noopener\">2 GPX 열기</a> · <a href=\"https://youtu.be/ieeWYheGOJ8\" target=\"_blank\" rel=\"noopener\">3 3D 영상</a> · <a href=\"https://youtu.be/u-O9cRlnk1Y\" target=\"_blank\" rel=\"noopener\">5 GPX 편집</a></dd>"
             + "<dt>산악회</dt><dd><a href=\"https://youtu.be/67xWxottGa4\" target=\"_blank\" rel=\"noopener\">▶ 회원용</a> · <a href=\"https://youtu.be/AoQexAxZ-58\" target=\"_blank\" rel=\"noopener\">▶ 인솔자용</a></dd></dl></div></details></nav>";
