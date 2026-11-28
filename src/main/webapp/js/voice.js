@@ -29,8 +29,12 @@
     s = s.replace(/\{[^{}]*\}/g, function (m) { return m.replace(/ /g, '\u0001'); });   // { } 안 띄어쓰기는 잠시 감춤(낱말로 나누지 않게)
     var p = s.split(/( +)/);   // 짝수 칸 = 낱말, 홀수 칸 = 띄어쓰기
     for (var i = 0; i < p.length; i += 2) {
+      // 쉼만 넣기(2026-11-28 홍TV님 "하산까지{하산까지,} 또는 하산까지 {,}"): { } 안이 쉼표 · 마침표 같은 부호뿐이면 앞 낱말 뒤에 붙임 - 소리만 쉬고 자막은 그대로
+      var pm = /^\{([,.!?…]+)\}(.*)$/.exec(p[i]);
+      if (pm && i >= 2) { p[i - 1] = ''; p[i] = pm[1] + pm[2]; continue; }   // 띄어 쓴 "하산까지 {,}"
       var m = /^([^\s{}\[\]]+)\{([^{}]*)\}(.*)$/.exec(p[i]);
       if (!m) continue;
+      if (/^[,.!?…]+$/.test(m[2])) { p[i] = m[1] + m[2] + m[3]; continue; }   // 붙여 쓴 "하산까지{,}" - 낱말을 바꾸지 않고 뒤에 붙임(전에는 낱말이 "," 로 바뀌었음)
       var r = m[2].replace(/\u0001/g, ' ').trim(), flat = r.replace(/\s+/g, ''), k = 0, w = m[1];
       for (var j = 1; j <= 3 && i - 2 * j >= 0 && r; j++) {
         w = p[i - 2 * j] + w;
@@ -41,7 +45,7 @@
     }
     return p.join('').replace(/\u0001/g, ' ');
   }
-  function shown(x) { return String(x).replace(/\[([^\[\]{}]+)\]\{[^{}]*\}/g, '$1').replace(/\{[^{}]*\}/g, ''); }
+  function shown(x) { return String(x).replace(/\[([^\[\]{}]+)\]\{[^{}]*\}/g, '$1').replace(/ +\{[,.!?…]+\}/g, '').replace(/\{[^{}]*\}/g, ''); }   // 띄어 쓴 쉼 "하산까지 {,}" 는 앞 띄어쓰기까지 뺌
 
   /** 순수 함수 - 이어 듣기 표(2026-11-25 홍TV님 "멈췄다 다시 들으려니 처음부터"): 목소리 · 빠르기 · 줄 사이 · 읽는 말이 같을 때만 멈춘 자리에서 이어 들음. */
   function playSig(voice, rate, gap, texts) { return voice + '|' + rate + '|' + gap + '|' + texts.map(spoken).join('\n'); }

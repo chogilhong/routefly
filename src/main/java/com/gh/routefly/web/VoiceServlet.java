@@ -269,7 +269,7 @@ public class VoiceServlet extends HttpServlet {
                 + "<button id=\"vcForget\" title=\"고른 산을 저장한 목록에서 지우기\" aria-label=\"저장한 산 지우기\">✕</button></div>"
                 + "<div class=\"vc-ed\"><div class=\"vc-no\" id=\"vcNo\" aria-hidden=\"true\"></div><textarea id=\"vcText\" placeholder=\"해설 블록을 붙여 넣으세요 - 한 줄이 한 장면\"></textarea></div>"
                 // 2026-11-25 홍TV님 - 읽는 말만 바꾸고 자막은 그대로(voice.js spoken · shown)
-                + "<p class=\"vc-tip\">발음이 어색한 낱말은 바로 뒤에 { } 로 읽는 말 - 예) <code>대가야{대 가야}</code> → 소리는 { } 안 말, 자막 · srt 는 대가야 그대로. 띄어 쓴 낱말을 붙여 읽을 때는 그대로 - <code>리만 가설{리만가설}</code>, 다르게 읽을 때는 [ ] 로 묶기 - <code>[켜 두어야]{켜 두워야}</code>.</p></div>"
+                + "<p class=\"vc-tip\">발음이 어색한 낱말은 바로 뒤에 { } 로 읽는 말 - 예) <code>대가야{대 가야}</code> → 소리는 { } 안 말, 자막 · srt 는 대가야 그대로. 띄어 쓴 낱말을 붙여 읽을 때는 그대로 - <code>리만 가설{리만가설}</code>, 다르게 읽을 때는 [ ] 로 묶기 - <code>[켜 두어야]{켜 두워야}</code>. 쉬어 읽을 곳은 쉼표만 - <code>하산까지{,}</code> 또는 <code>하산까지 {,}</code>(<code>하산까지{하산까지,}</code> 도 같음) → 소리만 쉬고 자막은 그대로.</p></div>"
                 + "<div class=\"vc-card\"><h2>줄</h2><div class=\"vc-sum\" id=\"vcSum\"></div><ol id=\"vcLines\"></ol></div>"
                 + "<p class=\"dim\">글은 Microsoft Azure 음성 서비스로 보내 목소리를 만듭니다(운영자만). 같은 줄 · 같은 목소리 · 같은 빠르기는 다시 보내지 않습니다(이 창을 닫으면 처음부터 - 💾 저장하면 만든 소리까지 파일(.rfvoice)로 남아 📂 열기로 다시 넣음 - 이 브라우저의 📚 저장한 산에도).</p>"
                 + "<div class=\"vc-bar\"><div class=\"vc-btns\"><button id=\"vcMake\" class=\"pri\">▶ 바뀐 줄만 만들기</button><button id=\"vcPlay\">🔊 전체 듣기</button>"

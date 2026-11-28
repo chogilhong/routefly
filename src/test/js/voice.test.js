@@ -23,6 +23,14 @@ assert.strictEqual(V.spoken('리만 가설{리만가설}이 풀렸습니다'), '
 assert.strictEqual(V.shown('리만 가설{리만가설}이 풀렸습니다'), '리만 가설이 풀렸습니다');
 assert.strictEqual(V.spoken('그 리만 가설{리만가설}, 소수'), '그 리만가설, 소수');
 assert.strictEqual(V.spoken('일반화된 리만 가설{일반화된리만가설}'), '일반화된리만가설');
+// 쉼만 넣기(2026-11-28 홍TV님 "사용법에 {,} 도 넣어줘, 하산까지{하산까지,} 또는 하산까지 {,}") - 소리만 쉬고 자막은 그대로
+assert.strictEqual(V.spoken('하산까지{,} 두 시간'), '하산까지, 두 시간');   // 전에는 낱말이 "," 로 바뀌어 "하산까지" 를 안 읽었음
+assert.strictEqual(V.spoken('하산까지 {,} 두 시간'), '하산까지, 두 시간');
+assert.strictEqual(V.spoken('하산까지{하산까지,} 두 시간'), '하산까지, 두 시간');
+assert.strictEqual(V.spoken('끝{.}'), '끝.');
+assert.strictEqual(V.shown('하산까지{,} 두 시간'), '하산까지 두 시간');
+assert.strictEqual(V.shown('하산까지 {,} 두 시간'), '하산까지 두 시간');
+assert.strictEqual(V.spoken('대가야{대 가야} 땅'), '대 가야 땅');   // 부호가 아닌 읽는 말은 그대로 바꿈
 assert.strictEqual(V.spoken('세 낱말 이어 붙이기 안 맞음{다른말}'), '세 낱말 이어 붙이기 안 다른말');   // 붙인 것과 다르면 앞 낱말 하나만(예전대로)
 // 이어 듣기 표 - 자막 글만 바뀌면 같음(소리는 그대로), 읽는 말 · 빠르기 · 줄 사이가 바뀌면 다름
 const sg = V.playSig('ko-KR-A', 5, 300, ['대가야{대 가야} 땅', '둘']);
