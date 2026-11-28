@@ -484,6 +484,9 @@
     stop();
     $('vcName').value = name; save('vcName', name);
     $('vcText').value = text; save('vcText', text);
+    var ta = $('vcText');
+    ta.scrollTop = 0;   // 새로 연 글은 1번 줄부터 보이게(2026-11-28 홍TV님 "열기로 새롭게 문서를 열면 해설 부분을 1번 줄 제일 위로" - 보던 자리(아래쪽)에 머물렀음)
+    try { ta.setSelectionRange(0, 0); } catch (e) { /* 고를 수 없는 칸 */ }
     keepText();
     render();
     gutter(true);
