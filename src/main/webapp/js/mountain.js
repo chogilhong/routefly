@@ -6,6 +6,21 @@
     // 🧗 가파른 산 순위에서 왔으면(?from=steep1 · steep2) "‹ 코스 모음" 이 그 표를 펼친 순위로(2026-10-18 홍TV님: 100대 명산 목록으로 갔음)
     var fromSteep = /[?&]from=(steep[12])(?:&|$)/.exec(location.search), crumbA = document.querySelector(".crumb > a");
     if (fromSteep && crumbA) crumbA.href = "../m/?open=" + fromSteep[1] + "#steep";
+    // 순위의 가장 가파른 코스(?c=코스 id) - 그 코스를 코스 목록 맨 위로 올리고 표시(2026-11-28 홍TV님 "그 코스가 뭔지 알려줘야" - 23개 가운데 어느 것인지 몰랐음).
+    // 접힌 코스 칸은 주소의 #trails 로 RF.foldOne 이 폄. mountain.js · mountain-en.js 같은 셈(둘 다 고침)
+    var stC = fromSteep && /[?&]c=([^&#]+)/.exec(location.search), stList = document.querySelector(".cs");
+    if (stC && stList) {
+        var stId = decodeURIComponent(stC[1].replace(/\+/g, " ")), stLi = [].filter.call(stList.children, function (x) { return x.getAttribute("data-id") === stId; })[0];
+        if (stLi) {
+            stList.insertBefore(stLi, stList.firstChild);
+            stLi.classList.add("stHi");
+            var stTag = document.createElement("span");
+            stTag.className = "stTag";
+            stTag.textContent = "🧗 가장 가파른 코스";
+            var stB = stLi.querySelector("b");
+            if (stB) stB.appendChild(stTag);
+        }
+    }
     if (window.RF && window.RF.tmapLinks) window.RF.tmapLinks(document, navigator.userAgent);   // 코스 줄 🚗 티맵 - 휴대폰만(2026-11-09)
     // 코스 모음 첫 화면 검색칸(2026-11-07 전체 점검 2단계): 목록에 있는 산 이름이면 그 산 페이지로, 아니면 따라가기 검색(form 그대로 - 스크립트가 없어도 감)
     var mSearch = document.querySelector("form.mSearch"), FIND_WAIT_MS = 3000;

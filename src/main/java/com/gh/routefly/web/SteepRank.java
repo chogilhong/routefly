@@ -34,8 +34,9 @@ final class SteepRank {
         final String course;
         final double deg;
         final Double steep1km;
+        final String courseId;   // 가장 가파른 코스 id(course_id) - 산 페이지에서 그 코스를 맨 위로 · 표시(2026-11-28 홍TV님), 없으면 null
 
-        Row(String id, int elev, double avgDeg, int count, String course, double deg, Double steep1km) {
+        Row(String id, int elev, double avgDeg, int count, String course, double deg, Double steep1km, String courseId) {
             this.id = id;
             this.elev = elev;
             this.avgDeg = avgDeg;
@@ -43,6 +44,7 @@ final class SteepRank {
             this.course = course;
             this.deg = deg;
             this.steep1km = steep1km;
+            this.courseId = courseId;
         }
     }
 
@@ -56,6 +58,9 @@ final class SteepRank {
             this.steepest = steepest;
         }
     }
+
+    /** 순위 파일 모양 번호 - 칸이 바뀌면 올림(옛 파일은 읽지 않고 다시 셈). 2 = 코스 id(2026-11-28). */
+    static final int FILE_V = 2;
 
     /** 파일에 남긴 순위 - 셈한 시각(at, ms)과 결과. */
     static final class Saved {
@@ -74,6 +79,7 @@ final class SteepRank {
      */
     static String toJson(Result r, long at) {
         JsonObject o = new JsonObject();
+        o.addProperty("v", FILE_V);
         o.addProperty("at", at);
         JsonArray rows = new JsonArray(), st = new JsonArray();
         for (Row x : r.avg) {
@@ -85,6 +91,7 @@ final class SteepRank {
             j.addProperty("course", x.course);
             j.addProperty("deg", x.deg);
             if (x.steep1km != null) j.addProperty("steep1km", x.steep1km);
+            if (x.courseId != null) j.addProperty("courseId", x.courseId);
             rows.add(j);
         }
         for (Row x : r.steepest) st.add(x.id);
@@ -97,12 +104,14 @@ final class SteepRank {
     static Saved fromJson(String s) {
         try {
             JsonObject o = com.google.gson.JsonParser.parseString(s).getAsJsonObject();
+            if (!o.has("v") || o.get("v").getAsInt() != FILE_V) return null;   // 옛 모양(코스 id 없음) - 다시 셈
             Map<String, Row> byId = new java.util.HashMap<>();
             List<Row> avg = new ArrayList<>(), st = new ArrayList<>();
             for (JsonElement e : o.getAsJsonArray("avg")) {
                 JsonObject j = e.getAsJsonObject();
                 Row x = new Row(j.get("id").getAsString(), j.get("elev").getAsInt(), j.get("avgDeg").getAsDouble(), j.get("count").getAsInt(),
-                        j.get("course").getAsString(), j.get("deg").getAsDouble(), j.has("steep1km") ? j.get("steep1km").getAsDouble() : null);
+                        j.get("course").getAsString(), j.get("deg").getAsDouble(), j.has("steep1km") ? j.get("steep1km").getAsDouble() : null,
+                        j.has("courseId") ? j.get("courseId").getAsString() : null);
                 avg.add(x);
                 byId.put(x.id, x);
             }
@@ -166,7 +175,8 @@ final class SteepRank {
                 }
             }
             if (n == 0) continue;
-            rows.add(new Row(id, elev, sum / n, n, best.get("name").getAsString(), bestDeg, MountainServlet.steep(best)));
+            rows.add(new Row(id, elev, sum / n, n, best.get("name").getAsString(), bestDeg, MountainServlet.steep(best),
+                    best.has("course_id") && best.get("course_id").isJsonPrimitive() ? best.get("course_id").getAsString() : null));
         }
         List<Row> avg = new ArrayList<>(rows), st = new ArrayList<>(rows);
         avg.sort(Comparator.comparingDouble((Row r) -> -r.avgDeg).thenComparing(r -> r.id));
@@ -208,7 +218,7 @@ final class SteepRank {
             if (i == TOP) b.append(more(en, r.avg.size()));
             b.append("<tr><td class=\"rk\">").append(++i).append("</td><td>").append(peak(x, en, rel, 1)).append("<small>").append(String.format(Locale.ROOT, "%,dm", x.elev))
                     .append(en ? " · " + x.count + (x.count == 1 ? " trail" : " trails") : " · 코스 " + x.count).append("</small><small class=\"cr\">")
-                    .append(en ? "Steepest: " : "가장 가파른 ").append(course(x, en)).append(String.format(Locale.ROOT, " %.1f°", x.deg)).append("</small></td><td class=\"n\"><b>")
+                    .append(en ? "Steepest: " : "가장 가파른 ").append(course(x, en, rel, 1)).append(String.format(Locale.ROOT, " %.1f°", x.deg)).append("</small></td><td class=\"n\"><b>")
                     .append(String.format(Locale.ROOT, "%.1f°", x.avgDeg)).append("</b><small>").append(grade).append(String.format(Locale.ROOT, "%.1f%%", pct(x.avgDeg))).append("</small></td></tr>");
         }
         b.append("</tbody></table></div></details>");
@@ -218,7 +228,7 @@ final class SteepRank {
         for (Row x : r.steepest) {
             if (i == TOP) b.append(more(en, r.steepest.size()));
             b.append("<tr><td class=\"rk\">").append(++i).append("</td><td>").append(peak(x, en, rel, 2)).append("<small>").append(String.format(Locale.ROOT, "%,dm", x.elev))
-                    .append(" · ").append(course(x, en)).append("</small></td><td class=\"n\"><b>").append(String.format(Locale.ROOT, "%.1f°", x.deg)).append("</b><small>")
+                    .append(" · ").append(course(x, en, rel, 2)).append("</small></td><td class=\"n\"><b>").append(String.format(Locale.ROOT, "%.1f°", x.deg)).append("</b><small>")
                     .append(grade).append(String.format(Locale.ROOT, "%.1f%%", pct(x.deg))).append("</small>")
                     .append(x.steep1km != null ? "<small class=\"s1\">" + (en ? "steepest 1 km " : "가파른 1km ") + String.format(Locale.ROOT, "%.1f%%", x.steep1km) + "</small>" : "").append("</td></tr>");
         }
@@ -247,13 +257,23 @@ final class SteepRank {
     }
 
     private static String peak(Row x, boolean en, String rel, int table) {
-        String href = (en ? Roman.slug(x.id) : rel + "/m/" + MountainServlet.enc(x.id)) + "?from=steep" + table;
         String name = en ? Roman.of(x.id).replace("(", " (") : x.id;
-        return "<a href=\"" + esc(href) + "\">" + esc(name) + "</a>";
+        return "<a href=\"" + esc(href(x, en, rel, table)) + "\">" + esc(name) + "</a>";
     }
 
-    private static String course(Row x, boolean en) {
-        return en ? esc(MountainEn.courseName(x.course)) : esc(x.course);
+    /**
+     * 순수 함수 - 산 페이지 주소. 가장 가파른 코스 id 가 있으면 &amp;c=<id>#trails - 산 페이지(js/mountain.js · mountain-en.js)가 그 코스를 맨 위로 올려 표시하고,
+     * #trails 로 접힌 코스 칸을 펴서 감(2026-11-28 홍TV님 "그 코스가 뭔지 알려줘야 할 것 같아").
+     */
+    static String href(Row x, boolean en, String rel, int table) {
+        return (en ? Roman.slug(x.id) : rel + "/m/" + MountainServlet.enc(x.id)) + "?from=steep" + table
+                + (x.courseId != null ? "&c=" + MountainServlet.enc(x.courseId) + "#trails" : "");
+    }
+
+    /** 코스 이름 - 코스 id 가 있으면 산 페이지의 그 코스로 가는 링크. */
+    private static String course(Row x, boolean en, String rel, int table) {
+        String n = en ? esc(MountainEn.courseName(x.course)) : esc(x.course);
+        return x.courseId == null ? n : "<a href=\"" + esc(href(x, en, rel, table)) + "\">" + n + "</a>";
     }
 
     private static String esc(String s) {

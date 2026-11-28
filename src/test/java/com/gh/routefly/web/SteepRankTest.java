@@ -181,4 +181,34 @@ public class SteepRankTest {
         assertNull("모양이 다른 파일", SteepRank.fromJson("{\"at\":1,\"avg\":[],\"steepest\":[\"없는산\"]}"));
         assertTrue("통계와 같은 폴더(운영에서 톰캣이 쓸 수 있는 stats.dir)", MountainServlet.steepFile().equals(Stats.file().resolveSibling("steep-rank.json")));
     }
+
+    /** 2026-11-28 홍TV님 "가파른 산 코스를 가진 산이면 그 코스가 뭔지 알려줘야" - 순위 링크에 코스 id, 산 페이지는 그 코스를 맨 위로 · 표시. */
+    @Test
+    public void 순위의_코스를_산_페이지에서_표시() throws Exception {
+        JsonArray peaks = new JsonArray();
+        peaks.add(peak("내장산", 764));
+        JsonObject a = course("내장산 · 신선봉코스", 1000, 412, 41.4), b = course("내장산 · 완만", 5000, 300, null);
+        a.addProperty("course_id", "c-77");
+        b.addProperty("course_id", "c-78");
+        Map<String, List<JsonObject>> m = new HashMap<>();
+        m.put("내장산", List.of(b, a));
+        SteepRank.Result r = SteepRank.rank(peaks, m);
+        assertEquals("가장 가파른 코스 id", "c-77", r.steepest.get(0).courseId);
+        String ko = SteepRank.html(r, false, 2), en = SteepRank.html(r, true, 2);
+        String hk = "../m/" + MountainServlet.enc("내장산") + "?from=steep2&amp;c=c-77#trails";
+        assertTrue("산 이름 링크에 코스 id · #trails(접힌 코스 칸을 폄)", ko.contains("href=\"" + hk + "\">내장산</a>"));
+        assertTrue("코스 이름도 같은 곳으로", ko.contains("href=\"" + hk + "\">내장산 · 신선봉코스</a>"));
+        assertTrue("평균 표도 그 코스로", ko.contains("?from=steep1&amp;c=c-77#trails"));
+        assertTrue("영어도", en.contains(Roman.slug("내장산") + "?from=steep2&amp;c=c-77#trails"));
+        SteepRank.Saved sv = SteepRank.fromJson(SteepRank.toJson(r, 1L));
+        assertEquals("파일에도 코스 id", "c-77", sv.result.steepest.get(0).courseId);
+        assertNull("옛 모양 파일(코스 id 칸 전)은 읽지 않고 다시 셈", SteepRank.fromJson(SteepRank.toJson(r, 1L).replace("\"v\":" + SteepRank.FILE_V + ",", "")));
+        for (String f : new String[] {"mountain.js", "mountain-en.js"}) {
+            String js = new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get("src/main/webapp/js/" + f)), java.nio.charset.StandardCharsets.UTF_8);
+            assertTrue(f + " - ?c= 코스를 맨 위로 · 표시", js.contains("stList.insertBefore(stLi, stList.firstChild)") && js.contains("stLi.classList.add(\"stHi\")")
+                    && js.contains("[?&]c=([^&#]+)") && js.contains("stTag"));
+        }
+        String css = new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get("src/main/webapp/css/mountain.css")), java.nio.charset.StandardCharsets.UTF_8);
+        assertTrue("표시 모양", css.contains(".cs li.stHi {") && css.contains(".stTag {"));
+    }
 }
