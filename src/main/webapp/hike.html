@@ -523,7 +523,7 @@ html.picking #pick { display:flex; }
             <a href="series.html" data-en="🏅 Stamps" data-en-title="Stamps · completions - bike path checkpoints, forest and dulle trail completions" title="도장 · 완주 - 국토종주 인증센터 도장, 숲길 · 둘레길 코스 완주 모아 보기">🏅 도장</a>
             <button type="button" id="gpxOpen" data-en="📂 GPX" data-en-title="Open a GPX file from another app or a friend and follow it" title="다른 앱 · 친구가 보내 준 GPX 파일을 열어 그 길을 따라갑니다">📂 GPX 열기</button>
             <!-- GPX 만(2026-10-09 홍TV님 - xml 종류까지 받아 다른 파일이 보이던 것). 핸드폰이 .gpx 의 종류를 모르면 모든 파일을 보여 줄 수 있습니다 -->
-            <input type="file" id="gpxFile" accept=".gpx,application/gpx+xml" hidden>
+            <input type="file" id="gpxFile" accept=".gpx,application/gpx+xml,application/xml,text/xml,application/octet-stream" hidden>
         </div>
     </header>
     <div id="loadFail" class="msg" role="alert" hidden style="margin:8px 14px 0;padding:10px 12px;border:1px solid #ffb84d;border-radius:10px;background:#2b2412;line-height:1.5"></div>   <!-- 코스를 못 열었을 때 남는 띠(js/hike.js loadFail, 2026-11-02 홍TV님 점검) -->
