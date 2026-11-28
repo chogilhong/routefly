@@ -256,6 +256,7 @@ public class VoiceServlet extends HttpServlet {
                 + ".vc button.pri{background:var(--sky);border-color:var(--sky);color:#06222a;font-weight:700}"
                 + ".vc-bar{position:sticky;bottom:0;z-index:5;margin:0 -16px;padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:var(--panel);border-top:1px solid var(--ln);box-shadow:0 -6px 18px rgba(0,0,0,.18)}"
                 + ".vc-btns{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.vc-btns .sp{flex:1}"
+                + ".vc-en{margin-top:10px;font-size:13px;color:var(--dim)}.vc-en summary{cursor:pointer;padding:4px 0}.vc-en textarea{margin-top:6px;min-height:140px}"   // 🌐 영어 자막 글(2026-11-28)
                 + ".vc-from{display:inline-flex;gap:6px;align-items:center;color:var(--dim)}.vc-from input{width:64px;min-width:0}"   // ▶ 이어 듣기 [n]번(2026-11-28)
                 + ".vc-prog{height:4px;border-radius:2px;background:var(--ln);margin:8px 0 4px;overflow:hidden}.vc-prog i{display:block;height:100%;width:0;background:var(--sky);transition:width .2s}"
                 + "#vcInfo{display:block;font-size:12.5px}"
@@ -288,12 +289,15 @@ public class VoiceServlet extends HttpServlet {
                 + "<button id=\"vcForget\" title=\"고른 산을 저장한 목록에서 지우기\" aria-label=\"저장한 산 지우기\">✕</button></div>"
                 + "<div class=\"vc-ed\"><div class=\"vc-no\" id=\"vcNo\" aria-hidden=\"true\"></div><textarea id=\"vcText\" placeholder=\"해설 블록을 붙여 넣으세요 - 한 줄이 한 장면\"></textarea></div>"
                 // 2026-11-25 홍TV님 - 읽는 말만 바꾸고 자막은 그대로(voice.js spoken · shown)
-                + "<p class=\"vc-tip\">발음이 어색한 낱말은 바로 뒤에 { } 로 읽는 말 - 예) <code>대가야{대 가야}</code> → 소리는 { } 안 말, 자막 · srt 는 대가야 그대로. 띄어 쓴 낱말을 붙여 읽을 때는 그대로 - <code>리만 가설{리만가설}</code>, 다르게 읽을 때는 [ ] 로 묶기 - <code>[켜 두어야]{켜 두워야}</code>. 쉬어 읽을 곳은 쉼표만 - <code>하산까지{,}</code> 또는 <code>하산까지 {,}</code>(<code>하산까지{하산까지,}</code> 도 같음) → 소리만 쉬고 자막은 그대로.</p></div>"
+                + "<p class=\"vc-tip\">발음이 어색한 낱말은 바로 뒤에 { } 로 읽는 말 - 예) <code>대가야{대 가야}</code> → 소리는 { } 안 말, 자막 · srt 는 대가야 그대로. 띄어 쓴 낱말을 붙여 읽을 때는 그대로 - <code>리만 가설{리만가설}</code>, 다르게 읽을 때는 [ ] 로 묶기 - <code>[켜 두어야]{켜 두워야}</code>. 쉬어 읽을 곳은 쉼표만 - <code>하산까지{,}</code> 또는 <code>하산까지 {,}</code>(<code>하산까지{하산까지,}</code> 도 같음) → 소리만 쉬고 자막은 그대로.</p>"
+                // 영어 자막 글(2026-11-28 홍TV님 "목소리 만들기 화면에 ⬇ 영어 srt 단추") - 한 줄 = 한 장면, 소리는 만들지 않음(Azure 안 씀)
+                + "<details class=\"vc-en\" id=\"vcEnBox\"><summary>🌐 영어 자막 글 - ⬇ 영어 srt 용(한 줄 = 한 장면, 해설과 같은 줄 수 · 소리는 안 만듦)</summary>"
+                + "<textarea id=\"vcEn\" placeholder=\"영어 줄글을 붙여 넣으세요 - 해설 1번 줄의 영어가 1번 줄\"></textarea></details></div>"
                 + "<div class=\"vc-card\"><h2>줄</h2><div class=\"vc-sum\" id=\"vcSum\"></div><ol id=\"vcLines\"></ol></div>"
                 + "<p class=\"dim\">글은 Microsoft Azure 음성 서비스로 보내 목소리를 만듭니다(운영자만). 같은 줄 · 같은 목소리 · 같은 빠르기는 다시 보내지 않습니다(이 창을 닫으면 처음부터 - 💾 저장하면 만든 소리까지 파일(.rfvoice)로 남아 📂 열기로 다시 넣음 - 이 브라우저의 📚 저장한 산에도).</p>"
                 + "<div class=\"vc-bar\"><div class=\"vc-btns\"><button id=\"vcMake\" class=\"pri\">▶ 바뀐 줄만 만들기</button><button id=\"vcPlay\">🔊 전체 듣기</button>"
                 + "<button id=\"vcRestart\" hidden title=\"처음부터 듣기\">⏮ 처음부터</button>"
-                + "<span class=\"vc-from\"><button id=\"vcFrom\" title=\"적은 번호 줄부터 듣기\">▶ 이어 듣기</button><input id=\"vcFromNo\" type=\"number\" min=\"1\" step=\"1\" inputmode=\"numeric\" aria-label=\"몇 번 줄부터\" placeholder=\"17\">번</span><span class=\"sp\"></span><button id=\"vcWav\">⬇ wav</button><button id=\"vcSrt\">⬇ srt</button></div>"
+                + "<span class=\"vc-from\"><button id=\"vcFrom\" title=\"적은 번호 줄부터 듣기\">▶ 이어 듣기</button><input id=\"vcFromNo\" type=\"number\" min=\"1\" step=\"1\" inputmode=\"numeric\" aria-label=\"몇 번 줄부터\" placeholder=\"17\">번</span><span class=\"sp\"></span><button id=\"vcWav\">⬇ wav</button><button id=\"vcSrt\">⬇ srt</button><button id=\"vcSrtEn\" title=\"지금 만든 소리의 줄 시각 그대로 영어 글로 - 🌐 영어 자막 글 칸\">⬇ 영어 srt</button></div>"
                 + "<div class=\"vc-prog\"><i id=\"vcProg\"></i></div><span id=\"vcInfo\" class=\"dim\"></span></div>"
                 + "</main><script src=\"../" + AssetVersion.of("js/voice.js") + "\"></script></body></html>";
     }

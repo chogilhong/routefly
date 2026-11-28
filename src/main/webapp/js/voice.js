@@ -113,6 +113,17 @@
     return texts.map(function (x, i) { return (i + 1) + '\n' + srtTime(times[i][0]) + ' --> ' + srtTime(times[i][1]) + '\n' + x + '\n'; }).join('\n');
   }
 
+  /**
+   * 순수 함수 - 영어 srt(2026-11-28 홍TV님 "목소리 만들기 화면에 ⬇ 영어 srt 단추"): 영어 줄글(한 줄 = 한 장면) · 지금 소리의 줄 시각 → {srt} 또는 {error}.
+   * 줄 수가 다르면 만들지 않음(시각이 어긋남). 영상에 한국어 자막이 박혀 있어 한국어 srt 는 YouTube 에 올리지 않고 이것만 올림(docs/youtube/검색-잘되게.md 자막 b 방식).
+   */
+  function enSrt(enText, times) {
+    var en = lines(enText), n = times ? times.length : 0;
+    if (!en.length) return { error: '🌐 영어 자막 글 칸이 비었습니다' };
+    if (en.length !== n) return { error: '영어 ' + en.length + '줄 · 해설 ' + n + '줄 - 줄 수가 같아야 합니다' };
+    return { srt: srt(en, times) };
+  }
+
   /** 순수 함수 - 전체 듣기에서 t 초에 읽는 줄 번호(0부터, 줄 사이 쉼은 앞 줄) - times 는 joinWav 의 [시작, 끝]. 처음 줄 앞이면 0. */
   function lineAt(times, t) {
     var i = 0;
@@ -223,7 +234,7 @@
     return { name: String(j.name || ''), text: j.text, voice: String(j.voice || ''), rate: +j.rate || 0, gap: +j.gap || 0, t: +j.t || 0, snd: snd };
   }
   var LIMIT = 500000;
-  var api = { usageText: usageText, lineNumbers: lineNumbers, lines: lines, spoken: spoken, shown: shown, playSig: playSig, clock: clock, cacheKey: cacheKey, parseWav: parseWav, joinWav: joinWav, srtTime: srtTime, srt: srt, lineAt: lineAt, lineStart: lineStart, voiceLabel: voiceLabel, resumeFrom: resumeFrom, fromFile: fromFile, savedNames: savedNames, projKeys: projKeys, projFile: projFile, readProj: readProj };
+  var api = { usageText: usageText, lineNumbers: lineNumbers, lines: lines, spoken: spoken, shown: shown, playSig: playSig, clock: clock, cacheKey: cacheKey, parseWav: parseWav, joinWav: joinWav, srtTime: srtTime, srt: srt, enSrt: enSrt, lineAt: lineAt, lineStart: lineStart, voiceLabel: voiceLabel, resumeFrom: resumeFrom, fromFile: fromFile, savedNames: savedNames, projKeys: projKeys, projFile: projFile, readProj: readProj };
   if (typeof module !== 'undefined' && module.exports) { module.exports = api; return; }
   root.RFV = api;
 
@@ -622,6 +633,19 @@
     $('vcFromNo').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); $('vcFrom').onclick(); } });
     $('vcWav').onclick = function () { var j = joined(); if (j) download(j.wav, 'audio/wav', fileName() + '.wav'); };
     $('vcSrt').onclick = function () { var j = joined(); if (j) download(srt(j.texts, j.times), 'application/x-subrip', fileName() + '.srt'); };
+    // ⬇ 영어 srt - 같은 줄 시각에 영어 글(소리는 새로 안 만듦). 영어 글은 산 이름마다 이 브라우저에 남김
+    var enKey = function () { return 'en:' + fileName(); };
+    $('vcEn').value = load(enKey()) || '';
+    $('vcEn').addEventListener('input', function () { save(enKey(), $('vcEn').value); });
+    $('vcName').addEventListener('change', function () { $('vcEn').value = load(enKey()) || ''; });
+    $('vcSrtEn').onclick = function () {
+      var j = joined();
+      if (!j) return;
+      var r = enSrt($('vcEn').value, j.times);
+      if (r.error) { $('vcEnBox').open = true; $('vcEn').focus(); info(r.error); return; }
+      download(r.srt, 'application/x-subrip', fileName() + '.en.srt');
+      info('영어 srt ' + j.times.length + '줄 - YouTube Studio → 언어 → 영어 → 수동 자막 → 파일 업로드(타이밍 포함)');
+    };
     fetch('voice?list=1', { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (j) {
       var sel = $('vcVoice'), tsel = $('vcTry');
       sel.innerHTML = '';

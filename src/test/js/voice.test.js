@@ -55,6 +55,10 @@ assert.strictEqual(V.resumeFrom(null, 5, [[0, 1]]), 0);
 // 목소리 고르기 글 - 여러 언어 목소리는 🌐 · 여러 언어(2026-11-28)
 assert.strictEqual(V.voiceLabel({ name: 'ko-KR-SunHiNeural', local: '선희', gender: 'Female' }), '선희 · 여 (ko-KR-SunHiNeural)');
 assert.strictEqual(V.voiceLabel({ name: 'en-US-JennyMultilingualNeural', local: 'Jenny Multilingual', gender: 'Female', multi: true }), '🌐 Jenny Multilingual · 여 · 여러 언어 (en-US-JennyMultilingualNeural)');
+// ⬇ 영어 srt(2026-11-28) - 같은 줄 시각 · 줄 수가 다르면 안 만듦
+assert.strictEqual(V.enSrt('Hello\n\nWorld', [[0, 1], [1.3, 2]]).srt, '1\n00:00:00,000 --> 00:00:01,000\nHello\n\n2\n00:00:01,300 --> 00:00:02,000\nWorld\n');
+assert.ok(/줄 수/.test(V.enSrt('Hello', [[0, 1], [1.3, 2]]).error));
+assert.ok(/비었/.test(V.enSrt('  ', [[0, 1]]).error));
 // ▶ 이어 듣기 [n]번(2026-11-28 홍TV님) - n 번 줄 시작 초, 줄 밖 · 빈칸 · 소수는 -1
 assert.strictEqual(V.lineStart(tm, 1), 0);
 assert.strictEqual(V.lineStart(tm, 2), tm[1][0]);
