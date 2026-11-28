@@ -47,7 +47,7 @@ DB 는 routefly-batch 가 채우고, 웹은 읽기만 합니다 - 산악회 방 
   입구는 /m/ · /en/m/ 타이드플라이 줄 바로 아래(`MountainServlet.droneflyRow`, 영어는 2026-11-18). 판정 표 · 자료는 `docs/dronefly/README.md`. 위치는 폰 안에서만 셈. 문화재보호구역만 2만 곳이 넘어 /api/heritage(HeritageServlet)가 0.1° 고정 격자 칸마다 V-World WFS lt_c_uo301 을 묻고 하루 담아 둠(판정에는 넣지 않고 사전 협의 안내만).
   예외(2026-11-21 홍TV님 "이거 만들자" - Vrew 무료 크레딧이 모자람): 🎙 목소리 만들기 `/check/voice`(VoiceServlet · js/voice.js) - 운영자만(stats.key · /stats 보기 쿠키, 경로가 /check 라 쿠키가 감).
   산 이야기 해설 한 줄 = 한 장면을 Azure 음성(설정 voice.azure.key · voice.azure.region, 2026-11-28 부터 S0 유료 - 수익 영상의 상업 이용 허락은 "paid tier only", docs/youtube/azure-tts-이용조건.md · 화면의 한 달 50만 자는 도구가 멈추는 선) - 목소리 목록은 한국어 10개 뒤에 🌐 여러 언어 목소리(2026-11-28), HD 목소리는 Korea Central 에 없음(Microsoft 지역 표)으로 줄마다 만들어 이어 붙이고 <산>.wav · <산>.srt 로 내려받음(make_v2 --voice --srt 그대로). 팔 도구가 아니라 우리 영상용.
-- 유튜브 영상(2026-11-28 홍TV님 "검색이 잘 되게 만들자"): 대본 전에 검색어부터 고르고 제목 · 썸네일 글 · 설명란 · 챕터 · 해시태그 · 자막(srt)을 docs/youtube/검색-잘되게.md 순서대로 올리기.txt 에 채웁니다. 검색어는 YouTube 자동완성 · Studio 리서치로 확인한 것만.
+- 유튜브 영상(2026-11-28 홍TV님 "검색이 잘 되게 만들자"): 대본 전에 검색어부터 고르고 제목 · 썸네일 글 · 설명란 · 챕터 · 해시태그 · 자막(srt)을 docs/youtube/검색-잘되게.md 순서대로 올리기.txt 에 채웁니다. 검색어는 YouTube 자동완성 · Studio 리서치로 확인한 것만. 자막은 b 방식(한국어 박음 · 한국어 srt 안 올림 · 영어 srt · 영어 제목 · 설명을 늘 함께, 2026-11-28).
 - 안전 문구(hike.js 의 `SAFETY_KEY`)를 바꾸면 키의 버전도 올립니다(README).
 - `WEB-INF/web.xml` 은 version="6.0"(web-app_6_0.xsd)으로 둡니다. PC 의 Eclipse WTP 가 6.1 을 몰라 "Loading descriptor" 오류가 났음(2026-11-14 PC, 2950077) - 톰캣 11 은 6.0 도 읽음.
 - 보안 · 속도 필터: `SecurityFilter`(모든 응답에 보안 헤더, /api · /s 는 IP 마다 분당 120번 남짓 제한), `GzipFilter`(/api 응답 1KB 넘으면 gzip).

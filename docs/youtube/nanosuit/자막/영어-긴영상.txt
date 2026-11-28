@@ -1,0 +1,36 @@
+In the movie, Tony Stark taps his chest and tiny particles flow out, covering his whole body in armor within seconds. Could we really build an Iron Man nanosuit like this?
+First we'll look at how the movie describes it, then split the suit into five pieces and see how far real labs have come with each one.
+The first complete nanosuit appeared in the 2018 movie Avengers: Infinity War, as the Mark 50.
+In the movie, nanoparticles pour out of the arc reactor in his chest to wrap his body, repair themselves when damaged, and even form thrusters that reach space.
+The idea comes from the comics. In 2010, the Bleeding Edge armor was stored inside Tony's body and appeared with a single thought.
+The visual effects company said it showed the suit being built by individual nanobots moving over his body, and refined it with Marvel for about two years.
+It even has a fun weakness. Particles knocked off in a fight can't come back, so the supply keeps shrinking. It's matter, not endless magic.
+To make this suit real, we need five things: tiny robots that assemble themselves, materials that change shape, the ability to heal itself, energy to power it all, and the human body inside.
+A nanometer is one billionth of a meter. Despite the name, there is still no technology that gathers trillions of robots that small into a suit.
+First, self-assembling robots. In 2014, Harvard researchers made 1,024 coin-sized robots signal each other and gather into stars and letters.
+But they moved bit by bit on vibrating legs, and one shape took about 12 hours. A long way from the movie's one second.
+MIT's cube robots have no wheels outside. A flywheel inside spins up to 20,000 times a minute and then stops suddenly, making the cube roll and jump and stick to others with magnets.
+In 2007, DARPA, the U.S. defense research agency, began research on programmable matter, material that gathers into objects on command and then scatters again. It's the dream closest to a nanosuit.
+In 2023, a striking shape-changing experiment appeared. A tiny human-shaped robot made of gallium, a metal that melts at 29.8 degrees Celsius, mixed with magnetic particles, melted under a magnetic field, slipped through prison bars, and solidified back into shape.
+There are even smaller robots. In 2020, Cornell and the University of Pennsylvania built walking robots less than 0.1 millimeters long, moving their legs when a laser hits their solar cells.
+A tiny self-moving robot announced in 2025 gets 75 nanowatts from light, less than one hundred-thousandth of what a smartwatch uses. The smaller the robot, the less power it can get.
+There are also self-healing materials. In a plastic reported in 2001, cracks broke tiny capsules inside, releasing a healing agent that hardened and restored up to about 75 percent of the original strength.
+At the smallest scale, there are machines built from individual molecules. The three scientists who designed and built molecular machines won the 2016 Nobel Prize in Chemistry.
+So self-assembly, shape-changing, and self-healing are starting to appear in labs as pieces. But their size, speed, and numbers are still far from the movie.
+What about wearable robots? In 2013, U.S. Special Operations Command started TALOS, a so-called Iron Man suit combining armor and strength.
+But in 2019, the program ended because it wasn't suited to close combat. Weight and power were the problems. Useful pieces, like lighter armor, were kept separately.
+Factory exoskeletons appeared too. The U.S. company Sarcos said its exoskeleton could lift about 90 kilograms, but in 2023 the company dropped hardware and became an AI software company.
+What actually spread in the workplace was simpler. Hyundai Motor Group's shoulder exoskeleton, unveiled in 2024, supports the arms with a mechanical structure and no motor or battery, reportedly cutting shoulder strain by up to 60 percent.
+In medicine, in 2014, a wearable robot that helps people with paralyzed legs walk received its first FDA clearance in the U.S. This may be more amazing than Iron Man.
+What about flying? A British jet suit actually lifts a person with five small jet engines on the arms and back.
+Together the engines make over 1,000 horsepower. But because of fuel, one flight lasts only about three to four minutes.
+In 2019, this suit set a Guinness record by flying at 136.9 kilometers per hour.
+1,000 horsepower is about 746 kilowatts. If a fit adult working hard for an hour puts out 100 watts, that's the power of about 7,500 people at once.
+Getting that power from batteries is even harder. By weight, jet fuel holds about 50 times more energy than the best lithium-ion batteries.
+In the end, the nanosuit's real challenge is energy, not particles. A palm-sized arc reactor powering all this is the movie's biggest leap of imagination.
+Finally, the person inside. However strong the suit is, a sudden high-speed takeoff sends that force straight into the blood and brain.
+One science article pointed out that during a sudden takeoff, the suit might stop the legs from buckling, but the brain is another matter.
+Even the G-suits worn by fighter pilots are said to protect only about 1 to 2 G. The rest the pilot has to endure through training.
+Scoring it: self-assembling robots and self-healing materials have started in labs, wearable robots are partly in use, and energy and the human body are still big walls.
+A complete movie-style nanosuit is still far away. But its pieces are already growing, one by one, in labs, factories, and hospitals.
+Next time you watch the movie, think about where the suit gets its power. Subscribing and liking really help the next story.
